@@ -10,6 +10,25 @@ class GameService extends ChangeNotifier {
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
+  Future<bool> checkHealth() async {
+    // Try common health endpoints; return true if any responds with 200
+    final candidates = <String>[
+      '$baseUrl/health',
+      '$baseUrl/api/health',
+    ];
+    for (final url in candidates) {
+      try {
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          return true;
+        }
+      } catch (_) {
+        // Try next candidate
+      }
+    }
+    return false;
+  }
+
   // REST API methods
   Future<List<dynamic>> findGames() async {
     try {
@@ -25,11 +44,37 @@ class GameService extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> joinGame(String gameId) async {
+  Future<Map<String, dynamic>?> createGame(String name, int maxPlayers) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/games'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'name': name,
+          'maxPlayers': maxPlayers,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final gameData = json.decode(response.body) as Map<String, dynamic>;
+        return gameData;
+      } else {
+        throw Exception('Failed to create game');
+      }
+    } catch (e) {
+      debugPrint('Error creating game: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> joinGame(String gameId, String playerName) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/api/games/$gameId/join'),
         headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'playerName': playerName,
+        }),
       );
       
       if (response.statusCode == 200) {

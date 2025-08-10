@@ -9,8 +9,7 @@ class CardComponent extends PositionComponent with DragCallbacks, TapCallbacks {
   final String cardName;
   late TextComponent nameText;
   Vector2? _dragStartPosition;
-  Vector2? _dragOffset;
-  bool _isDragging = false;
+  
 
   CardComponent({
     required this.cardId,
@@ -61,7 +60,6 @@ class CardComponent extends PositionComponent with DragCallbacks, TapCallbacks {
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
-    _isDragging = true;
     _dragStartPosition = position.clone();
     
     // Visual feedback - scale up slightly
@@ -78,7 +76,6 @@ class CardComponent extends PositionComponent with DragCallbacks, TapCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
-    _isDragging = false;
     priority = 0;
     
     // Visual feedback - scale back to normal

@@ -16,6 +16,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   Future<void> onLoad() async {
+    await super.onLoad();
     // Initialize game components
     debugPrint('Loading game: $gameId');
     
@@ -38,6 +39,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
+    super.onTapDown(event);
     // Handle tap events
     // event.localPosition gives position relative to the game widget
     // event.canvasPosition gives position relative to the game canvas
@@ -48,6 +50,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
     // Handle drag start for card movement
     debugPrint('Drag started at: ${event.localPosition}');
     
@@ -57,6 +60,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
+    super.onDragUpdate(event);
     // Handle drag update
     // Note: DragUpdateEvent has limited position info
     // You may need to track position manually from start event
@@ -68,6 +72,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
     // Handle drag end
     debugPrint('Drag ended');
     

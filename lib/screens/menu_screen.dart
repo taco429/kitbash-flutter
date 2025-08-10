@@ -133,13 +133,15 @@ class _MenuScreenState extends State<MenuScreen> {
     );
 
     if (result != null) {
+      if (!mounted) return;
       final gameService = context.read<GameService>();
       final gameData = await gameService.createGame(
         result['name'],
         result['maxPlayers'],
       );
       
-      if (gameData != null && mounted) {
+      if (!mounted) return;
+      if (gameData != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Game created successfully!')),
         );
@@ -186,10 +188,12 @@ class _MenuScreenState extends State<MenuScreen> {
     );
 
     if (playerName != null && playerName.isNotEmpty) {
+      if (!mounted) return;
       final gameService = context.read<GameService>();
       final gameData = await gameService.joinGame(gameId, playerName);
 
-      if (gameData != null && mounted) {
+      if (!mounted) return;
+      if (gameData != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
