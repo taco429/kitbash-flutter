@@ -10,51 +10,94 @@
 ## Core Gameplay
 
 ### Objective
-Players build decks from their collection and battle opponents in strategic turn-based matches. The goal is to reduce the opponent's life points to zero using creatures, spells, and tactics.
+Players build decks from their collection and battle opponents on a tactical grid with simultaneous order resolution. The goal is to destroy the opponent's Command Center by deploying units, casting spells, and executing tactics.
 
 ### Game Flow
 1. **Deck Building**: Players construct 30-40 card decks
 2. **Matchmaking**: Find opponents via REST API
-3. **Battle**: Real-time multiplayer via WebSocket
-4. **Victory**: First to reduce opponent to 0 life wins
+3. **Battle**: Simultaneous planning (orders lock-in) and server-resolved rounds over WebSocket
+4. **Victory**: Destroy the opponent's Command Center
 
 ## Game Mechanics
 
 ### Basic Rules
-- **Starting Life**: 20 points
+- **Command Center Health**: 30 (tunable)
 - **Hand Size**: 7 cards (max 10)
 - **Deck Size**: 30-40 cards
-- **Turn Time**: 90 seconds
-- **Mana System**: Progressive (1 per turn, max 10)
+- **Round Timing**: Planning phase 30s (tunable) with lock-in; resolution phase ~3s
+- **Mana System**: Progressive (1 per round, max 10)
 
-### Turn Structure
-1. **Draw Phase**: Draw 1 card
-2. **Main Phase 1**: Play cards, activate abilities
-3. **Combat Phase**: Attack with creatures
-4. **Main Phase 2**: Play additional cards
-5. **End Phase**: Cleanup, discard to hand limit
+### Round Structure (Simultaneous Orders)
+1. **Draw & Income**: Draw 1 card; gain 1 mana (up to 10).
+2. **Planning Phase**: Both sides simultaneously choose actions: play unit/structure cards into their deployment zone, queue spells/tactics, and assign unit abilities/targets as allowed. Players press Lock-In to commit.
+3. **Reveal & Resolve**:
+   - Spells/tactics resolve in priority order (see Simultaneous Resolution Rules).
+   - Summoned units and built structures enter the board.
+   - Start-of-round triggers fire.
+   - Units automatically move based on their movement stat and rules.
+   - Combat resolves (ranged and melee) with simultaneous damage application.
+4. **Cleanup**: End-of-round triggers, resolve deaths, apply status durations, discard to hand limit.
+
+### Board and Grid
+- **Grid**: Default 7 columns × 9 rows (tunable). Bottom is Player A's side; top is Player B's side.
+- **Coordinates**: (column, row) with row 0 as Player A back row; row 8 as Player B back row.
+- **Command Centers (CC)**: Each player has a CC occupying 1 tile in the center of their back row. Destroying the enemy CC wins the match.
+- **Zones**:
+  - **Deployment Zone**: The two back rows on each side (rows 0–1 for Player A, rows 7–8 for Player B) unless a card states otherwise.
+  - **Neutral Zone**: Middle rows (2–6 by default) where engagements occur.
+
+### Deployment Rules
+- Play unit cards into empty tiles in your deployment zone, respecting any placement restrictions on the card.
+- Structures (e.g., turrets, walls) are placed on your side and occupy tiles until destroyed.
+- The Command Center's position is fixed; it cannot be moved or redeployed.
+
+### Unit Movement
+- **Speed (SPD)**: Units have a movement speed stat indicating tiles moved per round during the Resolve step (default 1 forward tile toward the enemy CC).
+- **Default Pathing**: Units maintain their spawn column and advance toward the enemy unless their card specifies alternate behavior.
+- **Blocking & Zones of Control (ZOC)**: Units cannot move through enemy-occupied tiles. If an enemy is adjacent in the direction of travel, the moving unit stops and may attack if in range. Units with Taunt project ZOC, preventing enemies from moving past adjacent tiles.
+- **Lateral Movement**: Unless a unit has a keyword (e.g., Agile/Pathfinder), units do not sidestep. Special abilities may allow diagonal or lateral moves.
+- **Flying**: Flying units ignore terrain and non-flying ZOC for movement but still respect engagement rules when ending movement.
+- **Collisions**: If opposing units would enter the same tile during the same round, neither enters; both remain in their original tiles and proceed to combat if in range.
+
+### Combat Resolution
+- **Ranges**: Units have an attack range (RNG). Melee units have RNG 1 (adjacent); ranged units have higher RNG.
+- **Order**: After movement, all attacks resolve simultaneously. Damage is applied concurrently; units reduced to 0 HP are destroyed even if their damage would also kill the attacker.
+- **Targeting**: By default, units target the closest enemy unit in range along their lane; if none, they target the enemy CC when it is within range.
+- **Structures**: Structures may attack or provide effects if specified. The Command Center may have passive defenses (tunable).
+
+### Simultaneous Resolution Rules
+- **Action Lock-In**: During Planning, each player (or team) submits orders. Once both lock in or the timer expires, orders are frozen for that round.
+- **Priority for Non-Unit Effects**:
+  1. Global effects and state-based cleanups
+  2. Spells/Tactics (sorted by card-defined priority; ties alternate by round priority token)
+  3. Summons/Structures enter play
+  4. Start-of-round triggers
+  5. Movement (see Collisions)
+  6. On-move triggers (e.g., traps, auras)
+  7. Combat (simultaneous damage)
+  8. Death resolution and end-of-round triggers
+- **Round Priority Token**: To ensure determinism, one side holds a priority token that alternates each round; it breaks remaining ties (e.g., same-cost spells, equal-speed interactions). Final ties break by server-seeded unit IDs.
 
 ### Card Types
 
-#### 1. Creatures
-- Have Attack/Defense values
-- Can attack opponents or defend
-- May have special abilities
-- Remain on battlefield until destroyed
+#### 1. Units (formerly Creatures)
+- Have Attack/Health values, plus Range (RNG) and Speed (SPD)
+- Occupy grid tiles and auto-move each round during resolution
+- Cannot be manually moved except by card effects
+- May have special abilities and keywords that modify movement, targeting, or combat
 
-#### 2. Spells
-- One-time effects
-- Instant or sorcery speed
+#### 2. Spells / Tactics
+- One-time effects declared in Planning, resolved in Reveal & Resolve per priority
+- May target units, structures, tiles, or global state
 - Go to graveyard after use
 
-#### 3. Artifacts
-- Permanent effects
-- Remain on battlefield
-- Can be destroyed by specific cards
+#### 3. Structures (includes Command Center)
+- Permanent effects that occupy tiles (e.g., walls, turrets, generators)
+- Remain on battlefield until destroyed
+- Command Centers are unique structures that define victory; they cannot be moved
 
-#### 4. Enchantments
-- Buff/debuff effects
-- Can target creatures or players
+#### 4. Auras / Attachments (formerly Enchantments)
+- Buff/debuff effects attached to units, structures, or tiles
 - Persistent until removed
 
 ### Resource System
@@ -74,29 +117,35 @@ Players build decks from their collection and battle opponents in strategic turn
 ### Card Anatomy
 ```
 ┌─────────────────────┐
-│ [Mana Cost]    [3]  │
+│ [Mana Cost]  RNG 2  │
+│             SPD 1   │
 │                     │
 │  [Card Art]         │
 │                     │
 ├─────────────────────┤
 │ Card Name           │
-│ Type - Subtype      │
+│ Unit - Subtype      │
 ├─────────────────────┤
 │ Card Text           │
 │ Abilities           │
 ├─────────────────────┤
-│ ATK/DEF        3/4  │
+│ ATK/HP        3/4   │
 └─────────────────────┘
 ```
 
 ### Keywords/Abilities
-- **Haste**: Can attack immediately
-- **Flying**: Can only be blocked by flying
-- **Lifelink**: Damage dealt gains life
-- **Deathtouch**: Destroys any creature it damages
+- **Haste**: Can move/attack on the round it is deployed
+- **Flying**: Ignores terrain and non-flying ZOC when moving; can be targeted by effects that hit flying
+- **Lifelink**: Damage dealt heals controller's Command Center by the same amount (tunable)
+- **Deathtouch**: Destroys any unit it damages
 - **Ward X**: Costs X more to target
 - **Draw X**: Draw X cards
-- **Taunt**: Must be attacked first
+- **Taunt**: Projects ZOC; adjacent enemies must target this or cannot move past
+- **Range X**: Sets attack distance
+- **Speed X**: Tiles moved during movement step
+- **Knockback**: Pushes targets backward on hit
+- **Charge**: Extra forward movement before attacking
+- **Overwatch**: Performs a reaction attack when an enemy enters range during movement
 
 ## Factions/Colors
 
@@ -196,19 +245,22 @@ Players build decks from their collection and battle opponents in strategic turn
 
 ### In-Game UI
 ```
-┌─────────────────────────────────────┐
-│ Opponent Hand (5 cards)             │
-├─────────────────────────────────────┤
-│                                     │
-│     Opponent Battlefield            │
-│                                     │
-├─────────────────────────────────────┤
-│                                     │
-│     Player Battlefield              │
-│                                     │
-├─────────────────────────────────────┤
-│ Player Hand (7 cards)               │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ Opponent Hand                               │
+├─────────────────────────────────────────────┤
+│                 [Opp CC]                    │
+│  □ □ □ □ □ □ □   (row 8)                    │
+│  □ □ □ □ □ □ □   (row 7)  ← Opp Deployment  │
+│  □ □ □ □ □ □ □   (row 6)                    │
+│  □ □ □ □ □ □ □   (row 5)                    │
+│  □ □ □ □ □ □ □   (row 4)                    │
+│  □ □ □ □ □ □ □   (row 3)                    │
+│  □ □ □ □ □ □ □   (row 2)                    │
+│  □ □ □ □ □ □ □   (row 1)  ← Player Deploy   │
+│        [Player CC] (row 0)                  │
+├─────────────────────────────────────────────┤
+│ Player Hand                                 │
+└─────────────────────────────────────────────┘
 ```
 
 ### Visual Style
@@ -246,6 +298,9 @@ Players build decks from their collection and battle opponents in strategic turn
 - Graceful disconnection handling
 - Reconnection support
 - Anti-cheat measures
+- Server-authoritative, lock-step simulation per round
+- Orders are committed client-side and validated server-side; server resolves with a deterministic seed
+- Alternating round priority token to break ties consistently
 
 ## Competitive Design
 
