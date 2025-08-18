@@ -1,10 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:kitbash_flutter/main.dart';
+import 'package:kitbash_flutter/services/game_service.dart';
+
+class _FakeGameService extends GameService {
+  @override
+  Future<List<dynamic>> findGames() async => [];
+}
 
 void main() {
   testWidgets('App launches and shows title', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const KitbashApp());
+    // Build app with required providers
+    await tester.pumpWidget(
+      ChangeNotifierProvider<GameService>(
+        create: (_) => _FakeGameService(),
+        child: const KitbashApp(),
+      ),
+    );
+
+    await tester.pumpAndSettle();
 
     // Verify that the app title is shown
     expect(find.text('Kitbash CCG'), findsOneWidget);
