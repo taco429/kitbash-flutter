@@ -6,7 +6,7 @@ import 'dart:convert';
 class GameService extends ChangeNotifier {
   static const String baseUrl = 'http://localhost:8080';
   WebSocketChannel? _channel;
-  
+
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
@@ -31,7 +31,7 @@ class GameService extends ChangeNotifier {
         Uri.parse('$baseUrl/api/games/$gameId/join'),
         headers: {'Content-Type': 'application/json'},
       );
-      
+
       if (response.statusCode == 200) {
         final gameData = json.decode(response.body);
         // Connect to WebSocket for game
@@ -52,10 +52,10 @@ class GameService extends ChangeNotifier {
       _channel = WebSocketChannel.connect(
         Uri.parse('ws://localhost:8080/ws/game/$gameId'),
       );
-      
+
       _isConnected = true;
       notifyListeners();
-      
+
       _channel!.stream.listen(
         (message) {
           handleWebSocketMessage(message);
@@ -104,4 +104,4 @@ class GameService extends ChangeNotifier {
     disconnect();
     super.dispose();
   }
-} 
+}
