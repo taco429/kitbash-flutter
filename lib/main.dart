@@ -28,4 +28,4 @@ class KitbashApp extends StatelessWidget {
       home: const MenuScreen(),
     );
   }
-} 
+}

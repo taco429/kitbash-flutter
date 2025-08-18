@@ -28,4 +28,4 @@ void main() {
     expect(find.text('Deck Builder'), findsOneWidget);
     expect(find.text('Find Games'), findsOneWidget);
   });
-} 
+}

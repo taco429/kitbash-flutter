@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   final String gameId;
-  
+
   KitbashGame({required this.gameId});
 
   @override
@@ -14,7 +14,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   Future<void> onLoad() async {
     // Initialize game components
     debugPrint('Loading game: $gameId');
-    
+
     // TODO: Load game assets
     // TODO: Initialize game board
     // TODO: Load player decks
@@ -45,4 +45,4 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
     // Handle drag end
     debugPrint('Drag ended');
   }
-} 
+}
