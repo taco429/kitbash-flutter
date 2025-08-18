@@ -2,7 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 
-class KitbashGame extends FlameGame with TapDetector, DragDetector {
+class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   final String gameId;
   
   KitbashGame({required this.gameId});
@@ -22,24 +22,21 @@ class KitbashGame extends FlameGame with TapDetector, DragDetector {
   }
 
   @override
-  void onTapDown(TapDownInfo info) {
+  void onTapDown(TapDownEvent event) {
     // Handle tap events
-    debugPrint('Tapped at: ${info.eventPosition.global}');
+    debugPrint('Tapped at: ${event.localPosition}');
   }
 
   @override
-  void onDragStart(DragStartInfo info) {
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
     // Handle drag start for card movement
-    debugPrint('Drag started at: ${info.eventPosition.global}');
+    debugPrint('Drag started at: ${event.localPosition}');
   }
 
   @override
-  void onDragUpdate(DragUpdateInfo info) {
-    // Handle drag update
-  }
-
-  @override
-  void onDragEnd(DragEndInfo info) {
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
     // Handle drag end
     debugPrint('Drag ended');
   }
