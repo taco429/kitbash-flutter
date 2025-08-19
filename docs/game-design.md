@@ -170,6 +170,8 @@ Players build decks from their collection and battle opponents on a tactical gri
 - **Root**: Prevents the target from moving during its next movement step
 - **Regenerate X**: Heals X at the end of each round
 - **Evade**: Prevents the first attack against this unit each round
+ - **Critical Hit X%**: Has an X% chance to deal double damage
+ - **Multi-Strike X**: Attacks X times each attack step
 
 ## Factions/Colors
 
