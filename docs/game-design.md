@@ -150,19 +150,26 @@ Players build decks from their collection and battle opponents on a tactical gri
 ```
 
 ### Keywords/Abilities
-- **Flying**: Ignores terrain and non-flying ZOC when moving; can be targeted by effects that hit flying
-- **Draw X**: Draw X more cards on the next turn
-- **Taunt**: Projects ZOC; adjacent enemies must target this or cannot move past
-- **Range X**: Sets attack distance
-- **Speed X**: Tiles moved during movement step
-- **Knockback**: Pushes targets backward on hit
-- **Charge**: Extra forward movement before attacking
-- **Overwatch**: Performs a reaction attack when an enemy enters range during movement
+- **Flying**: Ignores terrain and non-flying ZOC while moving; can be targeted by effects that hit flying units
+- **Draw X**: Draw X more cards on your next turn
+- **Taunt**: Projects ZOC; adjacent enemies must target this unit or cannot move past it
+- **Range X**: Attacks targets up to X tiles away
+- **Speed X**: Moves up to X tiles during the movement step
+- **Knockback**: Pushes the target back on hit
+- **Charge**: Moves forward before attacking
+- **Overwatch**: Performs a reaction attack when an enemy enters its range during movement
 - **Siege X**: Deals X extra damage to buildings
 - **Stealth**: Slips past the first enemy unit it encounters
-- **Protector**: Takes the damage inflicted to allied units around it
-- **Summon**: Can be placed outside of your base (but not in the opponent's base)
+- **Protector**: Takes damage dealt to adjacent allied units
+- **Summon**: May be placed outside your base but not in the opponent's base
 - **Lifesteal X**: Heals itself by X each time it attacks
+- **Armor X**: Reduces incoming damage by X
+- **Pierce X**: Ignores up to X Armor on the target
+- **Splash X**: Also deals X damage to enemy units adjacent to the primary target
+- **Slow X**: Reduces the target's Speed by X until the end of the next round
+- **Root**: Prevents the target from moving during its next movement step
+- **Regenerate X**: Heals X at the end of each round
+- **Evade**: Prevents the first attack against this unit each round
 
 ## Factions/Colors
 
