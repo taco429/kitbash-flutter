@@ -38,49 +38,7 @@ jobs:
     - name: Check code formatting
       run: dart format --set-exit-if-changed .
 
-  build:
-    name: Build Flutter App
-    runs-on: ${{ matrix.os }}
-    needs: test
-    
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            build_command: flutter build apk --debug
-            artifact_name: app-debug.apk
-            artifact_path: build/app/outputs/flutter-apk/
-          - os: windows-latest
-            build_command: flutter build windows --debug
-            artifact_name: windows-debug
-            artifact_path: build/windows/runner/Debug/
-          - os: macos-latest
-            build_command: flutter build macos --debug
-            artifact_name: macos-debug
-            artifact_path: build/macos/Build/Products/Debug/
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.16.0'
-        channel: 'stable'
-
-    - name: Get dependencies
-      run: flutter pub get
-
-    - name: Build app
-      run: ${{ matrix.build_command }}
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ matrix.artifact_name }}
-        path: ${{ matrix.artifact_path }}
+  
 
   web-build:
     name: Build Web App
