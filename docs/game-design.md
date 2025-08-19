@@ -150,18 +150,19 @@ Players build decks from their collection and battle opponents on a tactical gri
 ```
 
 ### Keywords/Abilities
-- **Haste**: Can move/attack on the round it is deployed
 - **Flying**: Ignores terrain and non-flying ZOC when moving; can be targeted by effects that hit flying
-- **Lifelink**: Damage dealt heals controller's Command Center by the same amount (tunable)
-- **Deathtouch**: Destroys any unit it damages
-- **Ward X**: Costs X more to target
-- **Draw X**: Draw X cards
+- **Draw X**: Draw X more cards on the next turn
 - **Taunt**: Projects ZOC; adjacent enemies must target this or cannot move past
 - **Range X**: Sets attack distance
 - **Speed X**: Tiles moved during movement step
 - **Knockback**: Pushes targets backward on hit
 - **Charge**: Extra forward movement before attacking
 - **Overwatch**: Performs a reaction attack when an enemy enters range during movement
+- **Siege X**: Deals X extra damage to buildings
+- **Stealth**: Slips past the first enemy unit it encounters
+- **Protector**: Takes the damage inflicted to allied units around it
+- **Summon**: Can be placed outside of your base (but not in the opponent's base)
+- **Lifesteal X**: Heals itself by X each time it attacks
 
 ## Factions/Colors
 
@@ -182,7 +183,7 @@ Players build decks from their collection and battle opponents on a tactical gri
 
 ### 4. Chaos (Red)
 - **Theme**: Direct damage, aggressive creatures
-- **Mechanics**: Burn spells, haste
+- **Mechanics**: Burn spells
 - **Playstyle**: Fast, aggressive
 
 ### 5. Nature (Green)
