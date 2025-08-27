@@ -13,6 +13,8 @@ import (
     "kitbash/backend/internal/httpapi"
 )
 
+// main loads config, constructs the router, and starts the HTTP server
+// with graceful shutdown on SIGINT/SIGTERM.
 func main() {
     cfg := config.Load()
 

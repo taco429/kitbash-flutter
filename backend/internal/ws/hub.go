@@ -8,12 +8,15 @@ import (
     "github.com/gorilla/websocket"
 )
 
+// Hub tracks active WebSocket connections and handles basic echo I/O.
+// It will later broadcast lobby/game events to subscribed clients.
 type Hub struct {
     mu       sync.RWMutex
     clients  map[*websocket.Conn]struct{}
     upgrader websocket.Upgrader
 }
 
+// NewHub creates a Hub with an open-origin upgrader (dev-friendly).
 func NewHub() *Hub {
     return &Hub{
         clients: make(map[*websocket.Conn]struct{}),
@@ -23,6 +26,8 @@ func NewHub() *Hub {
     }
 }
 
+// HandleWS upgrades HTTP to WebSocket and echoes messages back.
+// Used by /ws and /ws/game/{id} endpoints for quick connectivity checks.
 func (h *Hub) HandleWS(w http.ResponseWriter, r *http.Request) {
     conn, err := h.upgrader.Upgrade(w, r, nil)
     if err != nil {

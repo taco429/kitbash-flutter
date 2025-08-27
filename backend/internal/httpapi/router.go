@@ -20,6 +20,8 @@ type api struct {
     cfg  config.Config
 }
 
+// NewRouter constructs the HTTP router, wires routes/middleware, and returns it.
+// Used by main() to start the HTTP server.
 func NewRouter(cfg config.Config) http.Handler {
     r := chi.NewRouter()
     r.Use(middleware.Logger)
@@ -31,23 +33,32 @@ func NewRouter(cfg config.Config) http.Handler {
     a.repo.Create("Quick Match", domain.Player{ID: "host", Name: "Host"})
     hub := ws.NewHub()
 
+    // GET /healthz: liveness probe for container/orchestrator.
     r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)
         w.Write([]byte("ok"))
     })
 
     r.Route("/api", func(r chi.Router) {
+        // GET /api/lobbies: list active lobbies.
         r.Get("/lobbies", a.handleListLobbies)
+        // POST /api/lobbies: create a new lobby with a host.
         r.Post("/lobbies", a.handleCreateLobby)
         r.Route("/lobbies/{id}", func(r chi.Router) {
+            // GET /api/lobbies/{id}/: fetch lobby details.
             r.Get("/", a.handleGetLobby)
+            // POST /api/lobbies/{id}/join: add a player to the lobby.
             r.Post("/join", a.handleJoinLobby)
+            // POST /api/lobbies/{id}/leave: remove a player from the lobby.
             r.Post("/leave", a.handleLeaveLobby)
+            // DELETE /api/lobbies/{id}/: delete a lobby.
             r.Delete("/", a.handleDeleteLobby)
         })
 
         // Compatibility routes expected by current Flutter client
+        // GET /api/games: alias for lobbies list.
         r.Get("/games", a.handleListLobbies)
+        // POST /api/games/{id}/join: join without request body.
         r.Post("/games/{id}/join", a.handleJoinGameCompat)
     })
 
@@ -58,6 +69,7 @@ func NewRouter(cfg config.Config) http.Handler {
     return r
 }
 
+// writeJSON writes JSON responses with status code; used by handlers.
 func (a *api) writeJSON(w http.ResponseWriter, status int, v any) {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(status)
@@ -66,6 +78,7 @@ func (a *api) writeJSON(w http.ResponseWriter, status int, v any) {
     }
 }
 
+// handleListLobbies returns all active lobbies.
 func (a *api) handleListLobbies(w http.ResponseWriter, r *http.Request) {
     lobbies, _ := a.repo.List()
     a.writeJSON(w, http.StatusOK, lobbies)
@@ -76,6 +89,8 @@ type createLobbyRequest struct {
     HostName string `json:"hostName"`
 }
 
+// handleCreateLobby creates a new lobby from request body.
+// Body: { name, hostName }
 func (a *api) handleCreateLobby(w http.ResponseWriter, r *http.Request) {
     var req createLobbyRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Name == "" || req.HostName == "" {
@@ -91,6 +106,7 @@ func (a *api) handleCreateLobby(w http.ResponseWriter, r *http.Request) {
     a.writeJSON(w, http.StatusCreated, lobby)
 }
 
+// handleGetLobby fetches a lobby by ID in the URL.
 func (a *api) handleGetLobby(w http.ResponseWriter, r *http.Request) {
     id := chi.URLParam(r, "id")
     lobby, err := a.repo.Get(domain.LobbyID(id))
@@ -106,6 +122,8 @@ type joinLobbyRequest struct {
     PlayerName string `json:"playerName"`
 }
 
+// handleJoinLobby joins the specified lobby.
+// Accepts empty body (ephemeral player) or { playerId, playerName }.
 func (a *api) handleJoinLobby(w http.ResponseWriter, r *http.Request) {
     id := chi.URLParam(r, "id")
     var req joinLobbyRequest
@@ -133,6 +151,8 @@ type leaveLobbyRequest struct {
     PlayerID string `json:"playerId"`
 }
 
+// handleLeaveLobby removes a player from the lobby.
+// Body: { playerId }
 func (a *api) handleLeaveLobby(w http.ResponseWriter, r *http.Request) {
     id := chi.URLParam(r, "id")
     var req leaveLobbyRequest
@@ -152,6 +172,7 @@ func (a *api) handleLeaveLobby(w http.ResponseWriter, r *http.Request) {
     a.writeJSON(w, http.StatusOK, lobby)
 }
 
+// handleDeleteLobby deletes the lobby by ID.
 func (a *api) handleDeleteLobby(w http.ResponseWriter, r *http.Request) {
     id := chi.URLParam(r, "id")
     if err := a.repo.Delete(domain.LobbyID(id)); err != nil {
@@ -161,7 +182,8 @@ func (a *api) handleDeleteLobby(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusNoContent)
 }
 
-// handleJoinGameCompat matches the Flutter client's expected route
+// handleJoinGameCompat joins a lobby using the legacy /api/games route.
+// Used by the current Flutter client; no body required.
 func (a *api) handleJoinGameCompat(w http.ResponseWriter, r *http.Request) {
     id := chi.URLParam(r, "id")
     // Reuse join without requiring body
@@ -174,7 +196,7 @@ func (a *api) handleJoinGameCompat(w http.ResponseWriter, r *http.Request) {
     a.writeJSON(w, http.StatusOK, lobby)
 }
 
-// corsMiddleware is a minimal CORS handler for dev
+// corsMiddleware allows cross-origin requests for local dev.
 func corsMiddleware() func(http.Handler) http.Handler {
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
