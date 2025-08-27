@@ -1,0 +1,8 @@
+# Backend docker ignore
+.git
+bin
+build
+coverage
+*.log
+*.out
+*.test

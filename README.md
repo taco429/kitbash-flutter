@@ -72,6 +72,21 @@ The client is configured to connect to a local backend server by default:
 
 To change the backend URL, modify the `baseUrl` in `lib/services/game_service.dart`.
 
+### Run with Docker Compose (optional)
+
+If you have Docker installed:
+
+```bash
+docker compose build
+docker compose up
+```
+
+Services:
+- Backend API: `http://localhost:8080`
+- Frontend (web, via nginx): `http://localhost:8081`
+
+More details in `docs/backend.md`.
+
 ## Development
 
 ### Running Tests
