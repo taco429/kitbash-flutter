@@ -23,6 +23,7 @@ func Load() Config {
     return cfg
 }
 
+// getenvDefault returns the env value or the provided default when empty.
 func getenvDefault(key, def string) string {
     v := os.Getenv(key)
     if v == "" {

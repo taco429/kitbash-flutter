@@ -10,6 +10,7 @@ import (
 )
 
 var (
+    // ErrLobbyNotFound indicates the requested lobby doesn't exist.
     ErrLobbyNotFound = errors.New("lobby not found")
 )
 
@@ -29,10 +30,12 @@ type InMemoryLobbyRepository struct {
     storage map[domain.LobbyID]domain.Lobby
 }
 
+// NewInMemoryLobbyRepository returns an empty in-memory lobby store.
 func NewInMemoryLobbyRepository() *InMemoryLobbyRepository {
     return &InMemoryLobbyRepository{storage: make(map[domain.LobbyID]domain.Lobby)}
 }
 
+// Create creates a new lobby with the given host.
 func (r *InMemoryLobbyRepository) Create(name string, host domain.Player) (domain.Lobby, error) {
     r.mu.Lock()
     defer r.mu.Unlock()
@@ -49,6 +52,7 @@ func (r *InMemoryLobbyRepository) Create(name string, host domain.Player) (domai
     return lobby, nil
 }
 
+// Get retrieves a lobby by ID.
 func (r *InMemoryLobbyRepository) Get(id domain.LobbyID) (domain.Lobby, error) {
     r.mu.RLock()
     defer r.mu.RUnlock()
@@ -59,6 +63,7 @@ func (r *InMemoryLobbyRepository) Get(id domain.LobbyID) (domain.Lobby, error) {
     return lobby, nil
 }
 
+// List returns all lobbies.
 func (r *InMemoryLobbyRepository) List() ([]domain.Lobby, error) {
     r.mu.RLock()
     defer r.mu.RUnlock()
@@ -69,6 +74,7 @@ func (r *InMemoryLobbyRepository) List() ([]domain.Lobby, error) {
     return result, nil
 }
 
+// Join adds a player to a lobby, if capacity allows.
 func (r *InMemoryLobbyRepository) Join(id domain.LobbyID, player domain.Player) (domain.Lobby, error) {
     r.mu.Lock()
     defer r.mu.Unlock()
@@ -90,6 +96,7 @@ func (r *InMemoryLobbyRepository) Join(id domain.LobbyID, player domain.Player) 
     return lobby, nil
 }
 
+// Leave removes a player from a lobby; deletes lobby if it becomes empty.
 func (r *InMemoryLobbyRepository) Leave(id domain.LobbyID, playerID domain.PlayerID) (domain.Lobby, error) {
     r.mu.Lock()
     defer r.mu.Unlock()
@@ -113,6 +120,7 @@ func (r *InMemoryLobbyRepository) Leave(id domain.LobbyID, playerID domain.Playe
     return lobby, nil
 }
 
+// Delete removes a lobby by ID.
 func (r *InMemoryLobbyRepository) Delete(id domain.LobbyID) error {
     r.mu.Lock()
     defer r.mu.Unlock()
