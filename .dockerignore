@@ -1,0 +1,17 @@
+# Root docker ignore for frontend build context
+.git
+.github
+.flutter
+.dart_tool
+build
+android
+ios
+macos
+windows
+linux
+.test
+coverage
+backend/
+docs/
+*.iml
+*.log

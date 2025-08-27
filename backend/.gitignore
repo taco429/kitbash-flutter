@@ -1,0 +1,8 @@
+/bin/
+/dist/
+/build/
+/coverage/
+*.log
+*.out
+*.test
+
