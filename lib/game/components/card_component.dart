@@ -1,5 +1,5 @@
 import 'package:flame/components.dart';
-import 'package:flame/experimental.dart';
+import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 
 class CardComponent extends PositionComponent with DragCallbacks, TapCallbacks {
@@ -78,8 +78,7 @@ class CardComponent extends PositionComponent with DragCallbacks, TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
-    // Placeholder interaction
-    size = Vector2(size.x, size.y); // no-op to force markNeedsPaint
+    // Placeholder interaction; keep for future expansion
   }
 }
 

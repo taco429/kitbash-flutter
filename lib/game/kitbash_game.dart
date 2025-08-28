@@ -11,7 +11,7 @@ import 'components/card_component.dart';
 class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   final String gameId;
   final GameService gameService;
-  late final StreamSubscription<GameEvent> _subscription;
+  StreamSubscription<GameEvent>? _subscription;
   final GameState state = GameState.empty();
 
   KitbashGame({required this.gameId, required this.gameService});
@@ -92,7 +92,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   void onRemove() {
     // Clean up subscription when game is removed
     try {
-      _subscription.cancel();
+      _subscription?.cancel();
     } catch (_) {}
     super.onRemove();
   }
