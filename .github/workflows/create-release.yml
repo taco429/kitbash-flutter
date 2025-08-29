@@ -23,5 +23,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG_PREFIX: v
-        PRERELEASE: true
         DEFAULT_BUMP: "patch"
