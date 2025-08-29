@@ -20,6 +20,7 @@ jobs:
           go-version: '1.22' # Use your Go version
 
       - name: Build Go Backend
+        working-directory: backend
         run: GOOS=linux GOARCH=amd64 go build -o server ./cmd/server
 
       - name: Set up Flutter
@@ -34,7 +35,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: go-backend-binary
-          path: server
+          path: backend/server
 
       - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
