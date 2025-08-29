@@ -27,10 +27,11 @@ jobs:
         DEFAULT_BUMP: "patch"
 
     - name: Create GitHub release
+      if: ${{ steps.tag_version.outputs.new_tag != '' || steps.tag_version.outputs.tag != '' }}
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ steps.tag_version.outputs.new_tag }}
-        name: ${{ steps.tag_version.outputs.new_tag }}
+        tag_name: ${{ steps.tag_version.outputs.new_tag || steps.tag_version.outputs.tag }}
+        name: ${{ steps.tag_version.outputs.new_tag || steps.tag_version.outputs.tag }}
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
