@@ -1,0 +1,73 @@
+name: Build and Deploy Game
+
+# Trigger this workflow when a new release is published
+on:
+  release:
+    types: [published]
+
+jobs:
+  # --- JOB 1: Build the Go and Flutter applications ---
+  build:
+    name: Build Artifacts
+    runs-on: ubuntu-latest # Use a standard GitHub-hosted runner for building
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # Use your Go version
+
+      - name: Build Go Backend
+        run: GOOS=linux GOARCH=amd64 go build -o server ./cmd/server
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable' # Use your Flutter channel
+
+      - name: Build Flutter Web App
+        run: flutter build web
+
+      - name: Upload Backend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-backend-binary
+          path: server
+
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-frontend-build
+          path: build/web
+
+  # --- JOB 2: Deploy the built files using our home server ---
+  deploy:
+    name: Deploy to Proxmox
+    needs: build # This job runs only after the 'build' job is successful
+    runs-on: self-hosted # IMPORTANT: This tells GitHub to use your runner at home
+    steps:
+      - name: Download Backend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: go-backend-binary
+
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flutter-frontend-build
+
+      - name: Deploy Go Backend
+        run: |
+          echo "Deploying backend..."
+          scp -o StrictHostKeyChecking=no ./server root@192.168.4.156:/usr/local/bin/
+          ssh -o StrictHostKeyChecking=no root@192.168.4.156 'systemctl restart server.service'
+          echo "Backend deployment complete."
+
+      - name: Deploy Flutter Frontend
+        run: |
+          echo "Deploying frontend..."
+          scp -o StrictHostKeyChecking=no -r ./* root@192.168.4.157:/var/www/kitbash/
+          ssh -o StrictHostKeyChecking=no root@192.168.4.157 'systemctl restart nginx'
+          echo "Frontend deployment complete."
