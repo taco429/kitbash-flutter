@@ -1,0 +1,44 @@
+# .github/workflows/create-release.yml
+
+name: Create Semantic Release on Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main # Or your default branch
+
+jobs:
+  create_release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read # Needed to read labels
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Next Semantic Version
+        id: semver_tag # We give this step an ID to reference its output later
+        uses: anothrNick/github-tag-action@1.69.0 # This action calculates the next version
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: "patch" # If no label is found, it will default to a patch bump
+          custom_labels: |
+            - label: 'semver:major'
+              bump: 'major'
+            - label: 'semver:minor'
+              bump: 'minor'
+            - label: 'semver:patch'
+              bump: 'patch'
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # The name of the release, now including the new version tag
+          name: "Release ${{ steps.semver_tag.outputs.new_tag }}: ${{ github.event.pull_request.title }}"
+          body: ${{ github.event.pull_request.body }}
+          # The tag_name is now the output from the "semver_tag" step
+          tag_name: ${{ steps.semver_tag.outputs.new_tag }}
+          prerelease: false
