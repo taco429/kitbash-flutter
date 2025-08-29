@@ -19,8 +19,19 @@ jobs:
         fetch-depth: '0'
 
     - name: Bump version and push tag
+      id: tag_version
       uses: anothrNick/github-tag-action@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG_PREFIX: v
         DEFAULT_BUMP: "patch"
+
+    - name: Create GitHub release
+      if: ${{ steps.tag_version.outputs.new_tag != '' || steps.tag_version.outputs.tag != '' }}
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.tag_version.outputs.new_tag || steps.tag_version.outputs.tag }}
+        name: ${{ steps.tag_version.outputs.new_tag || steps.tag_version.outputs.tag }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
