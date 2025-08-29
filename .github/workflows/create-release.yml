@@ -1,44 +1,27 @@
-# .github/workflows/create-release.yml
-
-name: Create Semantic Release on Merge
-
+name: Bump version
 on:
   pull_request:
-    types: [closed]
+    types:
+      - closed
     branches:
-      - main # Or your default branch
+      - main
 
 jobs:
-  create_release:
+  build:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
-      pull-requests: read # Needed to read labels
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.merge_commit_sha }}
+        fetch-depth: '0'
 
-      - name: Get Next Semantic Version
-        id: semver_tag # We give this step an ID to reference its output later
-        uses: anothrNick/github-tag-action@v1 # This action calculates the next version
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: "patch" # If no label is found, it will default to a patch bump
-          custom_labels: |
-            - label: 'semver:major'
-              bump: 'major'
-            - label: 'semver:minor'
-              bump: 'minor'
-            - label: 'semver:patch'
-              bump: 'patch'
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          # The name of the release, now including the new version tag
-          name: "Release ${{ steps.semver_tag.outputs.new_tag }}: ${{ github.event.pull_request.title }}"
-          body: ${{ github.event.pull_request.body }}
-          # The tag_name is now the output from the "semver_tag" step
-          tag_name: ${{ steps.semver_tag.outputs.new_tag }}
-          prerelease: false
+    - name: Bump version and push tag
+      uses: anothrNick/github-tag-action@v1.75.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG_PREFIX: v
+        PRERELEASE: true
+        DEFAULT_BUMP: "patch"
