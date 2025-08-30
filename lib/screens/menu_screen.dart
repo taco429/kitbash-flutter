@@ -9,7 +9,6 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

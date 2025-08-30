@@ -119,11 +119,13 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : const Icon(Icons.add),
-                      label: Text(_isCreatingGame ? 'Creating...' : 'Create New Game'),
+                      label: Text(
+                          _isCreatingGame ? 'Creating...' : 'Create New Game'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -179,11 +181,12 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
                           itemCount: _availableGames.length,
                           itemBuilder: (context, index) {
                             final game = _availableGames[index];
-                            final playerCount = game['players'] ?? game['player_count'] ?? 1;
+                            final playerCount =
+                                game['players'] ?? game['player_count'] ?? 1;
                             final maxPlayers = game['max_players'] ?? 2;
                             final gameStatus = game['status'] ?? 'waiting';
                             final hostName = game['host'] ?? 'Unknown';
-                            
+
                             return Card(
                               margin: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -203,7 +206,8 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
                                 ),
                                 title: Text(
                                   'Game ${game['id']?.substring(0, 8) ?? index + 1}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
