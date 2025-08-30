@@ -62,13 +62,26 @@ jobs:
       - name: Deploy Go Backend
         run: |
           echo "Deploying backend..."
-          scp -v -o StrictHostKeyChecking=no ./server root@192.168.4.156:/usr/local/bin/
-          ssh -v -o StrictHostKeyChecking=no root@192.168.4.156 'systemctl restart server.service'
-          echo "Backend deployment complete."
+          # 1. Stop the running service to release the file lock
+          ssh -o StrictHostKeyChecking=no root@192.168.4.156 'systemctl stop server.service'
+        
+          # 2. Copy the new binary over (this will no longer fail)
+          scp -o StrictHostKeyChecking=no ./server root@192.168.4.156:/usr/local/bin/
+        
+          # 3. Start the service again and check its status
+          ssh -o StrictHostKeyChecking=no root@192.168.4.156 'systemctl start server.service'
+        
+          echo "Backend deployment complete. Verifying status..."
+        
+          # 4. (Optional but recommended) Wait a moment and verify the service is active
+          sleep 3
+          ssh -o StrictHostKeyChecking=no root@192.168.4.156 'systemctl is-active --quiet server.service'
 
       - name: Deploy Flutter Frontend
         run: |
           echo "Deploying frontend..."
-          scp -v -o StrictHostKeyChecking=no -r ./* root@192.168.4.157:/var/www/kitbash/
-          ssh -v -o StrictHostKeyChecking=no root@192.168.4.157 'systemctl restart nginx'
+          # The Nginx service does not lock the static files, so we can just copy
+          # and then restart/reload the service to pick up the new files.
+          scp -o StrictHostKeyChecking=no -r ./* root@192.168.1.102:/var/www/mygame/
+          ssh -o StrictHostKeyChecking=no root@192.168.1.102 'systemctl restart nginx'
           echo "Frontend deployment complete."
