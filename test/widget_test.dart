@@ -22,7 +22,7 @@ void main() {
 
     // Verify that the app title is shown
     expect(find.text('Kitbash CCG'), findsOneWidget);
-    expect(find.text('Welcome to Kitbash CCG'), findsOneWidget);
+    expect(find.text('Kitbash CCG Title'), findsOneWidget);
 
     // Verify that main buttons are present
     expect(find.text('Deck Builder'), findsOneWidget);
