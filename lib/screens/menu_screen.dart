@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'game_lobby_screen.dart';
+import 'game_screen.dart';
+import '../services/game_service.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -9,6 +12,41 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _createGame() async {
+    final gameService = context.read<GameService>();
+    final gameData = await gameService.createGame();
+
+    if (gameData != null && mounted) {
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Game created: ${gameData['name']}')),
+      );
+
+      // Navigate to the game
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GameScreen(gameId: gameData['id']),
+        ),
+      );
+    } else if (mounted) {
+      // Show error message
+      final error = gameService.lastError ?? 'Failed to create game';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,6 +63,11 @@ class _MenuScreenState extends State<MenuScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: _createGame,
+              child: const Text('Create Game'),
+            ),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 // TODO: Implement deck builder
