@@ -125,7 +125,8 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
                             )
                           : const Icon(Icons.add),
                       label: Text(
-                          _isCreatingGame ? 'Creating...' : 'Create New Game'),
+                        _isCreatingGame ? 'Creating...' : 'Create New Game',
+                      ),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -207,7 +208,8 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
                                 title: Text(
                                   'Game ${game['id']?.substring(0, 8) ?? index + 1}',
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
