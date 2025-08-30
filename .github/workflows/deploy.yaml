@@ -94,6 +94,6 @@ jobs:
           echo "Deploying frontend..."
           # The Nginx service does not lock the static files, so we can just copy
           # and then restart/reload the service to pick up the new files.
-          scp -o StrictHostKeyChecking=no -r ./* root@192.168.1.102:/var/www/mygame/
-          ssh -o StrictHostKeyChecking=no root@192.168.1.102 'systemctl restart nginx'
+          scp -o StrictHostKeyChecking=no -r ./* root@192.168.4.157:/var/www/kitbash/
+          ssh -o StrictHostKeyChecking=no root@192.168.4.157 'systemctl restart nginx'
           echo "Frontend deployment complete."
