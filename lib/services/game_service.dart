@@ -2,13 +2,27 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
+import 'dart:async';
+
+/// Describes high-level WebSocket/game events emitted by [GameService].
+enum GameEventType { connected, disconnected, message }
+
+class GameEvent {
+  final GameEventType type;
+  final Map<String, dynamic>? data;
+
+  GameEvent({required this.type, this.data});
+}
 
 class GameService extends ChangeNotifier {
   static const String baseUrl = 'http://localhost:8080';
   WebSocketChannel? _channel;
+  final StreamController<GameEvent> _eventController =
+      StreamController<GameEvent>.broadcast();
 
   bool _isConnected = false;
   bool get isConnected => _isConnected;
+  Stream<GameEvent> get events => _eventController.stream;
 
   // REST API methods
   Future<List<dynamic>> findGames() async {
@@ -55,6 +69,7 @@ class GameService extends ChangeNotifier {
 
       _isConnected = true;
       notifyListeners();
+      _eventController.add(GameEvent(type: GameEventType.connected));
 
       _channel!.stream.listen(
         (message) {
@@ -80,6 +95,7 @@ class GameService extends ChangeNotifier {
       final data = json.decode(message);
       debugPrint('Received: $data');
       // Handle different message types here
+      _eventController.add(GameEvent(type: GameEventType.message, data: data));
       notifyListeners();
     } catch (e) {
       debugPrint('Error handling message: $e');
@@ -96,12 +112,14 @@ class GameService extends ChangeNotifier {
     _channel?.sink.close();
     _channel = null;
     _isConnected = false;
+    _eventController.add(GameEvent(type: GameEventType.disconnected));
     notifyListeners();
   }
 
   @override
   void dispose() {
     disconnect();
+    _eventController.close();
     super.dispose();
   }
 }
