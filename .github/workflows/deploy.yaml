@@ -62,13 +62,13 @@ jobs:
       - name: Deploy Go Backend
         run: |
           echo "Deploying backend..."
-          scp -o StrictHostKeyChecking=no ./server root@192.168.4.156:/usr/local/bin/
-          ssh -o StrictHostKeyChecking=no root@192.168.4.156 'systemctl restart server.service'
+          scp -v -o StrictHostKeyChecking=no ./server root@192.168.4.156:/usr/local/bin/
+          ssh -v -o StrictHostKeyChecking=no root@192.168.4.156 'systemctl restart server.service'
           echo "Backend deployment complete."
 
       - name: Deploy Flutter Frontend
         run: |
           echo "Deploying frontend..."
-          scp -o StrictHostKeyChecking=no -r ./* root@192.168.4.157:/var/www/kitbash/
-          ssh -o StrictHostKeyChecking=no root@192.168.4.157 'systemctl restart nginx'
+          scp -v -o StrictHostKeyChecking=no -r ./* root@192.168.4.157:/var/www/kitbash/
+          ssh -v -o StrictHostKeyChecking=no root@192.168.4.157 'systemctl restart nginx'
           echo "Frontend deployment complete."
