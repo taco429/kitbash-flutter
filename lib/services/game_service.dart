@@ -25,6 +25,31 @@ class GameService extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>?> createGame() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/lobbies'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'max_players': 2,
+          'host': 'Player ${DateTime.now().millisecondsSinceEpoch % 1000}',
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final gameData = json.decode(response.body);
+        // Connect to WebSocket for game
+        await connectToGame(gameData['id']);
+        return gameData;
+      } else {
+        throw Exception('Failed to create game: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error creating game: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> joinGame(String gameId) async {
     try {
       final response = await http.post(
