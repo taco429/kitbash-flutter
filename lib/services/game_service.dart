@@ -4,7 +4,9 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 
 class GameService extends ChangeNotifier {
-  static const String baseUrl = 'http://localhost:8080';
+  // Change this to your backend server IP address
+  static const String baseUrl = 'http://192.168.4.156:8080';
+  static const String wsUrl = 'ws://192.168.4.156:8080';
   WebSocketChannel? _channel;
 
   bool _isConnected = false;
@@ -75,7 +77,7 @@ class GameService extends ChangeNotifier {
   Future<void> connectToGame(String gameId) async {
     try {
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://localhost:8080/ws/game/$gameId'),
+        Uri.parse('$wsUrl/ws/game/$gameId'),
       );
 
       _isConnected = true;
