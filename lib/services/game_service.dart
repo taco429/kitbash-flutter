@@ -4,7 +4,9 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 
 class GameService extends ChangeNotifier {
-  static const String baseUrl = 'http://localhost:8080';
+  // Change this to your backend server IP address
+  static const String baseUrl = 'http://192.168.4.156:8080';
+  static const String wsUrl = 'ws://192.168.4.156:8080';
   WebSocketChannel? _channel;
 
   bool _isConnected = false;
@@ -22,6 +24,31 @@ class GameService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error finding games: $e');
       return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> createGame() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/lobbies'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'max_players': 2,
+          'host': 'Player ${DateTime.now().millisecondsSinceEpoch % 1000}',
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final gameData = json.decode(response.body);
+        // Connect to WebSocket for game
+        await connectToGame(gameData['id']);
+        return gameData;
+      } else {
+        throw Exception('Failed to create game: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error creating game: $e');
+      return null;
     }
   }
 
@@ -50,7 +77,7 @@ class GameService extends ChangeNotifier {
   Future<void> connectToGame(String gameId) async {
     try {
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://localhost:8080/ws/game/$gameId'),
+        Uri.parse('$wsUrl/ws/game/$gameId'),
       );
 
       _isConnected = true;
