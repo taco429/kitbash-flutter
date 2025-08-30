@@ -76,7 +76,8 @@ class GameService extends ChangeNotifier {
     try {
       _lastError = null;
       debugPrint(
-          'GameService: Joining game $gameId at $baseUrl/api/games/$gameId/join');
+        'GameService: Joining game $gameId at $baseUrl/api/games/$gameId/join',
+      );
 
       final response = await http.post(
         Uri.parse('$baseUrl/api/games/$gameId/join'),
