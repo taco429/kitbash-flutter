@@ -12,17 +12,37 @@ class GameService extends ChangeNotifier {
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
+  String? _lastError;
+  String? get lastError => _lastError;
+
   // REST API methods
   Future<List<dynamic>> findGames() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/games'));
+      _lastError = null;
+      debugPrint('GameService: Finding games at $baseUrl/api/games');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/games'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      debugPrint('GameService: Find games response: ${response.statusCode}');
+      debugPrint('GameService: Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final games = json.decode(response.body);
+        debugPrint('GameService: Found ${games.length} games');
+        return games;
       } else {
-        throw Exception('Failed to load games');
+        final error =
+            'Failed to load games: ${response.statusCode} ${response.reasonPhrase}';
+        _lastError = error;
+        throw Exception(error);
       }
     } catch (e) {
-      debugPrint('Error finding games: $e');
+      final error = 'Error finding games: $e';
+      _lastError = error;
+      debugPrint('GameService: $error');
       return [];
     }
   }
@@ -54,21 +74,36 @@ class GameService extends ChangeNotifier {
 
   Future<Map<String, dynamic>?> joinGame(String gameId) async {
     try {
+      _lastError = null;
+      debugPrint(
+        'GameService: Joining game $gameId at $baseUrl/api/games/$gameId/join',
+      );
+
       final response = await http.post(
         Uri.parse('$baseUrl/api/games/$gameId/join'),
         headers: {'Content-Type': 'application/json'},
-      );
+      ).timeout(const Duration(seconds: 10));
+
+      debugPrint('GameService: Join game response: ${response.statusCode}');
+      debugPrint('GameService: Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final gameData = json.decode(response.body);
+        debugPrint('GameService: Successfully joined game: ${gameData['id']}');
+
         // Connect to WebSocket for game
         await connectToGame(gameId);
         return gameData;
       } else {
-        throw Exception('Failed to join game');
+        final error =
+            'Failed to join game: ${response.statusCode} ${response.reasonPhrase}';
+        _lastError = error;
+        throw Exception(error);
       }
     } catch (e) {
-      debugPrint('Error joining game: $e');
+      final error = 'Error joining game: $e';
+      _lastError = error;
+      debugPrint('GameService: $error');
       return null;
     }
   }
