@@ -3,6 +3,64 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 
+class CommandCenter {
+  final int playerIndex;
+  final int topLeftRow;
+  final int topLeftCol;
+  final int health;
+  final int maxHealth;
+
+  CommandCenter({
+    required this.playerIndex,
+    required this.topLeftRow,
+    required this.topLeftCol,
+    required this.health,
+    required this.maxHealth,
+  });
+
+  factory CommandCenter.fromJson(Map<String, dynamic> json) {
+    return CommandCenter(
+      playerIndex: json['playerIndex'] ?? 0,
+      topLeftRow: json['topLeftRow'] ?? 0,
+      topLeftCol: json['topLeftCol'] ?? 0,
+      health: json['health'] ?? 100,
+      maxHealth: json['maxHealth'] ?? 100,
+    );
+  }
+
+  bool get isDestroyed => health <= 0;
+  double get healthPercentage => maxHealth > 0 ? health / maxHealth : 0.0;
+}
+
+class GameState {
+  final String id;
+  final String status;
+  final List<CommandCenter> commandCenters;
+  final int currentTurn;
+  final int turnCount;
+
+  GameState({
+    required this.id,
+    required this.status,
+    required this.commandCenters,
+    required this.currentTurn,
+    required this.turnCount,
+  });
+
+  factory GameState.fromJson(Map<String, dynamic> json) {
+    return GameState(
+      id: json['id'] ?? '',
+      status: json['status'] ?? 'waiting',
+      commandCenters: (json['commandCenters'] as List<dynamic>?)
+              ?.map((cc) => CommandCenter.fromJson(cc))
+              .toList() ??
+          [],
+      currentTurn: json['currentTurn'] ?? 0,
+      turnCount: json['turnCount'] ?? 0,
+    );
+  }
+}
+
 class GameService extends ChangeNotifier {
   // Change this to your backend server IP address
   static const String baseUrl = 'http://192.168.4.156:8080';
@@ -14,6 +72,9 @@ class GameService extends ChangeNotifier {
 
   String? _lastError;
   String? get lastError => _lastError;
+
+  GameState? _gameState;
+  GameState? get gameState => _gameState;
 
   // REST API methods
   Future<List<dynamic>> findGames() async {
@@ -165,7 +226,16 @@ class GameService extends ChangeNotifier {
     try {
       final data = json.decode(message);
       debugPrint('Received: $data');
-      // Handle different message types here
+      
+      final messageType = data['type'];
+      if (messageType == 'game_state') {
+        final gameStateData = data['gameState'];
+        if (gameStateData != null) {
+          _gameState = GameState.fromJson(gameStateData);
+          debugPrint('Updated game state: ${_gameState?.status}, Command Centers: ${_gameState?.commandCenters.length}');
+        }
+      }
+      
       notifyListeners();
     } catch (e) {
       debugPrint('Error handling message: $e');
@@ -176,6 +246,74 @@ class GameService extends ChangeNotifier {
     if (_channel != null && _isConnected) {
       _channel!.sink.add(json.encode(action));
     }
+  }
+
+  // Deal damage to a command center
+  Future<bool> dealDamage(String gameId, int playerIndex, int damage) async {
+    try {
+      _lastError = null;
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/games/$gameId/damage'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'playerIndex': playerIndex,
+          'damage': damage,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        debugPrint('Damage dealt successfully: ${result['destroyed']}');
+        
+        // Also send via WebSocket for real-time updates
+        sendAction({
+          'type': 'deal_damage',
+          'playerIndex': playerIndex,
+          'damage': damage,
+        });
+        
+        return result['destroyed'] ?? false;
+      } else {
+        _lastError = 'Failed to deal damage: ${response.statusCode}';
+        throw Exception(_lastError);
+      }
+    } catch (e) {
+      _lastError = 'Error dealing damage: $e';
+      debugPrint(_lastError);
+      return false;
+    }
+  }
+
+  // Get current game state
+  Future<GameState?> getGameState(String gameId) async {
+    try {
+      _lastError = null;
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/games/$gameId/state'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final gameStateData = json.decode(response.body);
+        _gameState = GameState.fromJson(gameStateData);
+        notifyListeners();
+        return _gameState;
+      } else {
+        _lastError = 'Failed to get game state: ${response.statusCode}';
+        throw Exception(_lastError);
+      }
+    } catch (e) {
+      _lastError = 'Error getting game state: $e';
+      debugPrint(_lastError);
+      return null;
+    }
+  }
+
+  // Request game state via WebSocket
+  void requestGameState() {
+    sendAction({'type': 'get_game_state'});
   }
 
   void disconnect() {

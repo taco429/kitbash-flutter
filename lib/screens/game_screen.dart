@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
+import 'package:provider/provider.dart';
 import '../game/kitbash_game.dart';
+import '../services/game_service.dart';
 
 class GameScreen extends StatelessWidget {
   final String gameId;
@@ -9,39 +11,104 @@ class GameScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Game $gameId')),
-      body: Column(
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                // Opponent deck area (left)
-                const SizedBox(
-                  width: 110,
-                  child: _DeckPanel(title: 'Opponent Deck', count: 30),
-                ),
-                // Game area with Flame GameWidget in the middle
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.all(Radius.circular(8)),
-                    child: GameWidget.controlled(
-                      gameFactory: () => KitbashGame(gameId: gameId),
-                    ),
-                  ),
-                ),
-                // Player deck area (right)
-                const SizedBox(
-                  width: 110,
-                  child: _DeckPanel(title: 'Your Deck', count: 30),
-                ),
-              ],
-            ),
+    return Consumer<GameService>(
+      builder: (context, gameService, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('Game $gameId'),
+            actions: [
+              // Test buttons for dealing damage
+              IconButton(
+                icon: const Icon(Icons.remove_circle, color: Colors.green),
+                tooltip: 'Damage Player 1 (Green)',
+                onPressed: () => gameService.dealDamage(gameId, 0, 10),
+              ),
+              IconButton(
+                icon: const Icon(Icons.remove_circle, color: Colors.pink),
+                tooltip: 'Damage Player 2 (Pink)',
+                onPressed: () => gameService.dealDamage(gameId, 1, 10),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Refresh Game State',
+                onPressed: () => gameService.requestGameState(),
+              ),
+            ],
           ),
-          // Player hand at the bottom
-          const _HandBar(),
-        ],
-      ),
+          body: Column(
+            children: [
+              // Game status bar
+              Container(
+                padding: const EdgeInsets.all(8),
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                child: Row(
+                  children: [
+                    Text('Status: ${gameService.gameState?.status ?? 'Loading...'}'),
+                    const Spacer(),
+                    if (gameService.gameState != null)
+                      ...gameService.gameState!.commandCenters.map((cc) => 
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.home,
+                                color: cc.playerIndex == 0 ? Colors.green : Colors.pink,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text('${cc.health}/${cc.maxHealth}'),
+                              const SizedBox(width: 4),
+                              SizedBox(
+                                width: 50,
+                                height: 8,
+                                child: LinearProgressIndicator(
+                                  value: cc.healthPercentage,
+                                  backgroundColor: Colors.grey[300],
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    cc.healthPercentage > 0.3 ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    // Opponent deck area (left)
+                    const SizedBox(
+                      width: 110,
+                      child: _DeckPanel(title: 'Opponent Deck', count: 30),
+                    ),
+                    // Game area with Flame GameWidget in the middle
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.all(Radius.circular(8)),
+                        child: GameWidget.controlled(
+                          gameFactory: () => KitbashGame(gameId: gameId, gameService: gameService),
+                        ),
+                      ),
+                    ),
+                    // Player deck area (right)
+                    const SizedBox(
+                      width: 110,
+                      child: _DeckPanel(title: 'Your Deck', count: 30),
+                    ),
+                  ],
+                ),
+              ),
+              // Player hand at the bottom
+              const _HandBar(),
+            ],
+          ),
+        );
+      },
     );
   }
 }

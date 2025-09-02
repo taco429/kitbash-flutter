@@ -18,9 +18,10 @@ import (
 )
 
 type api struct {
-	repo *repository.InMemoryLobbyRepository
-	cfg  config.Config
-	log  *logger.Logger
+	repo     *repository.InMemoryLobbyRepository
+	gameRepo repository.GameRepository
+	cfg      config.Config
+	log      *logger.Logger
 }
 
 // NewRouter constructs the HTTP router, wires routes/middleware, and returns it.
@@ -40,9 +41,10 @@ func NewRouter(cfg config.Config) http.Handler {
 	r.Use(corsMiddleware())
 
 	a := &api{
-		repo: repository.NewInMemoryLobbyRepository(log),
-		cfg:  cfg,
-		log:  log,
+		repo:     repository.NewInMemoryLobbyRepository(log),
+		gameRepo: repository.NewInMemoryGameRepository(log),
+		cfg:      cfg,
+		log:      log,
 	}
 
 	// seed one lobby for initial testing
@@ -55,6 +57,7 @@ func NewRouter(cfg config.Config) http.Handler {
 	}
 
 	hub := ws.NewHub(log, cfg)
+	gameHub := ws.NewGameHub(a.gameRepo, log, cfg)
 
 	// GET /healthz: liveness probe for container/orchestrator.
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -87,11 +90,22 @@ func NewRouter(cfg config.Config) http.Handler {
 		r.Post("/games/cpu", a.handleCreateCpuGameCompat)
 		// POST /api/games/{id}/join: join without request body.
 		r.Post("/games/{id}/join", a.handleJoinGameCompat)
+		
+		// Game action endpoints
+		r.Route("/games/{id}", func(r chi.Router) {
+			// POST /api/games/{id}/damage: deal damage to a command center
+			r.Post("/damage", a.handleDealDamage)
+			// GET /api/games/{id}/state: get current game state
+			r.Get("/state", a.handleGetGameState)
+		})
 	})
 
-	// WebSocket endpoints for real-time events (currently echo)
+	// WebSocket endpoints for real-time events
 	r.Get("/ws", hub.HandleWS)
-	r.Get("/ws/game/{id}", hub.HandleWS)
+	r.Get("/ws/game/{id}", func(w http.ResponseWriter, r *http.Request) {
+		gameID := chi.URLParam(r, "id")
+		gameHub.HandleGameWS(w, r, gameID)
+	})
 
 	return r
 }
@@ -367,6 +381,71 @@ func (a *api) handleCreateCpuGameCompat(w http.ResponseWriter, r *http.Request) 
 
 	a.log.WithContext(r.Context()).Info("Successfully created CPU game", "game_id", lobby.ID, "players_count", len(lobby.Players))
 	a.writeJSON(w, r, http.StatusCreated, lobby)
+}
+
+// handleDealDamage deals damage to a command center.
+func (a *api) handleDealDamage(w http.ResponseWriter, r *http.Request) {
+	gameID := chi.URLParam(r, "id")
+	a.log.WithContext(r.Context()).Info("Dealing damage to command center", "game_id", gameID)
+
+	var req struct {
+		PlayerIndex int `json:"playerIndex"`
+		Damage      int `json:"damage"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		a.log.LogError(r.Context(), err, "Failed to decode damage request")
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Damage <= 0 {
+		req.Damage = 10 // Default damage
+	}
+
+	gameState, err := a.gameRepo.Get(r.Context(), domain.GameID(gameID))
+	if err != nil {
+		a.log.LogError(r.Context(), err, "Failed to get game state", "game_id", gameID)
+		http.Error(w, "game not found", http.StatusNotFound)
+		return
+	}
+
+	destroyed := gameState.DealDamageToCommandCenter(req.PlayerIndex, req.Damage)
+
+	if err := a.gameRepo.Update(r.Context(), gameState); err != nil {
+		a.log.LogError(r.Context(), err, "Failed to update game state")
+		http.Error(w, "failed to update game state", http.StatusInternalServerError)
+		return
+	}
+
+	a.log.WithContext(r.Context()).Info("Damage dealt successfully",
+		"game_id", gameID,
+		"player_index", req.PlayerIndex,
+		"damage", req.Damage,
+		"destroyed", destroyed)
+
+	response := map[string]interface{}{
+		"success":   true,
+		"destroyed": destroyed,
+		"gameState": gameState,
+	}
+
+	a.writeJSON(w, r, http.StatusOK, response)
+}
+
+// handleGetGameState returns the current game state.
+func (a *api) handleGetGameState(w http.ResponseWriter, r *http.Request) {
+	gameID := chi.URLParam(r, "id")
+	a.log.WithContext(r.Context()).Info("Getting game state", "game_id", gameID)
+
+	gameState, err := a.gameRepo.Get(r.Context(), domain.GameID(gameID))
+	if err != nil {
+		a.log.LogError(r.Context(), err, "Failed to get game state", "game_id", gameID)
+		http.Error(w, "game not found", http.StatusNotFound)
+		return
+	}
+
+	a.writeJSON(w, r, http.StatusOK, gameState)
 }
 
 // corsMiddleware allows cross-origin requests for local dev.
