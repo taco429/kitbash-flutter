@@ -47,6 +47,32 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
+  Future<void> _createCpuGame() async {
+    final gameService = context.read<GameService>();
+    final gameData = await gameService.createCpuGame();
+
+    if (gameData != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CPU Game created: ${gameData['name']}')),
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GameScreen(gameId: gameData['id']),
+        ),
+      );
+    } else if (mounted) {
+      final error = gameService.lastError ?? 'Failed to create CPU game';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,6 +92,11 @@ class _MenuScreenState extends State<MenuScreen> {
             ElevatedButton(
               onPressed: _createGame,
               child: const Text('Create Game'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _createCpuGame,
+              child: const Text('Play vs CPU'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(

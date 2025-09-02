@@ -74,6 +74,28 @@ class GameService extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>?> createCpuGame() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/games/cpu'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final gameData = json.decode(response.body);
+        await connectToGame(gameData['id']);
+        return gameData;
+      } else {
+        _lastError =
+            'Failed to create CPU game: ${response.statusCode} ${response.reasonPhrase} ${response.body}';
+        throw Exception(_lastError);
+      }
+    } catch (e) {
+      debugPrint('Error creating CPU game: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> joinGame(String gameId) async {
     try {
       _lastError = null;
