@@ -69,19 +69,19 @@ class GameState {
   /// Gets the winner player index by checking which player still has alive command centers
   int? get computedWinner {
     if (winnerPlayerIndex != null) return winnerPlayerIndex;
-    
+
     final alivePlayers = <int>{};
     for (final cc in commandCenters) {
       if (!cc.isDestroyed) {
         alivePlayers.add(cc.playerIndex);
       }
     }
-    
+
     // If only one player has alive command centers, they win
     if (alivePlayers.length == 1) {
       return alivePlayers.first;
     }
-    
+
     // If no players have alive command centers, it's a draw (return null)
     // If multiple players still have alive command centers, game is not over
     return null;

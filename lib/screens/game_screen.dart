@@ -23,11 +23,11 @@ class _GameScreenState extends State<GameScreen> {
       builder: (context, gameService, child) {
         // Check if game is over and navigate to game over screen
         final gameState = gameService.gameState;
-        if (gameState != null && 
-            !_hasNavigatedToGameOver && 
+        if (gameState != null &&
+            !_hasNavigatedToGameOver &&
             (gameState.isGameOver || gameState.computedWinner != null)) {
-          
-          final winnerIndex = gameState.winnerPlayerIndex ?? gameState.computedWinner;
+          final winnerIndex =
+              gameState.winnerPlayerIndex ?? gameState.computedWinner;
           if (winnerIndex != null) {
             _hasNavigatedToGameOver = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
