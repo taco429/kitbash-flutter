@@ -71,6 +71,11 @@ Structure per color:
 - **Constraints**:
   - Minimal sustain and poor long fights; vulnerable to slows and stuns
   - Limited cheap defensive tools; weak to swarms that survive initial burst
+ - **Faction Guidelines**:
+   - Fantasy Archetype: Orcs and Goblins
+   - Vibes: Chaotic, scrappy, explosive
+   - Mechanics: Main — Swarm; Shared — High damage, Orders
+   - Pawn: Goblin
 
 ### Orange
 
@@ -86,6 +91,11 @@ Structure per color:
 - **Constraints**:
   - Telegraphed plays susceptible to displacement or speed punish
   - Weak early skirmishers; can be outflanked without support
+ - **Faction Guidelines**:
+   - Fantasy Archetype: Dragons and Ogres
+   - Vibes: Imposing, heavy, deliberate
+   - Mechanics: Main — Elite units; Shared — Orders, Siege
+   - Pawn: Dragon Whelp
 
 ### Yellow
 
@@ -101,6 +111,11 @@ Structure per color:
 - **Constraints**:
   - Limited burst damage and mobility; weak closing speed if behind
   - Vulnerable to true damage effects and siege focus
+ - **Faction Guidelines**:
+   - Fantasy Archetype: Dwarves
+   - Vibes: Sturdy, methodical, stubborn
+   - Mechanics: Main — Defense; Shared — Buildings, Siege
+   - Pawn: Dwarf
 
 ### Green
 
@@ -116,6 +131,11 @@ Structure per color:
 - **Constraints**:
   - Slow to start; vulnerable to burst and hard disables
   - Reliant on board presence to realize scaling
+ - **Faction Guidelines**:
+   - Fantasy Archetype: Elves and Nature Spirits
+   - Vibes: Organic, patient, restorative
+   - Mechanics: Main — Growth (gain power over time); Shared — Buildings, Healing
+   - Pawn: Treant
 
 ### Blue
 
@@ -131,6 +151,11 @@ Structure per color:
 - **Constraints**:
   - Lacks sustained damage and sturdy frontlines without pairing
   - Vulnerable once out of cards; must manage hand size and timing
+ - **Faction Guidelines**:
+   - Fantasy Archetype: Knights and Humans
+   - Vibes: Disciplined, tactical, honorable
+   - Mechanics: Main — Combined arms; Shared — Spells, Healing
+   - Pawn: Human Soldier
 
 ### Purple
 
@@ -146,8 +171,39 @@ Structure per color:
 - **Constraints**:
   - Vulnerable to sweepers and area denial
   - Struggles against heavy Armor without support
+ - **Faction Guidelines**:
+   - Fantasy Archetype: Undead and Wizards
+   - Vibes: Grim, relentless, sacrificial
+   - Mechanics: Main — Summons; Shared — Spells, High damage
+   - Pawn: Ghoul
 
 ---
+
+## Pawns (First Iteration)
+
+- Red — Goblin
+  - Stats: 2/2/1, SPD 1
+  - Keywords: Armor 0
+
+- Orange — Dragon Whelp
+  - Stats: 2/1/1, SPD 1
+  - Keywords: Armor 0, Flying
+
+- Yellow — Dwarf
+  - Stats: 1/2/1, SPD 1
+  - Keywords: Armor 1
+
+- Green — Treant
+  - Stats: 1/2/1, SPD 1
+  - Keywords: Armor 0, Regenerate 1
+
+- Blue — Human Soldier
+  - Stats: 2/3/1, SPD 1
+  - Keywords: Armor 0
+
+- Purple — Ghoul
+  - Stats: 1/2/1, SPD 1
+  - Keywords: Armor 0, Rekindle
 
 ## Cross-Color Synergies
 
