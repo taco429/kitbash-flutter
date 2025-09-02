@@ -53,8 +53,8 @@ class GameService extends ChangeNotifier {
         Uri.parse('$baseUrl/api/lobbies'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'max_players': 2,
-          'host': 'Player ${DateTime.now().millisecondsSinceEpoch % 1000}',
+          'name': 'Quick Match',
+          'hostName': 'Player ${DateTime.now().millisecondsSinceEpoch % 1000}',
         }),
       );
 
@@ -64,7 +64,9 @@ class GameService extends ChangeNotifier {
         await connectToGame(gameData['id']);
         return gameData;
       } else {
-        throw Exception('Failed to create game: ${response.statusCode}');
+        _lastError =
+            'Failed to create game: ${response.statusCode} ${response.reasonPhrase} ${response.body}';
+        throw Exception(_lastError);
       }
     } catch (e) {
       debugPrint('Error creating game: $e');
