@@ -231,6 +231,8 @@ func (h *GameHub) handleGameMessage(ctx context.Context, client *GameClient, msg
 		return h.handleDealDamage(ctx, client, message)
 	case "get_game_state":
 		return h.handleGetGameState(ctx, client)
+	case "lock_choice":
+		return h.handleLockChoice(ctx, client, message)
 	default:
 		h.log.WithContext(ctx).Debug("Unknown message type", "type", msgType)
 	}
@@ -279,4 +281,110 @@ func (h *GameHub) handleGetGameState(ctx context.Context, client *GameClient) er
 	}
 
 	return h.sendGameState(client, gameState)
+}
+
+// handleLockChoice processes player choice locking for simultaneous turns.
+func (h *GameHub) handleLockChoice(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+	playerIndex, ok := message["playerIndex"].(float64)
+	if !ok {
+		return nil
+	}
+
+	gameState, err := h.gameRepo.Get(ctx, client.GameID)
+	if err != nil {
+		return err
+	}
+
+	// Lock the player's choice
+	gameState.LockPlayerChoice(int(playerIndex))
+
+	// Save the updated game state
+	if err := h.gameRepo.Update(ctx, gameState); err != nil {
+		return err
+	}
+
+	h.log.WithContext(ctx).Info("Player locked choice",
+		"game_id", client.GameID,
+		"player_index", int(playerIndex),
+		"current_turn", gameState.CurrentTurn)
+
+	// Notify all clients that a player has locked
+	h.broadcastPlayerLocked(ctx, client.GameID, int(playerIndex))
+
+	// Check if all players have locked their choices
+	if gameState.AreAllPlayersLocked() {
+		h.log.WithContext(ctx).Info("All players locked - advancing turn",
+			"game_id", client.GameID,
+			"current_turn", gameState.CurrentTurn)
+
+		// Advance to the next turn
+		gameState.AdvanceTurn()
+		
+		// Save the updated game state
+		if err := h.gameRepo.Update(ctx, gameState); err != nil {
+			return err
+		}
+
+		// Broadcast turn advancement
+		h.broadcastTurnAdvanced(ctx, client.GameID, gameState.CurrentTurn)
+		
+		// Broadcast updated game state
+		return h.broadcastGameState(ctx, client.GameID)
+	}
+
+	return nil
+}
+
+// broadcastPlayerLocked notifies all clients that a player has locked their choice.
+func (h *GameHub) broadcastPlayerLocked(ctx context.Context, gameID domain.GameID, playerIndex int) {
+	h.mu.RLock()
+	gameClients, exists := h.clients[gameID]
+	if !exists {
+		h.mu.RUnlock()
+		return
+	}
+
+	clients := make([]*GameClient, 0, len(gameClients))
+	for _, client := range gameClients {
+		clients = append(clients, client)
+	}
+	h.mu.RUnlock()
+
+	message := map[string]interface{}{
+		"type":        "player_locked",
+		"playerIndex": playerIndex,
+	}
+
+	for _, client := range clients {
+		if err := client.Conn.WriteJSON(message); err != nil {
+			h.log.LogError(ctx, err, "Failed to send player locked notification")
+		}
+	}
+}
+
+// broadcastTurnAdvanced notifies all clients that the turn has advanced.
+func (h *GameHub) broadcastTurnAdvanced(ctx context.Context, gameID domain.GameID, newTurn int) {
+	h.mu.RLock()
+	gameClients, exists := h.clients[gameID]
+	if !exists {
+		h.mu.RUnlock()
+		return
+	}
+
+	clients := make([]*GameClient, 0, len(gameClients))
+	for _, client := range gameClients {
+		clients = append(clients, client)
+	}
+	h.mu.RUnlock()
+
+	message := map[string]interface{}{
+		"type":    "turn_advanced",
+		"newTurn": newTurn,
+	}
+
+	for _, client := range clients {
+		if err := client.Conn.WriteJSON(message); err != nil {
+			h.log.LogError(ctx, err, "Failed to send turn advanced notification")
+		}
+	}
 }
