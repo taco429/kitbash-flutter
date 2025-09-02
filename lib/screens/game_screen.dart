@@ -168,7 +168,8 @@ class _GameScreenState extends State<GameScreen> {
                             isLocked: gameService.gameState!.isPlayerLocked(
                               gameService.currentPlayerIndex,
                             ),
-                            isOpponentLocked: gameService.gameState!.isPlayerLocked(
+                            isOpponentLocked:
+                                gameService.gameState!.isPlayerLocked(
                               1 - gameService.currentPlayerIndex,
                             ),
                             playerIndex: gameService.currentPlayerIndex,

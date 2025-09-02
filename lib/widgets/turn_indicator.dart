@@ -33,10 +33,12 @@ class _TurnIndicatorState extends State<TurnIndicator>
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.elasticOut,
+      ),
+    );
   }
 
   @override
@@ -70,7 +72,7 @@ class _TurnIndicatorState extends State<TurnIndicator>
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),

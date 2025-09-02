@@ -33,10 +33,12 @@ class _LockInButtonState extends State<LockInButton>
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
   }
 
   @override
@@ -62,7 +64,9 @@ class _LockInButtonState extends State<LockInButton>
 
     final Color borderColor = widget.isLocked
         ? Colors.grey.shade600
-        : (widget.playerIndex == 0 ? Colors.green.shade700 : Colors.pink.shade700);
+        : (widget.playerIndex == 0
+            ? Colors.green.shade700
+            : Colors.pink.shade700);
 
     return AnimatedBuilder(
       animation: _scaleAnimation,
@@ -76,7 +80,7 @@ class _LockInButtonState extends State<LockInButton>
                   ? []
                   : [
                       BoxShadow(
-                        color: buttonColor.withOpacity(0.3),
+                        color: buttonColor.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -96,7 +100,7 @@ class _LockInButtonState extends State<LockInButton>
                     gradient: LinearGradient(
                       colors: widget.isLocked
                           ? [Colors.grey.shade600, Colors.grey.shade700]
-                          : [buttonColor, buttonColor.withOpacity(0.8)],
+                          : [buttonColor, buttonColor.withValues(alpha: 0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -117,10 +121,11 @@ class _LockInButtonState extends State<LockInButton>
                       const SizedBox(width: 8),
                       Text(
                         widget.isLocked ? 'Locked In' : 'Lock In Choice',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                     ],
                   ),
@@ -163,10 +168,12 @@ class _WaitingIndicatorState extends State<WaitingIndicator>
     _fadeAnimation = Tween<double>(
       begin: 0.3,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
 
     if (widget.isWaiting) {
       _animationController.repeat(reverse: true);
@@ -204,10 +211,10 @@ class _WaitingIndicatorState extends State<WaitingIndicator>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.2),
+              color: Colors.orange.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Colors.orange.withOpacity(0.5),
+                color: Colors.orange.withValues(alpha: 0.5),
                 width: 1,
               ),
             ),

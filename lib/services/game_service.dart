@@ -53,7 +53,7 @@ class GameState {
 
   factory GameState.fromJson(Map<String, dynamic> json) {
     // Parse player choices locked state
-    Map<int, bool> playerChoicesLocked = {0: false, 1: false};
+    final Map<int, bool> playerChoicesLocked = {0: false, 1: false};
     if (json['playerChoicesLocked'] != null) {
       final locked = json['playerChoicesLocked'];
       if (locked is Map) {
@@ -135,7 +135,8 @@ class GameService extends ChangeNotifier {
   GameState? _gameState;
   GameState? get gameState => _gameState;
 
-  int _currentPlayerIndex = 0; // Default to player 0, should be set when joining game
+  int _currentPlayerIndex =
+      0; // Default to player 0, should be set when joining game
   int get currentPlayerIndex => _currentPlayerIndex;
 
   // REST API methods
@@ -423,32 +424,37 @@ class GameService extends ChangeNotifier {
 
       // Try to send to backend via REST as well (optional, may not be implemented yet)
       try {
-        final response = await http.post(
-          Uri.parse('$baseUrl/api/games/$gameId/lock-choice'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            'playerIndex': playerIndex,
-          }),
-        ).timeout(const Duration(seconds: 2));
+        final response = await http
+            .post(
+              Uri.parse('$baseUrl/api/games/$gameId/lock-choice'),
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode({
+                'playerIndex': playerIndex,
+              }),
+            )
+            .timeout(const Duration(seconds: 2));
 
         if (response.statusCode == 200) {
-          debugPrint('Player $playerIndex locked their choice (REST confirmed)');
+          debugPrint(
+              'Player $playerIndex locked their choice (REST confirmed)');
         } else if (response.statusCode == 404) {
           // Endpoint not implemented yet, but WebSocket should handle it
-          debugPrint('Lock choice endpoint not implemented, using WebSocket only');
+          debugPrint(
+              'Lock choice endpoint not implemented, using WebSocket only');
         }
       } catch (restError) {
         // REST endpoint might not be implemented, rely on WebSocket
-        debugPrint('Lock choice REST failed (may not be implemented): $restError');
+        debugPrint(
+            'Lock choice REST failed (may not be implemented): $restError');
       }
 
       debugPrint('Player $playerIndex locked their choice');
-      
+
       // Check if both players have locked and simulate turn advancement
       if (_gameState != null && _gameState!.allPlayersLocked) {
         debugPrint('Both players locked - turn should advance');
       }
-      
+
       return true;
     } catch (e) {
       // Revert optimistic update on error
