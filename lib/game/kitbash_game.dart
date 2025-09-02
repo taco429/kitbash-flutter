@@ -179,7 +179,7 @@ class IsometricGridComponent extends PositionComponent {
       if (centers.isNotEmpty && !cc.isDestroyed) {
         final Vector2 topCenter = centers[0]; // Use top-left tile as reference
         _drawHealthBar(canvas, topCenter, cc.healthPercentage, healthBarBg, 
-                     cc.healthPercentage > 0.3 ? healthBarFill : healthBarLow);
+                     cc.healthPercentage > 0.3 ? healthBarFill : healthBarLow,);
       }
     }
   }
@@ -210,7 +210,7 @@ class IsometricGridComponent extends PositionComponent {
   }
 
   void _drawHealthBar(ui.Canvas canvas, Vector2 center, double healthPercentage, 
-                     ui.Paint bgPaint, ui.Paint fillPaint) {
+                     ui.Paint bgPaint, ui.Paint fillPaint,) {
     const double barWidth = 40.0;
     const double barHeight = 6.0;
     const double barOffsetY = -25.0; // Position above the command center
