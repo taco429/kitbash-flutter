@@ -63,6 +63,15 @@ lib/
     └── kitbash_game.dart        # Existing game logic
 ```
 
+## Code Quality Fixes
+
+Fixed all Flutter analyzer issues:
+- ✅ Added `const` constructors where appropriate (`prefer_const_constructors`)
+- ✅ Used `const` literals for immutable class arguments (`prefer_const_literals_to_create_immutables`)  
+- ✅ Replaced deprecated `withOpacity()` with `withValues(alpha:)` (`deprecated_member_use`)
+- ✅ Added proper context checking for async operations (`use_build_context_synchronously`)
+- ✅ Used explicit generic types `<Widget>[]` for better type safety
+
 ## Future Enhancements
 
 Potential improvements that could be added:

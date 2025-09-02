@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/game_service.dart';
 import 'menu_screen.dart';
 import 'game_lobby_screen.dart';
+import 'game_screen.dart';
 
 class GameOverScreen extends StatelessWidget {
   final String gameId;
@@ -20,35 +21,35 @@ class GameOverScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFF1A1A2E),
-              const Color(0xFF16213E),
-              const Color(0xFF0F3460),
+              Color(0xFF1A1A2E),
+              Color(0xFF16213E),
+              Color(0xFF0F3460),
             ],
           ),
         ),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               // Victory animation container
               Container(
                 width: 200,
                 height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _getPlayerColor(winnerPlayerIndex).withOpacity(0.2),
+                  color: _getPlayerColor(winnerPlayerIndex).withValues(alpha: 0.2),
                   border: Border.all(
                     color: _getPlayerColor(winnerPlayerIndex),
                     width: 4,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _getPlayerColor(winnerPlayerIndex).withOpacity(0.5),
+                      color: _getPlayerColor(winnerPlayerIndex).withValues(alpha: 0.5),
                       blurRadius: 30,
                       spreadRadius: 5,
                     ),
@@ -57,7 +58,7 @@ class GameOverScreen extends StatelessWidget {
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                    children: <Widget>[
                       Icon(
                         Icons.emoji_events,
                         size: 80,
@@ -113,7 +114,7 @@ class GameOverScreen extends StatelessWidget {
               
               // Action buttons
               Column(
-                children: [
+                children: <Widget>[
                   SizedBox(
                     width: 250,
                     height: 50,
@@ -198,18 +199,21 @@ class GameOverScreen extends StatelessWidget {
     
     // Create a new CPU game
     gameService.createCpuGame().then((gameData) {
-      if (gameData != null) {
-        Navigator.of(context).pushReplacementNamed(
-          '/game',
-          arguments: gameData['id'],
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to create new game'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (context.mounted) {
+        if (gameData != null) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => GameScreen(gameId: gameData['id']),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to create new game'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     });
   }
