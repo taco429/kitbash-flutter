@@ -40,11 +40,12 @@ class GameScreen extends StatelessWidget {
               // Game status bar
               Container(
                 padding: const EdgeInsets.all(8),
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: Row(
                   children: [
                     Text(
-                        'Status: ${gameService.gameState?.status ?? 'Loading...'}'),
+                      'Status: ${gameService.gameState?.status ?? 'Loading...'}',
+                    ),
                     const Spacer(),
                     if (gameService.gameState != null)
                       ...gameService.gameState!.commandCenters.map(
@@ -134,7 +135,7 @@ class _DeckPanel extends StatelessWidget {
       margin: const EdgeInsets.all(8),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: const BorderRadius.all(Radius.circular(8)),
       ),
       child: Column(
