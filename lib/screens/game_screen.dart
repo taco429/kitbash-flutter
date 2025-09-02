@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 import 'package:provider/provider.dart';
 import '../game/kitbash_game.dart';
 import '../services/game_service.dart';
+import '../widgets/game_with_tooltip.dart';
 import 'game_over_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -128,8 +129,8 @@ class _GameScreenState extends State<GameScreen> {
                       child: ClipRRect(
                         borderRadius:
                             const BorderRadius.all(Radius.circular(8)),
-                        child: GameWidget.controlled(
-                          gameFactory: () => KitbashGame(
+                        child: GameWithTooltip(
+                          game: KitbashGame(
                             gameId: widget.gameId,
                             gameService: gameService,
                           ),
