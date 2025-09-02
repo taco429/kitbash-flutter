@@ -38,6 +38,7 @@ class GameState {
   final List<CommandCenter> commandCenters;
   final int currentTurn;
   final int turnCount;
+  final int? winnerPlayerIndex;
 
   GameState({
     required this.id,
@@ -45,6 +46,7 @@ class GameState {
     required this.commandCenters,
     required this.currentTurn,
     required this.turnCount,
+    this.winnerPlayerIndex,
   });
 
   factory GameState.fromJson(Map<String, dynamic> json) {
@@ -57,7 +59,37 @@ class GameState {
           [],
       currentTurn: json['currentTurn'] ?? 0,
       turnCount: json['turnCount'] ?? 0,
+      winnerPlayerIndex: json['winnerPlayerIndex'],
     );
+  }
+
+  /// Determines if the game is over (one player has won)
+  bool get isGameOver => status == 'finished' || winnerPlayerIndex != null;
+
+  /// Gets the winner player index by checking which player still has alive command centers
+  int? get computedWinner {
+    if (winnerPlayerIndex != null) return winnerPlayerIndex;
+    
+    final alivePlayers = <int>{};
+    for (final cc in commandCenters) {
+      if (!cc.isDestroyed) {
+        alivePlayers.add(cc.playerIndex);
+      }
+    }
+    
+    // If only one player has alive command centers, they win
+    if (alivePlayers.length == 1) {
+      return alivePlayers.first;
+    }
+    
+    // If no players have alive command centers, it's a draw (return null)
+    // If multiple players still have alive command centers, game is not over
+    return null;
+  }
+
+  /// Gets the winner name for display
+  String getWinnerName(int playerIndex) {
+    return 'Player ${playerIndex + 1}';
   }
 }
 
