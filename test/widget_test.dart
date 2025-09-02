@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:kitbash_flutter/main.dart';
 import 'package:kitbash_flutter/services/game_service.dart';
+import 'package:kitbash_flutter/services/deck_service.dart';
 
 class _FakeGameService extends GameService {
   @override
@@ -12,20 +13,29 @@ void main() {
   testWidgets('App launches and shows title', (WidgetTester tester) async {
     // Build app with required providers
     await tester.pumpWidget(
-      ChangeNotifierProvider<GameService>(
-        create: (_) => _FakeGameService(),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<GameService>(
+            create: (_) => _FakeGameService(),
+          ),
+          ChangeNotifierProvider<DeckService>(create: (_) => DeckService()),
+        ],
         child: const KitbashApp(),
       ),
     );
 
     await tester.pumpAndSettle();
 
-    // Verify that the app title is shown
+    // Verify that the app title is shown in the AppBar
     expect(find.text('Kitbash CCG'), findsOneWidget);
-    expect(find.text('Kitbash CCG Title'), findsOneWidget);
 
     // Verify that main buttons are present
+    expect(find.text('Create Game'), findsOneWidget);
+    expect(find.text('Play vs CPU'), findsOneWidget);
     expect(find.text('Deck Builder'), findsOneWidget);
     expect(find.text('Find Games'), findsOneWidget);
+
+    // Verify deck selector is present
+    expect(find.text('Select Your Deck'), findsOneWidget);
   });
 }
