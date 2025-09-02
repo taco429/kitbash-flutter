@@ -18,16 +18,16 @@ type Config struct {
 func Load() Config {
     port := getenvDefault("HTTP_PORT", "8080")
     cors := getenvDefault("CORS_ORIGINS", "*")
-    rowsStr := getenvDefault("BOARD_ROWS", "20")
-    colsStr := getenvDefault("BOARD_COLS", "20")
+    rowsStr := getenvDefault("BOARD_ROWS", "12")
+    colsStr := getenvDefault("BOARD_COLS", "12")
 
     rows, err := strconv.Atoi(rowsStr)
     if err != nil {
-        rows = 20
+        rows = 12
     }
     cols, err := strconv.Atoi(colsStr)
     if err != nil {
-        cols = 20
+        cols = 12
     }
 
     cfg := Config{
