@@ -163,7 +163,8 @@ class IsometricGridComponent extends PositionComponent {
       // Choose color based on health
       ui.Paint paint;
       if (cc.isDestroyed) {
-        paint = ui.Paint()..color = const Color(0xCC666666); // Gray for destroyed
+        paint = ui.Paint()
+          ..color = const Color(0xCC666666); // Gray for destroyed
       } else {
         paint = cc.playerIndex == 0 ? ccPaintP0 : ccPaintP1;
       }
@@ -230,19 +231,25 @@ class IsometricGridComponent extends PositionComponent {
 
     // Draw background
     final ui.Rect bgRect = ui.Rect.fromLTWH(barX, barY, barWidth, barHeight);
-    canvas.drawRRect(ui.RRect.fromRectAndRadius(bgRect, const ui.Radius.circular(3)), bgPaint);
+    canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(bgRect, const ui.Radius.circular(3)),
+        bgPaint);
 
     // Draw health fill
     final double fillWidth = barWidth * healthPercentage;
     final ui.Rect fillRect = ui.Rect.fromLTWH(barX, barY, fillWidth, barHeight);
-    canvas.drawRRect(ui.RRect.fromRectAndRadius(fillRect, const ui.Radius.circular(3)), fillPaint);
+    canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(fillRect, const ui.Radius.circular(3)),
+        fillPaint);
 
     // Draw border
     final ui.Paint borderPaint = ui.Paint()
       ..color = const Color(0xFFFFFFFF)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1.0;
-    canvas.drawRRect(ui.RRect.fromRectAndRadius(bgRect, const ui.Radius.circular(3)), borderPaint);
+    canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(bgRect, const ui.Radius.circular(3)),
+        borderPaint);
   }
 
   Vector2? _screenToIso(Vector2 localPoint) {

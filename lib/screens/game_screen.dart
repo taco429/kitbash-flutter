@@ -43,7 +43,8 @@ class GameScreen extends StatelessWidget {
                 color: Theme.of(context).colorScheme.surfaceVariant,
                 child: Row(
                   children: [
-                    Text('Status: ${gameService.gameState?.status ?? 'Loading...'}'),
+                    Text(
+                        'Status: ${gameService.gameState?.status ?? 'Loading...'}'),
                     const Spacer(),
                     if (gameService.gameState != null)
                       ...gameService.gameState!.commandCenters.map(
@@ -93,7 +94,8 @@ class GameScreen extends StatelessWidget {
                     // Game area with Flame GameWidget in the middle
                     Expanded(
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.all(Radius.circular(8)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(8)),
                         child: GameWidget.controlled(
                           gameFactory: () => KitbashGame(
                             gameId: gameId,

@@ -274,7 +274,7 @@ class GameService extends ChangeNotifier {
           'playerIndex': playerIndex,
           'damage': damage,
         });
-        
+
         return result['destroyed'] ?? false;
       } else {
         _lastError = 'Failed to deal damage: ${response.statusCode}';
@@ -291,7 +291,7 @@ class GameService extends ChangeNotifier {
   Future<GameState?> getGameState(String gameId) async {
     try {
       _lastError = null;
-      
+
       final response = await http.get(
         Uri.parse('$baseUrl/api/games/$gameId/state'),
         headers: {'Content-Type': 'application/json'},
