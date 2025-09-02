@@ -18,14 +18,16 @@ class DeckService extends ChangeNotifier {
         id: 'red_deck_001',
         name: 'Crimson Fury',
         color: 'red',
-        description: 'An aggressive deck focused on quick strikes and overwhelming force.',
+        description:
+            'An aggressive deck focused on quick strikes and overwhelming force.',
         cardCount: 30,
       ),
       Deck(
         id: 'purple_deck_001',
         name: 'Mystic Shadows',
         color: 'purple',
-        description: 'A strategic deck utilizing mystical powers and cunning tactics.',
+        description:
+            'A strategic deck utilizing mystical powers and cunning tactics.',
         cardCount: 30,
       ),
     ];

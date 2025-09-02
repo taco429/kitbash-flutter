@@ -88,7 +88,7 @@ class DeckCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deckColor = _getDeckColor();
-    
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -99,8 +99,8 @@ class DeckCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              deckColor.withOpacity(0.8),
-              deckColor.withOpacity(0.6),
+              deckColor.withValues(alpha: 0.8),
+              deckColor.withValues(alpha: 0.6),
             ],
           ),
           borderRadius: BorderRadius.circular(12),
@@ -110,7 +110,7 @@ class DeckCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: deckColor.withOpacity(0.3),
+              color: deckColor.withValues(alpha: 0.3),
               blurRadius: isSelected ? 8 : 4,
               offset: const Offset(0, 2),
             ),
@@ -152,7 +152,7 @@ class DeckCard extends StatelessWidget {
               Text(
                 '${deck.cardCount} cards',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 12,
                 ),
               ),

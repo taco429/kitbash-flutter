@@ -91,11 +91,11 @@ class _MenuScreenState extends State<MenuScreen> {
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
-            
+
             // Deck Selector Section
             const DeckSelector(),
             const SizedBox(height: 40),
-            
+
             // Game Action Buttons
             Expanded(
               child: Center(
@@ -122,7 +122,9 @@ class _MenuScreenState extends State<MenuScreen> {
                       onPressed: () {
                         // TODO: Implement deck builder
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Deck Builder coming soon!')),
+                          const SnackBar(
+                            content: Text('Deck Builder coming soon!'),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
