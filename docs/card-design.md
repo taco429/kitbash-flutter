@@ -177,28 +177,46 @@ Structure per color:
 ## Pawns (First Iteration)
 
 - Red — Goblin
-  - Stats: 2/2/1, SPD 1
-  - Keywords: Armor 0
+  - ATK: 2
+  - HP: 2
+  - Range (RNG): 1
+  - Movement (SPD): 1
+  - Keywords: Armor 0, Melee
 
 - Orange — Dragon Whelp
-  - Stats: 2/1/1, SPD 1
+  - ATK: 2
+  - HP: 1
+  - Range (RNG): 1
+  - Movement (SPD): 1
   - Keywords: Armor 0, Flying
 
 - Yellow — Dwarf
-  - Stats: 1/2/1, SPD 1
-  - Keywords: Armor 1
+  - ATK: 1
+  - HP: 2
+  - Range (RNG): 1
+  - Movement (SPD): 1
+  - Keywords: Armor 1, Melee
 
 - Green — Treant
-  - Stats: 1/2/1, SPD 1
-  - Keywords: Armor 0, Regenerate 1
+  - ATK: 1
+  - HP: 2
+  - Range (RNG): 1
+  - Movement (SPD): 1
+  - Keywords: Armor 0, Regenerate 1, Melee
 
 - Blue — Human Soldier
-  - Stats: 2/3/1, SPD 1
-  - Keywords: Armor 0
+  - ATK: 2
+  - HP: 3
+  - Range (RNG): 1
+  - Movement (SPD): 1
+  - Keywords: Armor 0, Melee
 
 - Purple — Ghoul
-  - Stats: 1/2/1, SPD 1
-  - Keywords: Armor 0, Rekindle
+  - ATK: 1
+  - HP: 2
+  - Range (RNG): 1
+  - Movement (SPD): 1
+  - Keywords: Armor 0, Rekindle, Melee
 
 ## Cross-Color Synergies
 
