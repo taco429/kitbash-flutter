@@ -58,19 +58,18 @@ Structure per color:
 
 ### Red
 
-- **Fantasy**: Volatile ordnance and reckless vanguards.
-- **Strategic Identity**: Pressure through burst damage, decisive lane breaks, and structure demolition.
-- **Mechanical Themes**:
-  - Glass cannon units with high ATK, low HP
-  - Siege and building breakers (e.g., Siege X, Pierce X)
-  - Charge, Knockback, temporary self-buffs, overheat-style drawbacks
-  - Direct damage and burn over areas or lanes
-- **Resource & Stat Tendencies**:
-  - Lower Gold setup, moderate Mana spikes
-  - Above-rate ATK, below-rate HP; average SPD; RNG 1–3
-- **Constraints**:
-  - Minimal sustain and poor long fights; vulnerable to slows and stuns
-  - Limited cheap defensive tools; weak to swarms that survive initial burst
+ - **Fantasy**: Orcs and Goblins warbands; reckless raiders and ingenious tinkerers.
+ - **Strategic Identity**: Overwhelm with swarms that hit hard; chain decisive strikes using Orders.
+ - **Mechanical Themes**:
+   - Swarm, token generation, extra deploys, and cheap bodies
+   - Orders that coordinate movement and attacks (e.g., Rally, Charge)
+   - High damage bursts, on-attack triggers, temporary self-buffs
+ - **Resource & Stat Tendencies**:
+   - Low Gold costs enabling multiple plays per round
+   - Above-rate ATK, below-rate HP; mostly melee (RNG 1); average-to-high SPD
+ - **Constraints**:
+   - Fragile to area damage, roots, and stuns
+   - Reliant on sequencing; loses pressure if Orders are disrupted
  - **Faction Guidelines**:
    - Fantasy Archetype: Orcs and Goblins
    - Vibes: Chaotic, scrappy, explosive
@@ -79,18 +78,18 @@ Structure per color:
 
 ### Orange
 
-- **Fantasy**: Siege engines, titans, and precision artillery.
-- **Strategic Identity**: Methodical board control using big, slow units and long-range pressure.
-- **Mechanical Themes**:
-  - Big units with high cost and high staying power
-  - Ranged units and artillery; Overwatch, Suppress, and Zone Control
-  - Set-up payoffs: deploy shields, spotters, or calibrate for improved accuracy
-- **Resource & Stat Tendencies**:
-  - Higher Gold requirements; steady Mana curves
-  - Above-rate HP and RNG; below-rate SPD
-- **Constraints**:
-  - Telegraphed plays susceptible to displacement or speed punish
-  - Weak early skirmishers; can be outflanked without support
+ - **Fantasy**: Dragons and Ogres; towering elites and siege-minded brutes.
+ - **Strategic Identity**: Win through elite units that dominate lanes; use Orders and Siege to crack defenses.
+ - **Mechanical Themes**:
+   - Elite, high-cost units with staying power and impactful attacks
+   - Orders for formation play and focused fire
+   - Siege and structure pressure; suppression and zone control when set up
+ - **Resource & Stat Tendencies**:
+   - High Gold/Mana costs; low deployment frequency, high impact
+   - Above-rate HP/ATK; below-rate SPD; select units with extended RNG
+ - **Constraints**:
+   - Telegraphed development, vulnerable to displacement or being outflanked
+   - Limited early swarming; needs support to cover multiple lanes
  - **Faction Guidelines**:
    - Fantasy Archetype: Dragons and Ogres
    - Vibes: Imposing, heavy, deliberate
@@ -99,18 +98,17 @@ Structure per color:
 
 ### Yellow
 
-- **Fantasy**: Fortifications, logistics, and unyielding defenders.
-- **Strategic Identity**: Win through positional advantage, structure value, and attrition.
-- **Mechanical Themes**:
-  - Buildings/structures, repairs, and auras
-  - Taunt, Armor X, Protector, and counterfire turrets
-  - Economy tools: Gold generation, resource conversion, and stall
-- **Resource & Stat Tendencies**:
-  - Reliable Gold generation; conservative Mana curves
-  - Tanky slow units with Armor; structures with defensive stats
-- **Constraints**:
-  - Limited burst damage and mobility; weak closing speed if behind
-  - Vulnerable to true damage effects and siege focus
+ - **Fantasy**: Dwarves; master builders and stalwart guardians.
+ - **Strategic Identity**: Fortify and grind; win by holding ground with defenses and structures.
+ - **Mechanical Themes**:
+   - Buildings/structures, repairs, auras, and protective formations
+   - Armor X, Taunt, Protector; siege support from emplacements
+ - **Resource & Stat Tendencies**:
+   - Reliable Gold economy; conservative Mana curve
+   - High Armor/HP; low SPD; structures with defensive statlines
+ - **Constraints**:
+   - Limited burst damage and mobility; slow to close out without siege
+   - Vulnerable to true damage and displacement that bypasses walls
  - **Faction Guidelines**:
    - Fantasy Archetype: Dwarves
    - Vibes: Sturdy, methodical, stubborn
@@ -119,18 +117,17 @@ Structure per color:
 
 ### Green
 
-- **Fantasy**: Bio-mechanics, growth, and self-repair.
-- **Strategic Identity**: Outlast and overwhelm via regeneration and scaling buffs.
-- **Mechanical Themes**:
-  - Regenerate X, Heal/Repair, Grow at end of round
-  - Ramp-style effects (convert Gold → Mana, or delayed payoffs)
-  - Token sprouts that evolve over time
-- **Resource & Stat Tendencies**:
-  - Mid-range costs that spike later; prefers longer games
-  - Balanced ATK/HP with regeneration access; moderate SPD
-- **Constraints**:
-  - Slow to start; vulnerable to burst and hard disables
-  - Reliant on board presence to realize scaling
+ - **Fantasy**: Elves and Nature Spirits; patient stewards of living power.
+ - **Strategic Identity**: Grow stronger over time; sustain and scale into inevitability.
+ - **Mechanical Themes**:
+   - Regenerate X, Heal, end-of-round growth buffs
+   - Tokens that sprout and evolve; structures that accelerate growth
+ - **Resource & Stat Tendencies**:
+   - Mid-range costs with later spikes; prefers longer games
+   - Balanced ATK/HP with access to sustain; moderate SPD
+ - **Constraints**:
+   - Slow early turns; weak to burst removal and hard disables
+   - Needs board presence/time to realize scaling
  - **Faction Guidelines**:
    - Fantasy Archetype: Elves and Nature Spirits
    - Vibes: Organic, patient, restorative
@@ -139,18 +136,17 @@ Structure per color:
 
 ### Blue
 
-- **Fantasy**: Tactics, spellcraft, and battlefield manipulation.
-- **Strategic Identity**: Low unit counts with high spell density; control the pace and position of combat.
-- **Mechanical Themes**:
-  - Spells/Tactics, card draw (Draw X), stuns, roots, teleports
-  - Summoned constructs or illusions with utility over raw stats
-  - Priority and timing manipulation within simultaneous resolution guardrails
-- **Resource & Stat Tendencies**:
-  - Mana-centric costs; leans on ephemeral resource spikes
-  - Understated units; overperforming spells
-- **Constraints**:
-  - Lacks sustained damage and sturdy frontlines without pairing
-  - Vulnerable once out of cards; must manage hand size and timing
+ - **Fantasy**: Knights and Humans; disciplined commanders and versatile troops.
+ - **Strategic Identity**: Combined arms; coordinate units with potent spells and battlefield medicine.
+ - **Mechanical Themes**:
+   - Spells/Tactics, control tools (stuns, roots, reposition), shields
+   - Healing and support to keep lines intact; synergy between roles
+ - **Resource & Stat Tendencies**:
+   - Mana-centric costs; flexible curves via tactics
+   - Balanced but slightly understated units offset by spell quality
+ - **Constraints**:
+   - Requires coordination and hand resources; vulnerable when card-poor
+   - Limited raw burst without setup or combined lines
  - **Faction Guidelines**:
    - Fantasy Archetype: Knights and Humans
    - Vibes: Disciplined, tactical, honorable
@@ -159,18 +155,17 @@ Structure per color:
 
 ### Purple
 
-- **Fantasy**: Dark conjury, swarms, and disposable power.
-- **Strategic Identity**: Overwhelm with summoned units and relentless attrition at the cost of fragility.
-- **Mechanical Themes**:
-  - High unit counts, token generation, and On-Death triggers
-  - Sacrifice outlets, Lifesteal X, and glass-cannon payoffs
-  - Summoned units entering beyond base under certain restrictions
-- **Resource & Stat Tendencies**:
-  - Many cheap plays; spikes when multiple deaths convert to value
-  - Low HP profiles; occasional burst windows via buffs
-- **Constraints**:
-  - Vulnerable to sweepers and area denial
-  - Struggles against heavy Armor without support
+ - **Fantasy**: Undead and Wizards; necromancy, curses, and ruthless power.
+ - **Strategic Identity**: Flood the board with summons; leverage spells for high-damage windows.
+ - **Mechanical Themes**:
+   - Token/summon generation, On-Death triggers, and sacrifice outlets
+   - Spells that amplify damage, drain, or recur threats
+ - **Resource & Stat Tendencies**:
+   - Many cheap plays and rituals; spikes when deaths convert to value
+   - Low HP profiles; glass cannons with burst potential
+ - **Constraints**:
+   - Vulnerable to exile effects, sweepers, and area denial
+   - Struggles into heavy Armor without specific answers
  - **Faction Guidelines**:
    - Fantasy Archetype: Undead and Wizards
    - Vibes: Grim, relentless, sacrificial
