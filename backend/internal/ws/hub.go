@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 
+	"kitbash/backend/internal/config"
 	"kitbash/backend/internal/logger"
 
 	"github.com/gorilla/websocket"
@@ -16,10 +17,11 @@ type Hub struct {
 	clients  map[*websocket.Conn]struct{}
 	upgrader websocket.Upgrader
 	log      *logger.Logger
+	cfg      config.Config
 }
 
 // NewHub creates a Hub with an open-origin upgrader (dev-friendly).
-func NewHub(log *logger.Logger) *Hub {
+func NewHub(log *logger.Logger, cfg config.Config) *Hub {
 	if log == nil {
 		log = logger.Default()
 	}
@@ -29,6 +31,7 @@ func NewHub(log *logger.Logger) *Hub {
 			CheckOrigin: func(r *http.Request) bool { return true },
 		},
 		log: log,
+		cfg: cfg,
 	}
 }
 
@@ -55,6 +58,18 @@ func (h *Hub) HandleWS(w http.ResponseWriter, r *http.Request) {
 	h.log.WithContext(r.Context()).Info("WebSocket connection established",
 		"remote_addr", conn.RemoteAddr().String(),
 		"total_clients", clientCount)
+
+	// Send a minimal welcome with board configuration
+	welcome := map[string]interface{}{
+		"type": "welcome",
+		"boardConfig": map[string]int{
+			"rows": h.cfg.BoardRows,
+			"cols": h.cfg.BoardCols,
+		},
+	}
+	if err := conn.WriteJSON(welcome); err != nil {
+		h.log.LogError(r.Context(), err, "Failed to send welcome message")
+	}
 
 	defer func() {
 		h.mu.Lock()

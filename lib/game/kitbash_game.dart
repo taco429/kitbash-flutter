@@ -20,8 +20,8 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     // Add an isometric grid to the scene
     final IsometricGridComponent isoGrid = IsometricGridComponent(
-      rows: 9,
-      cols: 9,
+      rows: 20,
+      cols: 20,
       tileSize: Vector2(64, 32),
     );
 
