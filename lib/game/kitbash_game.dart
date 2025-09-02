@@ -19,10 +19,14 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
     debugPrint('Loading game: $gameId');
 
     // Add an isometric grid to the scene
+    final int rows = 9;
+    final int cols = 9;
     final IsometricGridComponent isoGrid = IsometricGridComponent(
-      rows: 9,
-      cols: 9,
+      rows: rows,
+      cols: cols,
       tileSize: Vector2(64, 32),
+      commandCenters:
+          IsometricGridComponent.computeDefaultCommandCenters(rows, cols),
     );
 
     // Center the grid in the current viewport
@@ -73,10 +77,25 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 }
 
+class CommandCenter {
+  final int playerIndex;
+  final int topLeftRow;
+  final int topLeftCol;
+  int health;
+
+  CommandCenter({
+    required this.playerIndex,
+    required this.topLeftRow,
+    required this.topLeftCol,
+    this.health = 100,
+  });
+}
+
 class IsometricGridComponent extends PositionComponent {
   final int rows;
   final int cols;
   final Vector2 tileSize;
+  final List<CommandCenter> _commandCenters;
 
   int? highlightedRow;
   int? highlightedCol;
@@ -85,7 +104,8 @@ class IsometricGridComponent extends PositionComponent {
     required this.rows,
     required this.cols,
     required this.tileSize,
-  }) {
+    List<CommandCenter>? commandCenters,
+  }) : _commandCenters = commandCenters ?? <CommandCenter>[] {
     // Size is approximate bounding box
     size = Vector2(
       (cols + rows) * (tileSize.x / 2),
@@ -103,6 +123,8 @@ class IsometricGridComponent extends PositionComponent {
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1;
     final ui.Paint highlightPaint = ui.Paint()..color = const Color(0x8854C7EC);
+    final ui.Paint ccPaintP0 = ui.Paint()..color = const Color(0xCC8BC34A);
+    final ui.Paint ccPaintP1 = ui.Paint()..color = const Color(0xCCE91E63);
 
     // Origin at top center for a nice layout inside the component bounds
     final double originX = size.x / 2;
@@ -121,6 +143,26 @@ class IsometricGridComponent extends PositionComponent {
         if (highlightedRow == r && highlightedCol == c) {
           canvas.drawPath(diamond, highlightPaint);
         }
+      }
+    }
+
+    // Render command centers as 2x2 overlays
+    for (final CommandCenter cc in _commandCenters) {
+      final int r0 = cc.topLeftRow.clamp(0, rows - 1);
+      final int c0 = cc.topLeftCol.clamp(0, cols - 1);
+      final List<Vector2> centers = <Vector2>[
+        _isoToScreen(r0, c0, originX, originY),
+        if (c0 + 1 < cols) _isoToScreen(r0, c0 + 1, originX, originY),
+        if (r0 + 1 < rows) _isoToScreen(r0 + 1, c0, originX, originY),
+        if (r0 + 1 < rows && c0 + 1 < cols)
+          _isoToScreen(r0 + 1, c0 + 1, originX, originY),
+      ];
+
+      final ui.Paint paint = cc.playerIndex == 0 ? ccPaintP0 : ccPaintP1;
+      for (final Vector2 center in centers) {
+        final ui.Path diamond = _tileDiamond(center);
+        canvas.drawPath(diamond, paint);
+        canvas.drawPath(diamond, gridLinePaint);
       }
     }
   }
@@ -171,5 +213,28 @@ class IsometricGridComponent extends PositionComponent {
       return null;
     }
     return Vector2(ci.toDouble(), ri.toDouble());
+  }
+
+  static List<CommandCenter> computeDefaultCommandCenters(int rows, int cols) {
+    final int centerCol = cols ~/ 2;
+    final int topLeftCol = (centerCol - 2).clamp(0, cols - 2);
+
+    final int topPlayerRow = 1.clamp(0, rows - 2);
+    final int bottomPlayerRow = (rows - 3).clamp(0, rows - 2);
+
+    return <CommandCenter>[
+      CommandCenter(
+        playerIndex: 0,
+        topLeftRow: topPlayerRow,
+        topLeftCol: topLeftCol,
+        health: 100,
+      ),
+      CommandCenter(
+        playerIndex: 1,
+        topLeftRow: bottomPlayerRow,
+        topLeftCol: topLeftCol,
+        health: 100,
+      ),
+    ];
   }
 }
