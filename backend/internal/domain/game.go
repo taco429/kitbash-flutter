@@ -53,16 +53,17 @@ func (cc *CommandCenter) IsDestroyed() bool {
 
 // GameState represents the current state of a game.
 type GameState struct {
-	ID             GameID           `json:"id"`
-	Status         GameStatus       `json:"status"`
-	Players        []Player         `json:"players"`
-	CommandCenters []*CommandCenter `json:"commandCenters"`
-	CurrentTurn    int              `json:"currentTurn"`
-	TurnCount      int              `json:"turnCount"`
-	BoardRows      int              `json:"boardRows"`
-	BoardCols      int              `json:"boardCols"`
-	CreatedAt      time.Time        `json:"createdAt"`
-	UpdatedAt      time.Time        `json:"updatedAt"`
+	ID                  GameID           `json:"id"`
+	Status              GameStatus       `json:"status"`
+	Players             []Player         `json:"players"`
+	CommandCenters      []*CommandCenter `json:"commandCenters"`
+	CurrentTurn         int              `json:"currentTurn"`
+	TurnCount           int              `json:"turnCount"`
+	BoardRows           int              `json:"boardRows"`
+	BoardCols           int              `json:"boardCols"`
+	PlayerChoicesLocked map[int]bool     `json:"playerChoicesLocked"`
+	CreatedAt           time.Time        `json:"createdAt"`
+	UpdatedAt           time.Time        `json:"updatedAt"`
 }
 
 // NewGameState creates a new game state with default command centers.
@@ -70,16 +71,17 @@ func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *Ga
 	commandCenters := computeDefaultCommandCenters(boardRows, boardCols)
 	
 	return &GameState{
-		ID:             gameID,
-		Status:         GameStatusWaiting,
-		Players:        players,
-		CommandCenters: commandCenters,
-		CurrentTurn:    0,
-		TurnCount:      0,
-		BoardRows:      boardRows,
-		BoardCols:      boardCols,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		ID:                  gameID,
+		Status:              GameStatusWaiting,
+		Players:             players,
+		CommandCenters:      commandCenters,
+		CurrentTurn:         0,
+		TurnCount:           0,
+		BoardRows:           boardRows,
+		BoardCols:           boardCols,
+		PlayerChoicesLocked: map[int]bool{0: false, 1: false},
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
 	}
 }
 
@@ -152,6 +154,43 @@ func (gs *GameState) StartGame() {
 		gs.Status = GameStatusInProgress
 		gs.UpdatedAt = time.Now()
 	}
+}
+
+// LockPlayerChoice marks a player's choice as locked for the current turn.
+func (gs *GameState) LockPlayerChoice(playerIndex int) {
+	if gs.PlayerChoicesLocked == nil {
+		gs.PlayerChoicesLocked = map[int]bool{0: false, 1: false}
+	}
+	gs.PlayerChoicesLocked[playerIndex] = true
+	gs.UpdatedAt = time.Now()
+}
+
+// AreAllPlayersLocked returns true if all players have locked their choices.
+func (gs *GameState) AreAllPlayersLocked() bool {
+	if gs.PlayerChoicesLocked == nil {
+		return false
+	}
+	for _, locked := range gs.PlayerChoicesLocked {
+		if !locked {
+			return false
+		}
+	}
+	return true
+}
+
+// AdvanceTurn increments the turn counter and resets player locks.
+func (gs *GameState) AdvanceTurn() {
+	gs.CurrentTurn++
+	gs.TurnCount++
+	// Reset all player locks for the new turn
+	if gs.PlayerChoicesLocked == nil {
+		gs.PlayerChoicesLocked = map[int]bool{0: false, 1: false}
+	} else {
+		for key := range gs.PlayerChoicesLocked {
+			gs.PlayerChoicesLocked[key] = false
+		}
+	}
+	gs.UpdatedAt = time.Now()
 }
 
 func max(a, b int) int {
