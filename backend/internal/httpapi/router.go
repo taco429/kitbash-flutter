@@ -54,7 +54,7 @@ func NewRouter(cfg config.Config) http.Handler {
 		log.Info("Created seed lobby", "lobby_id", seedLobby.ID, "lobby_name", seedLobby.Name)
 	}
 
-	hub := ws.NewHub(log)
+	hub := ws.NewHub(log, cfg)
 
 	// GET /healthz: liveness probe for container/orchestrator.
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
