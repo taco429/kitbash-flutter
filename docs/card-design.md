@@ -233,6 +233,11 @@ Structure per color:
 
 - **Costs**: "Cost: X Mana Y Gold" or inline as "[X Mana, Y Gold]". If only one resource, omit the other.
 - **Stats**: Units list "ATK/HP/RNG [optional], SPD [optional]" in that order.
+ - **Stat Legend**:
+   - ATK: Attack value dealt on hit
+   - HP: Health points before death
+   - Range (RNG): Tiles the unit can target (1 = Melee)
+   - Movement (SPD): Tiles the unit can move each round
 - **Timing**: Use exact triggers — "Start of Round", "On Summon", "On Move", "On Death", "End of Round".
 - **Placement**: Explicitly reference tiles, lanes, columns, or zones; avoid ambiguous terms.
 - **Summon Rules**: If a summon may break base rules, include its exception text (e.g., "may be placed in Neutral Zone").
