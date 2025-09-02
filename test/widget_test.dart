@@ -16,7 +16,8 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider<GameService>(
-              create: (_) => _FakeGameService()),
+            create: (_) => _FakeGameService(),
+          ),
           ChangeNotifierProvider<DeckService>(create: (_) => DeckService()),
         ],
         child: const KitbashApp(),
