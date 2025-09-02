@@ -19,8 +19,8 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
     debugPrint('Loading game: $gameId');
 
     // Add an isometric grid to the scene
-    final int rows = 9;
-    final int cols = 9;
+    final int rows = 12;
+    final int cols = 12;
     final IsometricGridComponent isoGrid = IsometricGridComponent(
       rows: rows,
       cols: cols,
