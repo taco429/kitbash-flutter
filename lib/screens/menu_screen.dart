@@ -81,77 +81,71 @@ class _MenuScreenState extends State<MenuScreen> {
         title: const Text('Kitbash CCG'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            const Text(
-              'Kitbash CCG',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 40),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
 
-            // Deck Selector Section
-            const DeckSelector(),
-            const SizedBox(height: 40),
+              // Deck Selector Section
+              const DeckSelector(),
+              const SizedBox(height: 40),
 
-            // Game Action Buttons
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _createGame,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(200, 50),
-                      ),
-                      child: const Text('Create Game'),
+              // Game Action Buttons
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: _createGame,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(200, 50),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _createCpuGame,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(200, 50),
-                      ),
-                      child: const Text('Play vs CPU'),
+                    child: const Text('Create Game'),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _createCpuGame,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(200, 50),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        // TODO: Implement deck builder
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Deck Builder coming soon!'),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(200, 50),
-                      ),
-                      child: const Text('Deck Builder'),
+                    child: const Text('Play vs CPU'),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      // TODO: Implement deck builder
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Deck Builder coming soon!'),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(200, 50),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const GameLobbyScreen(),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(200, 50),
-                      ),
-                      child: const Text('Find Games'),
+                    child: const Text('Deck Builder'),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const GameLobbyScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(200, 50),
                     ),
-                  ],
-                ),
+                    child: const Text('Find Games'),
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
