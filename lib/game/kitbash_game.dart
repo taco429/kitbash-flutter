@@ -81,11 +81,7 @@ class IsometricGridComponent extends PositionComponent {
   int? highlightedRow;
   int? highlightedCol;
 
-  IsometricGridComponent({
-    required this.rows,
-    required this.cols,
-    required this.tileSize,
-  }) {
+  IsometricGridComponent({required this.rows, required this.cols, required this.tileSize}) {
     // Size is approximate bounding box
     size = Vector2(
       (cols + rows) * (tileSize.x / 2),

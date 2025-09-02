@@ -77,10 +77,7 @@ class _DeckPanel extends StatelessWidget {
                 children: [
                   const Icon(Icons.layers, size: 32),
                   const SizedBox(height: 6),
-                  Text(
-                    '$count cards',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
+                  Text('$count cards', style: Theme.of(context).textTheme.labelMedium),
                 ],
               ),
             ),
@@ -102,11 +99,7 @@ class _HandBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         boxShadow: const [
-          BoxShadow(
-            blurRadius: 6,
-            offset: Offset(0, -2),
-            color: Colors.black26,
-          ),
+          BoxShadow(blurRadius: 6, offset: Offset(0, -2), color: Colors.black26),
         ],
       ),
       child: ListView.separated(
@@ -119,9 +112,7 @@ class _HandBar extends StatelessWidget {
             aspectRatio: 63 / 88,
             child: Card(
               elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
@@ -134,9 +125,7 @@ class _HandBar extends StatelessWidget {
                 child: Center(
                   child: Text(
                     'Card ${index + 1}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelLarge?.copyWith(color: Colors.white70),
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white70),
                   ),
                 ),
               ),
