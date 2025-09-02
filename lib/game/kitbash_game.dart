@@ -3,12 +3,14 @@ import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import '../services/game_service.dart';
 
 class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   final String gameId;
+  final GameService gameService;
   IsometricGridComponent? _grid;
 
-  KitbashGame({required this.gameId});
+  KitbashGame({required this.gameId, required this.gameService});
 
   @override
   Color backgroundColor() => const Color(0xFF2A2A2A);
@@ -27,6 +29,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
       tileSize: Vector2(64, 32),
       commandCenters:
           IsometricGridComponent.computeDefaultCommandCenters(rows, cols),
+      gameService: gameService,
     );
 
     // Center the grid in the current viewport
@@ -77,25 +80,14 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 }
 
-class CommandCenter {
-  final int playerIndex;
-  final int topLeftRow;
-  final int topLeftCol;
-  int health;
-
-  CommandCenter({
-    required this.playerIndex,
-    required this.topLeftRow,
-    required this.topLeftCol,
-    this.health = 100,
-  });
-}
+// Remove the old CommandCenter class since we now use the one from game_service.dart
 
 class IsometricGridComponent extends PositionComponent {
   final int rows;
   final int cols;
   final Vector2 tileSize;
-  final List<CommandCenter> _commandCenters;
+  final GameService gameService;
+  List<CommandCenter> _commandCenters;
 
   int? highlightedRow;
   int? highlightedCol;
@@ -104,6 +96,7 @@ class IsometricGridComponent extends PositionComponent {
     required this.rows,
     required this.cols,
     required this.tileSize,
+    required this.gameService,
     List<CommandCenter>? commandCenters,
   }) : _commandCenters = commandCenters ?? <CommandCenter>[] {
     // Size is approximate bounding box
@@ -117,6 +110,12 @@ class IsometricGridComponent extends PositionComponent {
   void render(ui.Canvas canvas) {
     super.render(canvas);
 
+    // Update command centers from game service
+    final gameState = gameService.gameState;
+    if (gameState != null && gameState.commandCenters.isNotEmpty) {
+      _commandCenters = gameState.commandCenters;
+    }
+
     final ui.Paint basePaint = ui.Paint()..color = const Color(0xFF3A3F4B);
     final ui.Paint gridLinePaint = ui.Paint()
       ..color = const Color(0xFF565D6D)
@@ -125,6 +124,9 @@ class IsometricGridComponent extends PositionComponent {
     final ui.Paint highlightPaint = ui.Paint()..color = const Color(0x8854C7EC);
     final ui.Paint ccPaintP0 = ui.Paint()..color = const Color(0xCC8BC34A);
     final ui.Paint ccPaintP1 = ui.Paint()..color = const Color(0xCCE91E63);
+    final ui.Paint healthBarBg = ui.Paint()..color = const Color(0xAA000000);
+    final ui.Paint healthBarFill = ui.Paint()..color = const Color(0xAA4CAF50);
+    final ui.Paint healthBarLow = ui.Paint()..color = const Color(0xAAF44336);
 
     // Origin at top center for a nice layout inside the component bounds
     final double originX = size.x / 2;
@@ -146,7 +148,7 @@ class IsometricGridComponent extends PositionComponent {
       }
     }
 
-    // Render command centers as 2x2 overlays
+    // Render command centers as 2x2 overlays with health bars
     for (final CommandCenter cc in _commandCenters) {
       final int r0 = cc.topLeftRow.clamp(0, rows - 1);
       final int c0 = cc.topLeftCol.clamp(0, cols - 1);
@@ -158,11 +160,32 @@ class IsometricGridComponent extends PositionComponent {
           _isoToScreen(r0 + 1, c0 + 1, originX, originY),
       ];
 
-      final ui.Paint paint = cc.playerIndex == 0 ? ccPaintP0 : ccPaintP1;
+      // Choose color based on health
+      ui.Paint paint;
+      if (cc.isDestroyed) {
+        paint = ui.Paint()
+          ..color = const Color(0xCC666666); // Gray for destroyed
+      } else {
+        paint = cc.playerIndex == 0 ? ccPaintP0 : ccPaintP1;
+      }
+
+      // Draw command center tiles
       for (final Vector2 center in centers) {
         final ui.Path diamond = _tileDiamond(center);
         canvas.drawPath(diamond, paint);
         canvas.drawPath(diamond, gridLinePaint);
+      }
+
+      // Draw health bar above the command center
+      if (centers.isNotEmpty && !cc.isDestroyed) {
+        final Vector2 topCenter = centers[0]; // Use top-left tile as reference
+        _drawHealthBar(
+          canvas,
+          topCenter,
+          cc.healthPercentage,
+          healthBarBg,
+          cc.healthPercentage > 0.3 ? healthBarFill : healthBarLow,
+        );
       }
     }
   }
@@ -190,6 +213,46 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x, center.y + halfH)
       ..lineTo(center.x - halfW, center.y)
       ..close();
+  }
+
+  void _drawHealthBar(
+    ui.Canvas canvas,
+    Vector2 center,
+    double healthPercentage,
+    ui.Paint bgPaint,
+    ui.Paint fillPaint,
+  ) {
+    const double barWidth = 40.0;
+    const double barHeight = 6.0;
+    const double barOffsetY = -25.0; // Position above the command center
+
+    final double barX = center.x - barWidth / 2;
+    final double barY = center.y + barOffsetY;
+
+    // Draw background
+    final ui.Rect bgRect = ui.Rect.fromLTWH(barX, barY, barWidth, barHeight);
+    canvas.drawRRect(
+      ui.RRect.fromRectAndRadius(bgRect, const ui.Radius.circular(3)),
+      bgPaint,
+    );
+
+    // Draw health fill
+    final double fillWidth = barWidth * healthPercentage;
+    final ui.Rect fillRect = ui.Rect.fromLTWH(barX, barY, fillWidth, barHeight);
+    canvas.drawRRect(
+      ui.RRect.fromRectAndRadius(fillRect, const ui.Radius.circular(3)),
+      fillPaint,
+    );
+
+    // Draw border
+    final ui.Paint borderPaint = ui.Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawRRect(
+      ui.RRect.fromRectAndRadius(bgRect, const ui.Radius.circular(3)),
+      borderPaint,
+    );
   }
 
   Vector2? _screenToIso(Vector2 localPoint) {
@@ -228,12 +291,14 @@ class IsometricGridComponent extends PositionComponent {
         topLeftRow: topPlayerRow,
         topLeftCol: topLeftCol,
         health: 100,
+        maxHealth: 100,
       ),
       CommandCenter(
         playerIndex: 1,
         topLeftRow: bottomPlayerRow,
         topLeftCol: topLeftCol,
         health: 100,
+        maxHealth: 100,
       ),
     ];
   }
