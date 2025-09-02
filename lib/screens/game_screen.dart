@@ -3,30 +3,61 @@ import 'package:flame/game.dart';
 import 'package:provider/provider.dart';
 import '../game/kitbash_game.dart';
 import '../services/game_service.dart';
+import 'game_over_screen.dart';
 
-class GameScreen extends StatelessWidget {
+class GameScreen extends StatefulWidget {
   final String gameId;
 
   const GameScreen({super.key, required this.gameId});
 
   @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  bool _hasNavigatedToGameOver = false;
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<GameService>(
       builder: (context, gameService, child) {
+        // Check if game is over and navigate to game over screen
+        final gameState = gameService.gameState;
+        if (gameState != null &&
+            !_hasNavigatedToGameOver &&
+            (gameState.isGameOver || gameState.computedWinner != null)) {
+          final winnerIndex =
+              gameState.winnerPlayerIndex ?? gameState.computedWinner;
+          if (winnerIndex != null) {
+            _hasNavigatedToGameOver = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => GameOverScreen(
+                    gameId: widget.gameId,
+                    winnerPlayerIndex: winnerIndex,
+                    winnerName: gameState.getWinnerName(winnerIndex),
+                  ),
+                ),
+              );
+            });
+          }
+        }
+
         return Scaffold(
           appBar: AppBar(
-            title: Text('Game $gameId'),
+            title: Text('Game ${widget.gameId}'),
             actions: [
               // Test buttons for dealing damage
               IconButton(
                 icon: const Icon(Icons.remove_circle, color: Colors.green),
                 tooltip: 'Damage Player 1 (Green)',
-                onPressed: () => gameService.dealDamage(gameId, 0, 10),
+                onPressed: () => gameService.dealDamage(widget.gameId, 0, 10),
               ),
               IconButton(
                 icon: const Icon(Icons.remove_circle, color: Colors.pink),
                 tooltip: 'Damage Player 2 (Pink)',
-                onPressed: () => gameService.dealDamage(gameId, 1, 10),
+                onPressed: () => gameService.dealDamage(widget.gameId, 1, 10),
               ),
               IconButton(
                 icon: const Icon(Icons.refresh),
@@ -99,7 +130,7 @@ class GameScreen extends StatelessWidget {
                             const BorderRadius.all(Radius.circular(8)),
                         child: GameWidget.controlled(
                           gameFactory: () => KitbashGame(
-                            gameId: gameId,
+                            gameId: widget.gameId,
                             gameService: gameService,
                           ),
                         ),
