@@ -83,6 +83,8 @@ func NewRouter(cfg config.Config) http.Handler {
 		r.Get("/games", a.handleListLobbies)
 		// POST /api/games: create a new game (alias for lobby creation).
 		r.Post("/games", a.handleCreateGameCompat)
+		// POST /api/games/cpu: create a new game with a CPU opponent and return it.
+		r.Post("/games/cpu", a.handleCreateCpuGameCompat)
 		// POST /api/games/{id}/join: join without request body.
 		r.Post("/games/{id}/join", a.handleJoinGameCompat)
 	})
@@ -334,6 +336,36 @@ func (a *api) handleCreateGameCompat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.log.WithContext(r.Context()).Info("Successfully created game (compatibility)", "game_id", lobby.ID, "name", lobby.Name)
+	a.writeJSON(w, r, http.StatusCreated, lobby)
+}
+
+// handleCreateCpuGameCompat creates a new 1v1 game and auto-adds a CPU opponent.
+// Route: POST /api/games/cpu
+func (a *api) handleCreateCpuGameCompat(w http.ResponseWriter, r *http.Request) {
+	a.log.WithContext(r.Context()).Info("Creating new CPU game (compatibility endpoint)")
+
+	// Create lobby with human player as host
+	gameName := "CPU Match"
+	hostName := "Player"
+
+	host := domain.Player{ID: domain.PlayerID(hostName), Name: hostName}
+	lobby, err := a.repo.Create(r.Context(), gameName, host)
+	if err != nil {
+		a.log.LogError(r.Context(), err, "Failed to create CPU game", "name", gameName, "host", hostName)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Auto-join a CPU opponent
+	cpu := domain.Player{ID: "cpu", Name: "CPU"}
+	lobby, err = a.repo.Join(r.Context(), lobby.ID, cpu)
+	if err != nil {
+		a.log.LogError(r.Context(), err, "Failed to add CPU to game", "lobby_id", lobby.ID)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	a.log.WithContext(r.Context()).Info("Successfully created CPU game", "game_id", lobby.ID, "players_count", len(lobby.Players))
 	a.writeJSON(w, r, http.StatusCreated, lobby)
 }
 
