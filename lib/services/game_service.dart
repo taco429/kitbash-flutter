@@ -39,6 +39,7 @@ class GameState {
   final int currentTurn;
   final int turnCount;
   final int? winnerPlayerIndex;
+  final Map<int, bool> playerChoicesLocked;
 
   GameState({
     required this.id,
@@ -47,9 +48,24 @@ class GameState {
     required this.currentTurn,
     required this.turnCount,
     this.winnerPlayerIndex,
-  });
+    Map<int, bool>? playerChoicesLocked,
+  }) : playerChoicesLocked = playerChoicesLocked ?? {0: false, 1: false};
 
   factory GameState.fromJson(Map<String, dynamic> json) {
+    // Parse player choices locked state
+    Map<int, bool> playerChoicesLocked = {0: false, 1: false};
+    if (json['playerChoicesLocked'] != null) {
+      final locked = json['playerChoicesLocked'];
+      if (locked is Map) {
+        locked.forEach((key, value) {
+          final playerIndex = key is String ? int.tryParse(key) : key;
+          if (playerIndex != null) {
+            playerChoicesLocked[playerIndex] = value == true;
+          }
+        });
+      }
+    }
+
     return GameState(
       id: json['id'] ?? '',
       status: json['status'] ?? 'waiting',
@@ -60,6 +76,7 @@ class GameState {
       currentTurn: json['currentTurn'] ?? 0,
       turnCount: json['turnCount'] ?? 0,
       winnerPlayerIndex: json['winnerPlayerIndex'],
+      playerChoicesLocked: playerChoicesLocked,
     );
   }
 
@@ -91,6 +108,16 @@ class GameState {
   String getWinnerName(int playerIndex) {
     return 'Player ${playerIndex + 1}';
   }
+
+  /// Check if all players have locked in their choices for this turn
+  bool get allPlayersLocked {
+    return playerChoicesLocked.values.every((locked) => locked);
+  }
+
+  /// Check if a specific player has locked their choice
+  bool isPlayerLocked(int playerIndex) {
+    return playerChoicesLocked[playerIndex] ?? false;
+  }
 }
 
 class GameService extends ChangeNotifier {
@@ -107,6 +134,9 @@ class GameService extends ChangeNotifier {
 
   GameState? _gameState;
   GameState? get gameState => _gameState;
+
+  int _currentPlayerIndex = 0; // Default to player 0, should be set when joining game
+  int get currentPlayerIndex => _currentPlayerIndex;
 
   // REST API methods
   Future<List<dynamic>> findGames() async {
@@ -268,6 +298,29 @@ class GameService extends ChangeNotifier {
             'Updated game state: ${_gameState?.status}, Command Centers: ${_gameState?.commandCenters.length}',
           );
         }
+      } else if (messageType == 'player_locked') {
+        // Handle player lock update
+        final playerIndex = data['playerIndex'];
+        if (playerIndex != null && _gameState != null) {
+          _gameState!.playerChoicesLocked[playerIndex] = true;
+          debugPrint('Player $playerIndex locked their choice');
+        }
+      } else if (messageType == 'turn_advanced') {
+        // Handle turn advancement when both players have locked
+        final newTurn = data['newTurn'];
+        if (newTurn != null && _gameState != null) {
+          // Reset lock states for new turn
+          _gameState!.playerChoicesLocked[0] = false;
+          _gameState!.playerChoicesLocked[1] = false;
+          debugPrint('Turn advanced to $newTurn');
+        }
+      } else if (messageType == 'player_joined') {
+        // Set the current player index when joining
+        final playerIndex = data['playerIndex'];
+        if (playerIndex != null) {
+          _currentPlayerIndex = playerIndex;
+          debugPrint('Joined as player $playerIndex');
+        }
       }
 
       notifyListeners();
@@ -348,6 +401,65 @@ class GameService extends ChangeNotifier {
   // Request game state via WebSocket
   void requestGameState() {
     sendAction({'type': 'get_game_state'});
+  }
+
+  // Lock in player's choices for the current turn
+  Future<bool> lockPlayerChoice(String gameId, int playerIndex) async {
+    try {
+      _lastError = null;
+
+      // Update local state optimistically
+      if (_gameState != null) {
+        _gameState!.playerChoicesLocked[playerIndex] = true;
+        notifyListeners();
+      }
+
+      // Send lock choice via WebSocket for real-time updates
+      sendAction({
+        'type': 'lock_choice',
+        'playerIndex': playerIndex,
+        'gameId': gameId,
+      });
+
+      // Try to send to backend via REST as well (optional, may not be implemented yet)
+      try {
+        final response = await http.post(
+          Uri.parse('$baseUrl/api/games/$gameId/lock-choice'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'playerIndex': playerIndex,
+          }),
+        ).timeout(const Duration(seconds: 2));
+
+        if (response.statusCode == 200) {
+          debugPrint('Player $playerIndex locked their choice (REST confirmed)');
+        } else if (response.statusCode == 404) {
+          // Endpoint not implemented yet, but WebSocket should handle it
+          debugPrint('Lock choice endpoint not implemented, using WebSocket only');
+        }
+      } catch (restError) {
+        // REST endpoint might not be implemented, rely on WebSocket
+        debugPrint('Lock choice REST failed (may not be implemented): $restError');
+      }
+
+      debugPrint('Player $playerIndex locked their choice');
+      
+      // Check if both players have locked and simulate turn advancement
+      if (_gameState != null && _gameState!.allPlayersLocked) {
+        debugPrint('Both players locked - turn should advance');
+      }
+      
+      return true;
+    } catch (e) {
+      // Revert optimistic update on error
+      if (_gameState != null) {
+        _gameState!.playerChoicesLocked[playerIndex] = false;
+        notifyListeners();
+      }
+      _lastError = 'Error locking choice: $e';
+      debugPrint(_lastError);
+      return false;
+    }
   }
 
   void disconnect() {

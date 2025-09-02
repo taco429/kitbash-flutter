@@ -3,6 +3,8 @@ import 'package:flame/game.dart';
 import 'package:provider/provider.dart';
 import '../game/kitbash_game.dart';
 import '../services/game_service.dart';
+import '../widgets/turn_indicator.dart';
+import '../widgets/lock_in_button.dart';
 import 'game_over_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -68,7 +70,7 @@ class _GameScreenState extends State<GameScreen> {
           ),
           body: Column(
             children: [
-              // Game status bar
+              // Game status bar with turn indicator
               Container(
                 padding: const EdgeInsets.all(8),
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -77,6 +79,14 @@ class _GameScreenState extends State<GameScreen> {
                     Text(
                       'Status: ${gameService.gameState?.status ?? 'Loading...'}',
                     ),
+                    const Spacer(),
+                    // Turn indicator
+                    if (gameService.gameState != null)
+                      TurnIndicator(
+                        turnNumber: gameService.gameState!.currentTurn,
+                        player1Locked: gameService.gameState!.isPlayerLocked(0),
+                        player2Locked: gameService.gameState!.isPlayerLocked(1),
+                      ),
                     const Spacer(),
                     if (gameService.gameState != null)
                       ...gameService.gameState!.commandCenters.map(
@@ -144,8 +154,48 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
               ),
-              // Player hand at the bottom
-              const _HandBar(),
+              // Player control area with hand and lock-in button
+              Column(
+                children: [
+                  // Lock-in button and waiting indicator
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (gameService.gameState != null)
+                          LockInButton(
+                            isLocked: gameService.gameState!.isPlayerLocked(
+                              gameService.currentPlayerIndex,
+                            ),
+                            isOpponentLocked: gameService.gameState!.isPlayerLocked(
+                              1 - gameService.currentPlayerIndex,
+                            ),
+                            playerIndex: gameService.currentPlayerIndex,
+                            onLockIn: () {
+                              gameService.lockPlayerChoice(
+                                widget.gameId,
+                                gameService.currentPlayerIndex,
+                              );
+                            },
+                          ),
+                        const SizedBox(width: 16),
+                        if (gameService.gameState != null &&
+                            gameService.gameState!.isPlayerLocked(
+                              gameService.currentPlayerIndex,
+                            ) &&
+                            !gameService.gameState!.allPlayersLocked)
+                          const WaitingIndicator(
+                            isWaiting: true,
+                            waitingText: 'Waiting for opponent to lock in...',
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Player hand at the bottom
+                  const _HandBar(),
+                ],
+              ),
             ],
           ),
         );
