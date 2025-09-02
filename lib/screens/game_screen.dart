@@ -17,9 +17,9 @@ class GameScreen extends StatelessWidget {
             child: Row(
               children: [
                 // Opponent deck area (left)
-                SizedBox(
+                const SizedBox(
                   width: 110,
-                  child: _DeckPanel(title: 'Opponent Deck', count: 30),
+                  child: const _DeckPanel(title: 'Opponent Deck', count: 30),
                 ),
                 // Game area with Flame GameWidget in the middle
                 Expanded(
@@ -31,9 +31,9 @@ class GameScreen extends StatelessWidget {
                   ),
                 ),
                 // Player deck area (right)
-                SizedBox(
+                const SizedBox(
                   width: 110,
-                  child: _DeckPanel(title: 'Your Deck', count: 30),
+                  child: const _DeckPanel(title: 'Your Deck', count: 30),
                 ),
               ],
             ),

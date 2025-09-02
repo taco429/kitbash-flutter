@@ -34,12 +34,12 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   @override
-  void onGameResize(Vector2 canvasSize) {
-    super.onGameResize(canvasSize);
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
     // Keep grid centered in viewport
     final IsometricGridComponent? grid = _grid;
     if (grid != null) {
-      grid.position = size / 2;
+      grid.position = this.size / 2;
     }
   }
 
