@@ -226,16 +226,18 @@ class GameService extends ChangeNotifier {
     try {
       final data = json.decode(message);
       debugPrint('Received: $data');
-      
+
       final messageType = data['type'];
       if (messageType == 'game_state') {
         final gameStateData = data['gameState'];
         if (gameStateData != null) {
           _gameState = GameState.fromJson(gameStateData);
-          debugPrint('Updated game state: ${_gameState?.status}, Command Centers: ${_gameState?.commandCenters.length}');
+          debugPrint(
+            'Updated game state: ${_gameState?.status}, Command Centers: ${_gameState?.commandCenters.length}',
+          );
         }
       }
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error handling message: $e');
@@ -252,7 +254,7 @@ class GameService extends ChangeNotifier {
   Future<bool> dealDamage(String gameId, int playerIndex, int damage) async {
     try {
       _lastError = null;
-      
+
       final response = await http.post(
         Uri.parse('$baseUrl/api/games/$gameId/damage'),
         headers: {'Content-Type': 'application/json'},
@@ -265,7 +267,7 @@ class GameService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final result = json.decode(response.body);
         debugPrint('Damage dealt successfully: ${result['destroyed']}');
-        
+
         // Also send via WebSocket for real-time updates
         sendAction({
           'type': 'deal_damage',

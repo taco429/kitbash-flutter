@@ -46,15 +46,17 @@ class GameScreen extends StatelessWidget {
                     Text('Status: ${gameService.gameState?.status ?? 'Loading...'}'),
                     const Spacer(),
                     if (gameService.gameState != null)
-                      ...gameService.gameState!.commandCenters.map((cc) => 
-                        Padding(
+                      ...gameService.gameState!.commandCenters.map(
+                        (cc) => Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.home,
-                                color: cc.playerIndex == 0 ? Colors.green : Colors.pink,
+                                color: cc.playerIndex == 0
+                                    ? Colors.green
+                                    : Colors.pink,
                                 size: 16,
                               ),
                               const SizedBox(width: 4),
@@ -67,7 +69,9 @@ class GameScreen extends StatelessWidget {
                                   value: cc.healthPercentage,
                                   backgroundColor: Colors.grey[300],
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    cc.healthPercentage > 0.3 ? Colors.green : Colors.red,
+                                    cc.healthPercentage > 0.3
+                                        ? Colors.green
+                                        : Colors.red,
                                   ),
                                 ),
                               ),
@@ -91,7 +95,10 @@ class GameScreen extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: const BorderRadius.all(Radius.circular(8)),
                         child: GameWidget.controlled(
-                          gameFactory: () => KitbashGame(gameId: gameId, gameService: gameService),
+                          gameFactory: () => KitbashGame(
+                            gameId: gameId,
+                            gameService: gameService,
+                          ),
                         ),
                       ),
                     ),
