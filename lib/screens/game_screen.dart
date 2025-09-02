@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flame/game.dart';
-import '../game/kitbash_game.dart';
+// Simplified game screen for now
 
 class GameScreen extends StatelessWidget {
   final String gameId;
@@ -10,8 +9,9 @@ class GameScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GameWidget(
-        game: KitbashGame(gameId: gameId),
+      appBar: AppBar(title: const Text('In Game')),
+      body: Center(
+        child: Text('game $gameId', style: const TextStyle(fontSize: 24)),
       ),
     );
   }

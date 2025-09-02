@@ -83,6 +83,8 @@ func NewRouter(cfg config.Config) http.Handler {
 		r.Get("/games", a.handleListLobbies)
 		// POST /api/games: create a new game (alias for lobby creation).
 		r.Post("/games", a.handleCreateGameCompat)
+		// POST /api/games/cpu: create a new game and auto-join a CPU opponent.
+		r.Post("/games/cpu", a.handleCreateCpuGame)
 		// POST /api/games/{id}/join: join without request body.
 		r.Post("/games/{id}/join", a.handleJoinGameCompat)
 	})
@@ -335,6 +337,59 @@ func (a *api) handleCreateGameCompat(w http.ResponseWriter, r *http.Request) {
 
 	a.log.WithContext(r.Context()).Info("Successfully created game (compatibility)", "game_id", lobby.ID, "name", lobby.Name)
 	a.writeJSON(w, r, http.StatusCreated, lobby)
+}
+
+// handleCreateCpuGame creates a new lobby and immediately joins a CPU opponent.
+// Optional body: { name, hostName }
+func (a *api) handleCreateCpuGame(w http.ResponseWriter, r *http.Request) {
+    a.log.WithContext(r.Context()).Info("Creating new CPU game")
+
+    // Defaults
+    gameName := "CPU Match"
+    hostName := "Host"
+
+    // Read optional body
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        a.log.LogError(r.Context(), err, "Failed to read create CPU game request body")
+        http.Error(w, "failed to read request", http.StatusBadRequest)
+        return
+    }
+
+    if len(body) > 0 {
+        var req createLobbyRequest
+        if err := json.Unmarshal(body, &req); err != nil {
+            a.log.LogError(r.Context(), err, "Failed to parse create CPU game request")
+            a.log.WithContext(r.Context()).Debug("Using default CPU game settings due to parse error")
+        } else {
+            if req.Name != "" {
+                gameName = req.Name
+            }
+            if req.HostName != "" {
+                hostName = req.HostName
+            }
+        }
+    }
+
+    host := domain.Player{ID: domain.PlayerID(hostName), Name: hostName}
+    lobby, err := a.repo.Create(r.Context(), gameName, host)
+    if err != nil {
+        a.log.LogError(r.Context(), err, "Failed to create CPU game", "name", gameName, "host", hostName)
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Join CPU opponent
+    cpu := domain.Player{ID: "cpu", Name: "CPU"}
+    lobby, err = a.repo.Join(r.Context(), lobby.ID, cpu)
+    if err != nil {
+        a.log.LogError(r.Context(), err, "Failed to join CPU to game", "game_id", lobby.ID)
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    a.log.WithContext(r.Context()).Info("Successfully created CPU game", "game_id", lobby.ID, "players", len(lobby.Players))
+    a.writeJSON(w, r, http.StatusCreated, lobby)
 }
 
 // corsMiddleware allows cross-origin requests for local dev.
