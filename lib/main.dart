@@ -6,9 +6,7 @@ import 'screens/menu_screen.dart';
 void main() {
   runApp(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => GameService()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => GameService())],
       child: const KitbashApp(),
     ),
   );

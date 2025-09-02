@@ -59,9 +59,9 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to create game')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to create game')));
       }
     }
   }
@@ -73,14 +73,12 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
     if (gameData != null && mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => GameScreen(gameId: gameId),
-        ),
+        MaterialPageRoute(builder: (context) => GameScreen(gameId: gameId)),
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to join game')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to join game')));
     }
   }
 
@@ -119,8 +117,9 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Icon(Icons.add),
@@ -143,107 +142,107 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _availableGames.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.games_outlined,
-                                size: 64,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No games available',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Create a new game to get started!',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              TextButton.icon(
-                                onPressed: _loadGames,
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Refresh'),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.games_outlined,
+                            size: 64,
+                            color: Colors.grey[400],
                           ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: _availableGames.length,
-                          itemBuilder: (context, index) {
-                            final game = _availableGames[index];
-                            final playerCount =
-                                game['players'] ?? game['player_count'] ?? 1;
-                            final maxPlayers = game['max_players'] ?? 2;
-                            final gameStatus = game['status'] ?? 'waiting';
-                            final hostName = game['host'] ?? 'Unknown';
+                          const SizedBox(height: 16),
+                          Text(
+                            'No games available',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create a new game to get started!',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          TextButton.icon(
+                            onPressed: _loadGames,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Refresh'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _availableGames.length,
+                      itemBuilder: (context, index) {
+                        final game = _availableGames[index];
+                        final playerCount =
+                            game['players'] ?? game['player_count'] ?? 1;
+                        final maxPlayers = game['max_players'] ?? 2;
+                        final gameStatus = game['status'] ?? 'waiting';
+                        final hostName = game['host'] ?? 'Unknown';
 
-                            return Card(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: gameStatus == 'waiting'
+                                  ? Colors.green
+                                  : Colors.orange,
+                              child: Icon(
+                                gameStatus == 'waiting'
+                                    ? Icons.hourglass_empty
+                                    : Icons.play_arrow,
+                                color: Colors.white,
                               ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: gameStatus == 'waiting'
-                                      ? Colors.green
-                                      : Colors.orange,
-                                  child: Icon(
-                                    gameStatus == 'waiting'
-                                        ? Icons.hourglass_empty
-                                        : Icons.play_arrow,
-                                    color: Colors.white,
+                            ),
+                            title: Text(
+                              'Game ${game['id']?.substring(0, 8) ?? index + 1}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Host: $hostName'),
+                                Text('Players: $playerCount/$maxPlayers'),
+                                Text(
+                                  'Status: ${gameStatus == 'waiting' ? 'Waiting for players' : 'In progress'}',
+                                  style: TextStyle(
+                                    color: gameStatus == 'waiting'
+                                        ? Colors.green
+                                        : Colors.orange,
                                   ),
                                 ),
-                                title: Text(
-                                  'Game ${game['id']?.substring(0, 8) ?? index + 1}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Host: $hostName'),
-                                    Text('Players: $playerCount/$maxPlayers'),
-                                    Text(
-                                      'Status: ${gameStatus == 'waiting' ? 'Waiting for players' : 'In progress'}',
-                                      style: TextStyle(
-                                        color: gameStatus == 'waiting'
-                                            ? Colors.green
-                                            : Colors.orange,
-                                      ),
+                              ],
+                            ),
+                            trailing: playerCount < maxPlayers
+                                ? ElevatedButton(
+                                    onPressed: () => _joinGame(game['id']),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
                                     ),
-                                  ],
-                                ),
-                                trailing: playerCount < maxPlayers
-                                    ? ElevatedButton(
-                                        onPressed: () => _joinGame(game['id']),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                        child: const Text('Join'),
-                                      )
-                                    : const Chip(
-                                        label: Text('Full'),
-                                        backgroundColor: Colors.grey,
-                                      ),
-                                isThreeLine: true,
-                              ),
-                            );
-                          },
-                        ),
+                                    child: const Text('Join'),
+                                  )
+                                : const Chip(
+                                    label: Text('Full'),
+                                    backgroundColor: Colors.grey,
+                                  ),
+                            isThreeLine: true,
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),

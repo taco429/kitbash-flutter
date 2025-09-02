@@ -21,10 +21,12 @@ class GameService extends ChangeNotifier {
       _lastError = null;
       debugPrint('GameService: Finding games at $baseUrl/api/games');
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/games'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/api/games'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       debugPrint('GameService: Find games response: ${response.statusCode}');
       debugPrint('GameService: Response body: ${response.body}');
@@ -103,10 +105,12 @@ class GameService extends ChangeNotifier {
         'GameService: Joining game $gameId at $baseUrl/api/games/$gameId/join',
       );
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/games/$gameId/join'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/games/$gameId/join'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       debugPrint('GameService: Join game response: ${response.statusCode}');
       debugPrint('GameService: Response body: ${response.body}');
@@ -135,9 +139,7 @@ class GameService extends ChangeNotifier {
   // WebSocket methods
   Future<void> connectToGame(String gameId) async {
     try {
-      _channel = WebSocketChannel.connect(
-        Uri.parse('$wsUrl/ws/game/$gameId'),
-      );
+      _channel = WebSocketChannel.connect(Uri.parse('$wsUrl/ws/game/$gameId'));
 
       _isConnected = true;
       notifyListeners();
