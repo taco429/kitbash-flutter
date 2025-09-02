@@ -71,12 +71,6 @@ Structure per color:
 - **Constraints**:
   - Minimal sustain and poor long fights; vulnerable to slows and stuns
   - Limited cheap defensive tools; weak to swarms that survive initial burst
-- **Archetypes**:
-  - "Breach & Burn" (Red/X): Crack a lane then push lethal with spells
-  - "Demolition Crew" (Red/Yellow): Focus structures and CC pressure
-- **Example Cards**:
-  - Fireline Sapper — Unit, 3 Mana: 4/2/1 SPD 1. Siege 2. On Summon: Deal 2 to target structure.
-  - Overcharged Mortar — Spell, 2 Mana: Deal 3 to a tile and 1 to adjacent tiles. Your next Red unit takes 1 damage on summon.
 
 ### Orange
 
@@ -92,12 +86,6 @@ Structure per color:
 - **Constraints**:
   - Telegraphed plays susceptible to displacement or speed punish
   - Weak early skirmishers; can be outflanked without support
-- **Archetypes**:
-  - "Lock the Lane" (Orange/Yellow): Turrets + artillery to grind out advantage
-  - "Spotter Battery" (Orange/Blue): Vision and accuracy boosts for precision strikes
-- **Example Cards**:
-  - Column Breaker — Unit, 5 Mana 2 Gold: 5/7/RNG 3 SPD 1. Overwatch. Siege 1.
-  - Calibrated Barrage — Spell, 3 Mana: Choose a column; deal 2 to each enemy in it. If you control an Orange ranged unit, deal 3 instead.
 
 ### Yellow
 
@@ -113,12 +101,6 @@ Structure per color:
 - **Constraints**:
   - Limited burst damage and mobility; weak closing speed if behind
   - Vulnerable to true damage effects and siege focus
-- **Archetypes**:
-  - "Bastion Control" (Yellow/Blue): Lock lanes, win by superior card economy
-  - "Industrial Engine" (Yellow/Green): Long-game scaling with sturdy walls
-- **Example Cards**:
-  - Bulwark Wall — Structure, 2 Mana 1 Gold: 0/8. Taunt. On Death: Repair 2 to adjacent allied structures.
-  - Watchtower — Structure, 3 Mana: 2/5/RNG 4 (structure attack). Overwatch. Generates 1 Mana each round.
 
 ### Green
 
@@ -134,12 +116,6 @@ Structure per color:
 - **Constraints**:
   - Slow to start; vulnerable to burst and hard disables
   - Reliant on board presence to realize scaling
-- **Archetypes**:
-  - "Verdant Engine" (Green/Yellow): Structures that heal and scale
-  - "Endless Growth" (Green/Purple): Token swarms that mature into threats
-- **Example Cards**:
-  - Photosynth Node — Structure, 2 Mana: Start of Round: Gain 1 Mana this round. End of Round: Heal allied unit on this column for 2.
-  - Renewal Golem — Unit, 4 Mana: 3/6. Regenerate 2. On Death: Spawn a 1/3 Sapling in the same tile.
 
 ### Blue
 
@@ -155,12 +131,6 @@ Structure per color:
 - **Constraints**:
   - Lacks sustained damage and sturdy frontlines without pairing
   - Vulnerable once out of cards; must manage hand size and timing
-- **Archetypes**:
-  - "Spell Lattice" (Blue/X): Chain tempo spells to stall and pick apart lines
-  - "Teleport Control" (Blue/Red): Reposition enemies into kill zones
-- **Example Cards**:
-  - Phase Shift — Spell, 2 Mana: Teleport an allied unit up to 2 tiles. Draw 1.
-  - Mirror Sentinel — Unit, 3 Mana: 2/3/RNG 2. On Summon: Create a 0/2 Illusion with Taunt in an adjacent tile.
 
 ### Purple
 
@@ -176,12 +146,6 @@ Structure per color:
 - **Constraints**:
   - Vulnerable to sweepers and area denial
   - Struggles against heavy Armor without support
-- **Archetypes**:
-  - "Endless Tide" (Purple/Green): Tokens that heal and return
-  - "Blood Price" (Purple/Red): Sacrifice for explosive damage turns
-- **Example Cards**:
-  - Gravebind Acolyte — Unit, 1 Mana: 2/1. On Death: Summon a 1/1 Wisp in a back-adjacent tile.
-  - Profane Rally — Spell, 2 Mana: Allied tokens get +2 ATK this round. Lose 2 life on your Command Center.
 
 ---
 
