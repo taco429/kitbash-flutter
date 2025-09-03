@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flame/game.dart';
 import '../game/kitbash_game.dart';
 import '../models/tile_data.dart';
@@ -40,46 +41,80 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   }
 
   void _onTileHover(TileData? tileData, Offset? position) {
+    final bool sameTile = _isSameTile(_hoveredTile, tileData);
+
+    // Always update current hover snapshot
     setState(() {
       _hoveredTile = tileData;
       _hoverPosition = position;
     });
 
-    // Cancel existing timer
-    _tooltipTimer?.cancel();
-
-    if (tileData != null && position != null) {
-      // Start new timer for showing tooltip
-      _tooltipTimer = Timer(_tooltipDelay, () {
-        if (mounted && _hoveredTile == tileData) {
-          setState(() {
-            _showTooltip = true;
-          });
-        }
-      });
-    } else {
-      // Hide tooltip immediately when not hovering
-      setState(() {
-        _showTooltip = false;
-      });
+    // If cursor left the board or position is invalid -> hide immediately
+    if (tileData == null || position == null) {
+      _tooltipTimer?.cancel();
+      if (_showTooltip) {
+        setState(() {
+          _showTooltip = false;
+        });
+      }
+      return;
     }
+
+    // If already visible, keep it visible and just follow the cursor
+    if (_showTooltip) {
+      return;
+    }
+
+    // If hovering the same tile as before and waiting, don't reset the timer
+    if (sameTile) {
+      return;
+    }
+
+    // Tile changed: restart timer and ensure hidden until delay elapses
+    _tooltipTimer?.cancel();
+    _showTooltip = false;
+    _tooltipTimer = Timer(_tooltipDelay, () {
+      if (!mounted) return;
+      if (_isSameTile(_hoveredTile, tileData)) {
+        setState(() {
+          _showTooltip = true;
+        });
+      }
+    });
+  }
+
+  bool _isSameTile(TileData? a, TileData? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    return a.row == b.row && a.col == b.col;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // The Flame game
-        GameWidget.controlled(
-          gameFactory: () => widget.game,
-        ),
-        // Tooltip overlay
-        GameTooltip(
-          tileData: _hoveredTile,
-          position: _hoverPosition,
-          isVisible: _showTooltip,
-        ),
-      ],
+    return MouseRegion(
+      onHover: (PointerHoverEvent event) {
+        // Convert hover position to tile using the game's grid
+        final tile = widget.game.resolveHoverAt(event.localPosition);
+        widget.game.onTileHover?.call(tile, event.localPosition);
+      },
+      onExit: (_) {
+        widget.game.clearHover();
+        widget.game.onTileHover?.call(null, null);
+      },
+      child: Stack(
+        children: [
+          // The Flame game
+          GameWidget.controlled(
+            gameFactory: () => widget.game,
+          ),
+          // Tooltip overlay
+          GameTooltip(
+            tileData: _hoveredTile,
+            position: _hoverPosition,
+            isVisible: _showTooltip,
+          ),
+        ],
+      ),
     );
   }
 }

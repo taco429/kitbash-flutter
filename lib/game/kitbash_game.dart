@@ -91,6 +91,23 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   void setTileHoverCallback(Function(TileData?, Offset?)? callback) {
     onTileHover = callback;
   }
+
+  /// Resolves the hovered tile given a position in the GameWidget's
+  /// local coordinate space and updates hover highlight in the grid.
+  /// Returns the [TileData] at that position or null if out of bounds.
+  TileData? resolveHoverAt(Offset localOffset) {
+    final IsometricGridComponent? grid = _grid;
+    if (grid == null) return null;
+
+    final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
+    final Vector2 gridLocal = grid.parentToLocal(parentLocal);
+    return grid.handleHover(gridLocal);
+  }
+
+  /// Clears any active hover highlight in the grid
+  void clearHover() {
+    _grid?.clearHover();
+  }
 }
 
 // Remove the old CommandCenter class since we now use the one from game_service.dart
@@ -426,5 +443,13 @@ class IsometricGridComponent extends PositionComponent {
         maxHealth: 100,
       ),
     ];
+  }
+}
+
+extension on IsometricGridComponent {
+  /// Clears the current hover state on the grid.
+  void clearHover() {
+    hoveredRow = null;
+    hoveredCol = null;
   }
 }
