@@ -4,17 +4,16 @@ import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
 
-class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks, HasHoverCallbacks {
+class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   final String gameId;
   final GameService gameService;
   IsometricGridComponent? _grid;
 
-  // Hover state and tooltip callback
-  TileData? _hoveredTile;
-  Offset? _hoverPosition;
+  // Tooltip callback
   Function(TileData?, Offset?)? onTileHover;
 
   KitbashGame({required this.gameId, required this.gameService});
@@ -86,21 +85,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks, HasHoverCa
     debugPrint('Drag ended');
   }
 
-  @override
-  bool onHoverEvent(PointerHoverEvent event) {
-    // Forward hover to grid if present
-    final IsometricGridComponent? grid = _grid;
-    if (grid != null) {
-      final Vector2 localPoint = grid.parentToLocal(event.localPosition);
-      final TileData? tileData = grid.handleHover(localPoint);
-      
-      // Update hover state and notify callback
-      _hoveredTile = tileData;
-      _hoverPosition = event.position;
-      onTileHover?.call(_hoveredTile, _hoverPosition);
-    }
-    return true;
-  }
+  // Note: Hover handling moved to mouse region in GameWithTooltip widget
 
   /// Sets the callback for tile hover events
   void setTileHoverCallback(Function(TileData?, Offset?)? callback) {
@@ -119,12 +104,11 @@ class IsometricGridComponent extends PositionComponent {
 
   int? highlightedRow;
   int? highlightedCol;
-  
+
   // Hover state
   int? hoveredRow;
   int? hoveredCol;
-  Timer? _hoverTimer;
-  
+
   // Tile data storage - for now we'll generate sample terrain
   late List<List<TileData>> _tileData;
 
@@ -140,28 +124,30 @@ class IsometricGridComponent extends PositionComponent {
       (cols + rows) * (tileSize.x / 2),
       (cols + rows) * (tileSize.y / 2),
     );
-    
+
     // Initialize tile data with sample terrain
     _initializeTileData();
   }
-  
+
   void _initializeTileData() {
     _tileData = List.generate(rows, (row) {
       return List.generate(cols, (col) {
         // Generate varied terrain for demonstration
         TerrainType terrain;
-        final distance = ((row - rows/2).abs() + (col - cols/2).abs()) / 2;
-        
+        final distance = ((row - rows / 2).abs() + (col - cols / 2).abs()) / 2;
+
         if (distance < 2) {
           terrain = TerrainType.grass;
         } else if (distance < 4) {
-          terrain = (row + col) % 3 == 0 ? TerrainType.forest : TerrainType.grass;
+          terrain =
+              (row + col) % 3 == 0 ? TerrainType.forest : TerrainType.grass;
         } else if (distance < 6) {
-          terrain = (row + col) % 4 == 0 ? TerrainType.stone : TerrainType.grass;
+          terrain =
+              (row + col) % 4 == 0 ? TerrainType.stone : TerrainType.grass;
         } else {
           terrain = TerrainType.mountain;
         }
-        
+
         return TileData(
           row: row,
           col: col,
@@ -181,7 +167,7 @@ class IsometricGridComponent extends PositionComponent {
       _commandCenters = gameState.commandCenters;
     }
 
-    final ui.Paint basePaint = ui.Paint()..color = const Color(0xFF3A3F4B);
+    // Removed unused basePaint variable
     final ui.Paint gridLinePaint = ui.Paint()
       ..color = const Color(0xFF565D6D)
       ..style = ui.PaintingStyle.stroke
@@ -206,7 +192,7 @@ class IsometricGridComponent extends PositionComponent {
         // Get terrain-based color
         final terrainColor = getTerrainColor(_tileData[r][c].terrain);
         final terrainPaint = ui.Paint()..color = terrainColor;
-        
+
         // Fill with terrain color
         canvas.drawPath(diamond, terrainPaint);
         // Stroke
@@ -216,7 +202,7 @@ class IsometricGridComponent extends PositionComponent {
         if (hoveredRow == r && hoveredCol == c) {
           canvas.drawPath(diamond, hoverPaint);
         }
-        
+
         // Apply selection highlight (higher priority than hover)
         if (highlightedRow == r && highlightedCol == c) {
           canvas.drawPath(diamond, highlightPaint);
@@ -273,20 +259,20 @@ class IsometricGridComponent extends PositionComponent {
       highlightedCol = grid.x.toInt();
     }
   }
-  
+
   TileData? handleHover(Vector2 localPoint) {
     final Vector2? grid = _screenToIso(localPoint);
     if (grid != null) {
       final int row = grid.y.toInt();
       final int col = grid.x.toInt();
-      
+
       if (row >= 0 && row < rows && col >= 0 && col < cols) {
         hoveredRow = row;
         hoveredCol = col;
-        
+
         // Get enhanced tile data with command center info if present
         TileData tileData = _tileData[row][col];
-        
+
         // Check if this tile has a command center
         for (final CommandCenter cc in _commandCenters) {
           if (_isTileInCommandCenter(row, col, cc)) {
@@ -302,22 +288,24 @@ class IsometricGridComponent extends PositionComponent {
             break;
           }
         }
-        
+
         return tileData;
       }
     }
-    
+
     // Clear hover if outside grid
     hoveredRow = null;
     hoveredCol = null;
     return null;
   }
-  
+
   bool _isTileInCommandCenter(int row, int col, CommandCenter cc) {
-    return row >= cc.topLeftRow && row < cc.topLeftRow + 2 &&
-           col >= cc.topLeftCol && col < cc.topLeftCol + 2;
+    return row >= cc.topLeftRow &&
+        row < cc.topLeftRow + 2 &&
+        col >= cc.topLeftCol &&
+        col < cc.topLeftCol + 2;
   }
-  
+
   Color getTerrainColor(TerrainType terrain) {
     switch (terrain) {
       case TerrainType.grass:

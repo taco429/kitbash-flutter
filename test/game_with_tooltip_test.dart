@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitbash_flutter/widgets/game_with_tooltip.dart';
+import 'package:kitbash_flutter/widgets/game_tooltip.dart';
 import 'package:kitbash_flutter/game/kitbash_game.dart';
 import 'package:kitbash_flutter/services/game_service.dart';
 import 'package:kitbash_flutter/models/tile_data.dart';
@@ -16,7 +16,8 @@ void main() {
       game = KitbashGame(gameId: 'test-game', gameService: gameService);
     });
 
-    testWidgets('should render game and tooltip overlay', (WidgetTester tester) async {
+    testWidgets('should render game and tooltip overlay',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -27,12 +28,13 @@ void main() {
 
       // Should find the Stack container
       expect(find.byType(Stack), findsOneWidget);
-      
+
       // Should find the GameWidget (though it may not render fully in tests)
       expect(find.byType(GameWithTooltip), findsOneWidget);
     });
 
-    testWidgets('should initially have no tooltip visible', (WidgetTester tester) async {
+    testWidgets('should initially have no tooltip visible',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -45,13 +47,14 @@ void main() {
 
       // Tooltip should exist but not be visible
       expect(find.byType(GameTooltip), findsOneWidget);
-      
+
       // No tooltip content should be visible initially
       expect(find.text('Grass'), findsNothing);
       expect(find.text('Tile ('), findsNothing);
     });
 
-    testWidgets('should handle hover callback and show tooltip after delay', (WidgetTester tester) async {
+    testWidgets('should handle hover callback and show tooltip after delay',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -72,10 +75,10 @@ void main() {
 
       // Trigger the hover callback that was set on the game
       game.onTileHover?.call(testTileData, testPosition);
-      
+
       // Should update hover state immediately
       await tester.pump();
-      
+
       // Tooltip should not be visible yet (waiting for delay)
       expect(find.text('Forest'), findsNothing);
 
@@ -88,7 +91,8 @@ void main() {
       expect(find.text('Tile (2, 3)'), findsOneWidget);
     });
 
-    testWidgets('should hide tooltip when hover ends', (WidgetTester tester) async {
+    testWidgets('should hide tooltip when hover ends',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -106,11 +110,11 @@ void main() {
         terrain: TerrainType.grass,
       );
       game.onTileHover?.call(testTileData, const Offset(100, 100));
-      
+
       // Wait for tooltip to appear
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pumpAndSettle();
-      
+
       expect(find.text('Grass'), findsOneWidget);
 
       // End hover
@@ -121,7 +125,8 @@ void main() {
       expect(find.text('Grass'), findsNothing);
     });
 
-    testWidgets('should cancel tooltip timer when hover changes quickly', (WidgetTester tester) async {
+    testWidgets('should cancel tooltip timer when hover changes quickly',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -139,10 +144,10 @@ void main() {
         terrain: TerrainType.grass,
       );
       game.onTileHover?.call(tileData1, const Offset(100, 100));
-      
+
       // Quickly move to second tile before delay
       await tester.pump(const Duration(milliseconds: 200));
-      
+
       const tileData2 = TileData(
         row: 2,
         col: 2,
@@ -160,7 +165,8 @@ void main() {
       expect(find.text('Tile (2, 2)'), findsOneWidget);
     });
 
-    testWidgets('should dispose timer when widget is disposed', (WidgetTester tester) async {
+    testWidgets('should dispose timer when widget is disposed',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -178,17 +184,18 @@ void main() {
         terrain: TerrainType.grass,
       );
       game.onTileHover?.call(testTileData, const Offset(100, 100));
-      
+
       await tester.pump();
 
       // Dispose the widget
       await tester.pumpWidget(const SizedBox.shrink());
-      
+
       // Should not crash - timer should be properly disposed
       await tester.pumpAndSettle();
     });
 
-    testWidgets('should maintain tooltip position correctly', (WidgetTester tester) async {
+    testWidgets('should maintain tooltip position correctly',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -212,9 +219,9 @@ void main() {
           col: 0,
           terrain: TerrainType.water,
         );
-        
+
         game.onTileHover?.call(testTileData, position);
-        
+
         // Wait for tooltip to appear
         await tester.pump(const Duration(milliseconds: 500));
         await tester.pumpAndSettle();
@@ -233,7 +240,8 @@ void main() {
       }
     });
 
-    testWidgets('should handle game hover callback setup', (WidgetTester tester) async {
+    testWidgets('should handle game hover callback setup',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -250,7 +258,8 @@ void main() {
   });
 
   group('GameWithTooltip Integration Tests', () {
-    testWidgets('should work with different tile data types', (WidgetTester tester) async {
+    testWidgets('should work with different tile data types',
+        (WidgetTester tester) async {
       final gameService = GameService();
       final game = KitbashGame(gameId: 'test-game', gameService: gameService);
 

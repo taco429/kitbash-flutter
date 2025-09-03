@@ -5,7 +5,8 @@ import 'package:kitbash_flutter/models/tile_data.dart';
 
 void main() {
   group('GameTooltip Tests', () {
-    testWidgets('should not display when isVisible is false', (WidgetTester tester) async {
+    testWidgets('should not display when isVisible is false',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -27,7 +28,8 @@ void main() {
       expect(find.text('Grass'), findsNothing);
     });
 
-    testWidgets('should not display when tileData is null', (WidgetTester tester) async {
+    testWidgets('should not display when tileData is null',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -44,13 +46,14 @@ void main() {
       expect(find.text('Grass'), findsNothing);
     });
 
-    testWidgets('should not display when position is null', (WidgetTester tester) async {
+    testWidgets('should not display when position is null',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: GameTooltip(
               isVisible: true,
-              tileData: const TileData(
+              tileData: TileData(
                 row: 1,
                 col: 1,
                 terrain: TerrainType.grass,
@@ -65,7 +68,8 @@ void main() {
       expect(find.text('Grass'), findsNothing);
     });
 
-    testWidgets('should display basic tile information', (WidgetTester tester) async {
+    testWidgets('should display basic tile information',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -89,7 +93,8 @@ void main() {
       expect(find.byIcon(Icons.park), findsOneWidget);
     });
 
-    testWidgets('should display different terrain types correctly', (WidgetTester tester) async {
+    testWidgets('should display different terrain types correctly',
+        (WidgetTester tester) async {
       const terrainTypes = [
         (TerrainType.grass, 'Grass', Icons.grass),
         (TerrainType.stone, 'Stone', Icons.terrain),
@@ -117,8 +122,10 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        expect(find.text(name), findsOneWidget, reason: 'Failed to find terrain name: $name');
-        expect(find.byIcon(icon), findsOneWidget, reason: 'Failed to find terrain icon: $icon');
+        expect(find.text(name), findsOneWidget,
+            reason: 'Failed to find terrain name: $name');
+        expect(find.byIcon(icon), findsOneWidget,
+            reason: 'Failed to find terrain icon: $icon');
 
         // Clear the widget tree for the next iteration
         await tester.pumpWidget(const SizedBox.shrink());
@@ -157,7 +164,8 @@ void main() {
       expect(find.byIcon(Icons.my_location), findsOneWidget); // Archer icon
     });
 
-    testWidgets('should display building information', (WidgetTester tester) async {
+    testWidgets('should display building information',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -189,7 +197,8 @@ void main() {
       expect(find.byIcon(Icons.business), findsOneWidget);
     });
 
-    testWidgets('should display both unit and building information', (WidgetTester tester) async {
+    testWidgets('should display both unit and building information',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -224,20 +233,22 @@ void main() {
 
       // Should show terrain
       expect(find.text('Desert'), findsOneWidget);
-      
+
       // Should show building
       expect(find.text('Barracks'), findsOneWidget);
       expect(find.text('80/100'), findsOneWidget);
-      
+
       // Should show unit
       expect(find.text('Knight'), findsOneWidget);
       expect(find.text('90/120'), findsOneWidget);
-      
+
       // Should show both player indicators
-      expect(find.text('Player 1'), findsNWidgets(2)); // Both unit and building belong to player 1
+      expect(find.text('Player 1'),
+          findsNWidgets(2)); // Both unit and building belong to player 1
     });
 
-    testWidgets('should show correct unit icons for different unit types', (WidgetTester tester) async {
+    testWidgets('should show correct unit icons for different unit types',
+        (WidgetTester tester) async {
       const unitTypes = [
         (UnitType.infantry, Icons.person),
         (UnitType.cavalry, Icons.directions_run),
@@ -271,15 +282,17 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(expectedIcon), findsOneWidget, 
-               reason: 'Failed to find icon $expectedIcon for unit type $unitType');
+        expect(find.byIcon(expectedIcon), findsOneWidget,
+            reason:
+                'Failed to find icon $expectedIcon for unit type $unitType');
 
         // Clear the widget tree for the next iteration
         await tester.pumpWidget(const SizedBox.shrink());
       }
     });
 
-    testWidgets('should display health bars with correct colors', (WidgetTester tester) async {
+    testWidgets('should display health bars with correct colors',
+        (WidgetTester tester) async {
       // Test high health (should be green)
       await tester.pumpWidget(
         const MaterialApp(
@@ -313,7 +326,8 @@ void main() {
       );
       expect(healthBarFinder, findsOneWidget);
 
-      final healthBarWidget = tester.widget<FractionallySizedBox>(healthBarFinder);
+      final healthBarWidget =
+          tester.widget<FractionallySizedBox>(healthBarFinder);
       expect(healthBarWidget.widthFactor, equals(0.8)); // 80/100 = 0.8
 
       // Clear and test low health (should be red)
@@ -348,13 +362,15 @@ void main() {
       );
       expect(lowHealthBarFinder, findsOneWidget);
 
-      final lowHealthBarWidget = tester.widget<FractionallySizedBox>(lowHealthBarFinder);
+      final lowHealthBarWidget =
+          tester.widget<FractionallySizedBox>(lowHealthBarFinder);
       expect(lowHealthBarWidget.widthFactor, equals(0.2)); // 20/100 = 0.2
     });
 
-    testWidgets('should position tooltip correctly relative to cursor', (WidgetTester tester) async {
+    testWidgets('should position tooltip correctly relative to cursor',
+        (WidgetTester tester) async {
       const testPosition = Offset(300, 400);
-      
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -377,11 +393,13 @@ void main() {
       expect(positionedFinder, findsOneWidget);
 
       final positionedWidget = tester.widget<Positioned>(positionedFinder);
-      expect(positionedWidget.left, equals(testPosition.dx + 10)); // 10px offset
+      expect(
+          positionedWidget.left, equals(testPosition.dx + 10)); // 10px offset
       expect(positionedWidget.top, equals(testPosition.dy - 60)); // 60px above
     });
 
-    testWidgets('should animate tooltip appearance', (WidgetTester tester) async {
+    testWidgets('should animate tooltip appearance',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -400,7 +418,7 @@ void main() {
 
       // Animation should start
       await tester.pump();
-      
+
       // Find the AnimatedBuilder
       final animatedBuilderFinder = find.byType(AnimatedBuilder);
       expect(animatedBuilderFinder, findsOneWidget);
@@ -414,7 +432,8 @@ void main() {
   });
 
   group('GameTooltip Widget State Tests', () {
-    testWidgets('should update animation when visibility changes', (WidgetTester tester) async {
+    testWidgets('should update animation when visibility changes',
+        (WidgetTester tester) async {
       // Start with invisible tooltip
       await tester.pumpWidget(
         const MaterialApp(
@@ -454,15 +473,16 @@ void main() {
 
       // Animation should start
       await tester.pump();
-      
+
       // Complete animation
       await tester.pumpAndSettle();
-      
+
       // Content should now be visible
       expect(find.text('Grass'), findsOneWidget);
     });
 
-    testWidgets('should handle rapid visibility changes', (WidgetTester tester) async {
+    testWidgets('should handle rapid visibility changes',
+        (WidgetTester tester) async {
       // Rapidly toggle visibility
       for (int i = 0; i < 3; i++) {
         await tester.pumpWidget(
