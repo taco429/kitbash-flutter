@@ -14,8 +14,6 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   final GameService gameService;
   IsometricGridComponent? _grid;
   final Logger _log = Logger('Game.KitbashGame');
-  Vector2? _lastDragGameLocal;
-  Vector2? _lastDragGridLocal;
 
   // Tooltip callback
   Function(TileData?, Offset?)? onTileHover;
@@ -76,76 +74,6 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
               : 'n/a') +
           ', highlighted=(${_grid?.highlightedRow}, ${_grid?.highlightedCol})',
     );
-  }
-
-  @override
-  void onDragStart(DragStartEvent event) {
-    super.onDragStart(event);
-    // Handle drag start for card movement
-    final IsometricGridComponent? grid = _grid;
-    final Vector2? gridLocal =
-        grid != null ? grid.parentToLocal(event.localPosition) : null;
-    _lastDragGameLocal = event.localPosition.clone();
-    _lastDragGridLocal = gridLocal?.clone();
-    _log.info(
-      'onDragStart: gameId=$gameId, local=${event.localPosition}, ' +
-          'gridLocal=${gridLocal ?? 'n/a'}, hovered=(${grid?.hoveredRow}, ${grid?.hoveredCol}), ' +
-          'highlighted=(${grid?.highlightedRow}, ${grid?.highlightedCol}), ' +
-          'tileSize=${grid?.tileSize}, gridSize=${grid != null ? '${grid.rows}x${grid.cols}' : 'n/a'}, ' +
-          'event=${event.toString()}',
-    );
-  }
-
-  @override
-  void onDragUpdate(DragUpdateEvent event) {
-    // Handle drag update
-    final IsometricGridComponent? grid = _grid;
-    // Attempt to access delta; update our last known positions
-    // Attempt to include delta if available (Flame DragUpdateEvent has delta)
-    String deltaStr;
-    try {
-      // ignore: avoid_dynamic_calls
-      final dynamic maybeDelta = (event as dynamic).delta;
-      deltaStr = maybeDelta?.toString() ?? 'n/a';
-      if (maybeDelta != null && _lastDragGameLocal != null) {
-        try {
-          // Vector2 addition
-          _lastDragGameLocal = _lastDragGameLocal! + (maybeDelta as Vector2);
-        } catch (_) {
-          // Fallback: keep previous
-        }
-      }
-    } catch (_) {
-      deltaStr = 'n/a';
-    }
-    Vector2? gridLocal;
-    if (grid != null && _lastDragGameLocal != null) {
-      gridLocal = grid.parentToLocal(_lastDragGameLocal!);
-      _lastDragGridLocal = gridLocal.clone();
-    }
-    _log.info(
-      'onDragUpdate: local=${_lastDragGameLocal ?? 'n/a'}, gridLocal=${gridLocal ?? _lastDragGridLocal ?? 'n/a'}, ' +
-          'delta=$deltaStr, hovered=(${grid?.hoveredRow}, ${grid?.hoveredCol}), ' +
-          'highlighted=(${grid?.highlightedRow}, ${grid?.highlightedCol}), event=${event.toString()}',
-    );
-  }
-
-  @override
-  void onDragEnd(DragEndEvent event) {
-    super.onDragEnd(event);
-    // Handle drag end
-    String velocityStr;
-    try {
-      // ignore: avoid_dynamic_calls
-      final dynamic maybeVelocity = (event as dynamic).velocity;
-      velocityStr = maybeVelocity?.toString() ?? 'n/a';
-    } catch (_) {
-      velocityStr = 'n/a';
-    }
-    _log.info(
-        'onDragEnd: velocity=$velocityStr, lastLocal=${_lastDragGameLocal ?? 'n/a'}, lastGrid=${_lastDragGridLocal ?? 'n/a'}, event=${event.toString()}');
-    _lastDragGameLocal = null;
-    _lastDragGridLocal = null;
   }
 
   // Note: Hover handling moved to mouse region in GameWithTooltip widget
@@ -333,44 +261,42 @@ class IsometricGridComponent extends PositionComponent {
   }
 
   void handleTap(Vector2 localPoint) {
-    final Vector2? grid = _screenToIso(localPoint);
-    if (grid != null) {
-      highlightedRow = grid.y.toInt();
-      highlightedCol = grid.x.toInt();
+    final Vector2? picked = _pickTileAt(localPoint);
+    if (picked != null) {
+      highlightedRow = picked.y.toInt();
+      highlightedCol = picked.x.toInt();
     }
   }
 
   TileData? handleHover(Vector2 localPoint) {
-    final Vector2? grid = _screenToIso(localPoint);
-    if (grid != null) {
-      final int row = grid.y.toInt();
-      final int col = grid.x.toInt();
+    final Vector2? picked = _pickTileAt(localPoint);
+    if (picked != null) {
+      final int row = picked.y.toInt();
+      final int col = picked.x.toInt();
 
-      if (row >= 0 && row < rows && col >= 0 && col < cols) {
-        hoveredRow = row;
-        hoveredCol = col;
+      hoveredRow = row;
+      hoveredCol = col;
 
-        // Get enhanced tile data with command center info if present
-        TileData tileData = _tileData[row][col];
+      // Get enhanced tile data with command center info if present
+      TileData tileData = _tileData[row][col];
 
-        // Check if this tile has a command center
-        for (final CommandCenter cc in _commandCenters) {
-          if (_isTileInCommandCenter(row, col, cc)) {
-            tileData = tileData.copyWith(
-              building: Building(
-                name: 'Command Center',
-                playerIndex: cc.playerIndex,
-                health: cc.health,
-                maxHealth: cc.maxHealth,
-                type: BuildingType.commandCenter,
-              ),
-            );
-            break;
-          }
+      // Check if this tile has a command center
+      for (final CommandCenter cc in _commandCenters) {
+        if (_isTileInCommandCenter(row, col, cc)) {
+          tileData = tileData.copyWith(
+            building: Building(
+              name: 'Command Center',
+              playerIndex: cc.playerIndex,
+              health: cc.health,
+              maxHealth: cc.maxHealth,
+              type: BuildingType.commandCenter,
+            ),
+          );
+          break;
         }
-
-        return tileData;
       }
+
+      return tileData;
     }
 
     // Clear hover if outside grid
@@ -460,27 +386,55 @@ class IsometricGridComponent extends PositionComponent {
     );
   }
 
-  Vector2? _screenToIso(Vector2 localPoint) {
-    // Reverse transform from screen (inside component) to grid indices
+  // Removed old _screenToIso; picking now uses precise diamond hit testing in _pickTileAt.
+
+  /// Picks the tile under a local point using precise rhombus hit testing.
+  Vector2? _pickTileAt(Vector2 localPoint) {
+    // Compute continuous iso coordinates
     final double originX = size.x / 2;
     const double originY = 0;
 
+    // Compensate for visual diamond top-half by shifting pick upward by half tile height
+    final double adjustedY = localPoint.y - (tileSize.y / 2);
+
     final double dx = localPoint.x - originX;
-    final double dy = localPoint.y - originY;
+    final double dy = adjustedY - originY;
 
-    // Based on equations:
-    // x = (col - row) * tileW/2
-    // y = (col + row) * tileH/2
-    final double col = (dy / (tileSize.y / 2) + dx / (tileSize.x / 2)) / 2;
-    final double row = (dy / (tileSize.y / 2) - dx / (tileSize.x / 2)) / 2;
+    final double colF = (dy / (tileSize.y / 2) + dx / (tileSize.x / 2)) / 2;
+    final double rowF = (dy / (tileSize.y / 2) - dx / (tileSize.x / 2)) / 2;
 
-    final int ci = col.floor();
-    final int ri = row.floor();
+    final int baseCol = colF.floor();
+    final int baseRow = rowF.floor();
+    final int roundCol = colF.round();
+    final int roundRow = rowF.round();
 
-    if (ci < 0 || ri < 0 || ci >= cols || ri >= rows) {
-      return null;
+    // Candidate tiles around the computed position
+    final List<Vector2> candidates = <Vector2>[
+      Vector2(baseCol.toDouble(), baseRow.toDouble()),
+      Vector2((baseCol + 1).toDouble(), baseRow.toDouble()),
+      Vector2(baseCol.toDouble(), (baseRow + 1).toDouble()),
+      Vector2((baseCol + 1).toDouble(), (baseRow + 1).toDouble()),
+      Vector2(roundCol.toDouble(), roundRow.toDouble()),
+    ];
+
+    for (final Vector2 candidate in candidates) {
+      final int col = candidate.x.toInt();
+      final int row = candidate.y.toInt();
+      if (row < 0 || col < 0 || row >= rows || col >= cols) {
+        continue;
+      }
+      final Vector2 center = isoToScreen(row, col, originX, originY);
+      final double halfW = tileSize.x / 2;
+      final double halfH = tileSize.y / 2;
+      final double ddx = (localPoint.x - center.x).abs();
+      final double ddy = (localPoint.y - center.y).abs();
+      // Point-in-diamond test: L1 metric within radii
+      if ((ddx / halfW) + (ddy / halfH) <= 1.0 + 1e-6) {
+        return Vector2(col.toDouble(), row.toDouble());
+      }
     }
-    return Vector2(ci.toDouble(), ri.toDouble());
+
+    return null;
   }
 
   static List<CommandCenter> computeDefaultCommandCenters(int rows, int cols) {
