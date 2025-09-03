@@ -5,7 +5,6 @@ import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:logging/logging.dart';
 
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
@@ -14,7 +13,6 @@ class KitbashGame extends FlameGame with TapCallbacks {
   final String gameId;
   final GameService gameService;
   IsometricGridComponent? _grid;
-  final Logger _log = Logger('Game.KitbashGame');
 
   KitbashGame({required this.gameId, required this.gameService});
 
@@ -24,7 +22,6 @@ class KitbashGame extends FlameGame with TapCallbacks {
   @override
   Future<void> onLoad() async {
     // Initialize game components
-    _log.info('onLoad: gameId=$gameId, size=${size.toString()}');
 
     // Add an isometric grid to the scene
     const int rows = 12;
@@ -44,43 +41,6 @@ class KitbashGame extends FlameGame with TapCallbacks {
 
     _grid = isoGrid;
     add(isoGrid);
-
-    // Debug: Log expected coordinates for each tile at load
-    final double originX = isoGrid.size.x / 2;
-    const double originY = 0.0;
-    final double halfW = isoGrid.tileSize.x / 2;
-    final double halfH = isoGrid.tileSize.y / 2;
-    _log.info(
-        'gridDebug: rows=$rows, cols=$cols, tileSize=${isoGrid.tileSize}, gridSize=${isoGrid.size}, gridAnchor=${isoGrid.anchor}, gridPos=${isoGrid.position}, origin=($originX,$originY)');
-    for (int r = 0; r < rows; r++) {
-      for (int c = 0; c < cols; c++) {
-        final Vector2 centerLocal = isoGrid.isoToScreen(r, c, originX, originY);
-        final Vector2 centerParent = isoGrid.localToParent(centerLocal);
-
-        final Vector2 topLocal = Vector2(centerLocal.x, centerLocal.y - halfH);
-        final Vector2 rightLocal =
-            Vector2(centerLocal.x + halfW, centerLocal.y);
-        final Vector2 bottomLocal =
-            Vector2(centerLocal.x, centerLocal.y + halfH);
-        final Vector2 leftLocal = Vector2(centerLocal.x - halfW, centerLocal.y);
-
-        final Vector2 topParent = isoGrid.localToParent(topLocal);
-        final Vector2 rightParent = isoGrid.localToParent(rightLocal);
-        final Vector2 bottomParent = isoGrid.localToParent(bottomLocal);
-        final Vector2 leftParent = isoGrid.localToParent(leftLocal);
-
-        _log.info(
-            'tile[r=$r,c=$c] centerLocal=$centerLocal centerParent=$centerParent '
-            'cornersLocal(top=${topLocal.x.toStringAsFixed(1)},${topLocal.y.toStringAsFixed(1)} '
-            'right=${rightLocal.x.toStringAsFixed(1)},${rightLocal.y.toStringAsFixed(1)} '
-            'bottom=${bottomLocal.x.toStringAsFixed(1)},${bottomLocal.y.toStringAsFixed(1)} '
-            'left=${leftLocal.x.toStringAsFixed(1)},${leftLocal.y.toStringAsFixed(1)}) '
-            'cornersParent(top=${topParent.x.toStringAsFixed(1)},${topParent.y.toStringAsFixed(1)} '
-            'right=${rightParent.x.toStringAsFixed(1)},${rightParent.y.toStringAsFixed(1)} '
-            'bottom=${bottomParent.x.toStringAsFixed(1)},${bottomParent.y.toStringAsFixed(1)} '
-            'left=${leftParent.x.toStringAsFixed(1)},${leftParent.y.toStringAsFixed(1)})');
-      }
-    }
   }
 
   @override
@@ -91,7 +51,6 @@ class KitbashGame extends FlameGame with TapCallbacks {
     if (grid != null) {
       grid.position = this.size / 2;
     }
-    _log.info('onGameResize: newSize=${this.size}, gridPos=${_grid?.position}');
   }
 
   @override
@@ -102,11 +61,6 @@ class KitbashGame extends FlameGame with TapCallbacks {
       final Vector2 localPoint = grid.parentToLocal(event.localPosition);
       grid.handleTap(localPoint);
     }
-    _log.info(
-      'onTapDown: local=${event.localPosition}, '
-      'gridLocal=${_grid != null ? _grid!.parentToLocal(event.localPosition) : 'n/a'}, '
-      'highlighted=(${_grid?.highlightedRow}, ${_grid?.highlightedCol})',
-    );
   }
 
   // Hover updates are driven by the surrounding MouseRegion in the widget tree
@@ -148,7 +102,7 @@ class IsometricGridComponent extends PositionComponent {
   int? hoveredCol;
 
   // Debug overlay state
-  bool debugHoverOverlay = true;
+  bool debugHoverOverlay = false;
   Vector2? _debugLocalPoint;
   double? _debugRowF;
   double? _debugColF;
