@@ -113,17 +113,28 @@ void main() {
       final hoveredRow = grid.hoveredRow;
       final hoveredCol = grid.hoveredCol;
 
-      // Tap on a different tile
-      final tapPoint = Vector2(grid.size.x / 3, grid.size.y / 3);
-      grid.handleTap(tapPoint);
+      // Tap on a diagonally adjacent tile to ensure selection differs
+      expect(hoveredRow, isNotNull);
+      expect(hoveredCol, isNotNull);
+      final int rows = grid.rows;
+      final int cols = grid.cols;
+      final int tapRow = (hoveredRow! + 1 < rows)
+          ? hoveredRow + 1
+          : (hoveredRow - 1).clamp(0, rows - 1);
+      final int tapCol = (hoveredCol! + 1 < cols)
+          ? hoveredCol + 1
+          : (hoveredCol - 1).clamp(0, cols - 1);
+      final Vector2 tapCenter =
+          grid.isoToScreen(tapRow, tapCol, grid.size.x / 2, 0);
+      grid.handleTap(tapCenter);
 
       // Hover state should remain unchanged
       expect(grid.hoveredRow, equals(hoveredRow));
       expect(grid.hoveredCol, equals(hoveredCol));
 
-      // Selection state should be different
-      expect(grid.highlightedRow, isNot(equals(hoveredRow)));
-      expect(grid.highlightedCol, isNot(equals(hoveredCol)));
+      // Selection should equal tapped tile and differ from hover
+      expect(grid.highlightedRow, equals(tapRow));
+      expect(grid.highlightedCol, equals(tapCol));
     });
   });
 
