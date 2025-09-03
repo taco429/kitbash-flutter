@@ -22,7 +22,7 @@ void main() {
         abilities: ['Melee'],
         flavorText: 'Scrappy fighters of the warband.',
       );
-      
+
       expect(goblin.id, 'red_pawn_goblin');
       expect(goblin.name, 'Goblin');
       expect(goblin.goldCost, 1);
@@ -53,7 +53,7 @@ void main() {
           range: 1,
         ),
       );
-      
+
       const spell = GameCard(
         id: 'test_002',
         name: 'Test Spell',
@@ -63,7 +63,7 @@ void main() {
         type: CardType.spell,
         color: CardColor.blue,
       );
-      
+
       expect(unitCard.powerLevel, 3); // 2 attack + 1 health
       expect(spell.powerLevel, 3); // totalCost for spells
     });
@@ -87,10 +87,10 @@ void main() {
         abilities: ['Test Ability'],
         flavorText: 'Test flavor text',
       );
-      
+
       final json = testCard.toJson();
       final reconstructed = GameCard.fromJson(json);
-      
+
       expect(reconstructed.id, testCard.id);
       expect(reconstructed.name, testCard.name);
       expect(reconstructed.goldCost, testCard.goldCost);
@@ -113,9 +113,9 @@ void main() {
         type: CardType.unit,
         color: CardColor.red,
       );
-      
+
       const deckCard = DeckCard(card: testCard, quantity: 4);
-      
+
       expect(deckCard.card, testCard);
       expect(deckCard.quantity, 4);
     });
@@ -126,7 +126,7 @@ void main() {
       expect(CardType.building.displayName, 'Building');
       expect(CardType.order.displayName, 'Order');
       expect(CardType.hero.displayName, 'Hero');
-      
+
       expect(CardColor.red.displayName, 'Red');
       expect(CardColor.orange.displayName, 'Orange');
       expect(CardColor.yellow.displayName, 'Yellow');
@@ -145,9 +145,9 @@ void main() {
         'type': 'invalid_type',
         'color': 'invalid_color',
       };
-      
+
       final card = GameCard.fromJson(json);
-      
+
       expect(card.type, CardType.unit); // Should default to unit
       expect(card.color, CardColor.red); // Should default to red
     });

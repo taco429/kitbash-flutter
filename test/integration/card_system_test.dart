@@ -22,7 +22,7 @@ void main() {
           range: 1,
         ),
       );
-      
+
       const testCard2 = GameCard(
         id: 'test_002',
         name: 'Test Unit 2',
@@ -39,11 +39,11 @@ void main() {
           range: 1,
         ),
       );
-      
+
       // Create deck cards
       const deckCard1 = DeckCard(card: testCard1, quantity: 4);
       const deckCard2 = DeckCard(card: testCard2, quantity: 2);
-      
+
       // Create deck
       final testDeck = Deck(
         id: 'test_deck_001',
@@ -54,7 +54,7 @@ void main() {
         pawnCards: [deckCard1],
         mainCards: [deckCard2],
       );
-      
+
       // Verify deck properties
       expect(testDeck.cardCount, 7); // 1 hero + 4 pawns + 2 main = 7
       expect(testDeck.allCards.length, 2);
@@ -74,10 +74,10 @@ void main() {
         abilities: ['Test', 'Ability'],
         flavorText: 'Test flavor',
       );
-      
+
       final json = originalCard.toJson();
       final reconstructedCard = GameCard.fromJson(json);
-      
+
       expect(reconstructedCard.id, originalCard.id);
       expect(reconstructedCard.name, originalCard.name);
       expect(reconstructedCard.description, originalCard.description);
@@ -99,7 +99,7 @@ void main() {
         type: CardType.unit,
         color: CardColor.red,
       );
-      
+
       final testDeck = Deck(
         id: 'test_deck_001',
         name: 'Test Deck',
@@ -109,9 +109,9 @@ void main() {
         pawnCards: [const DeckCard(card: testCard, quantity: 3)],
         mainCards: [],
       );
-      
+
       final json = testDeck.toJson();
-      
+
       expect(json['id'], 'test_deck_001');
       expect(json['name'], 'Test Deck');
       expect(json['color'], 'red');

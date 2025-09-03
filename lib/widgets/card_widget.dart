@@ -101,9 +101,9 @@ class CardWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // Card type
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -111,7 +111,7 @@ class CardWidget extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                                              color: Colors.white.withValues(alpha: 0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -122,9 +122,9 @@ class CardWidget extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 const Spacer(),
-                
+
                 // Description (if not compact)
                 if (!isCompact) ...[
                   Text(
@@ -138,7 +138,7 @@ class CardWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                 ],
-                
+
                 // Attack/Health (for units)
                 if (card.isUnit && card.unitStats != null) ...[
                   Row(
@@ -170,7 +170,7 @@ class CardWidget extends StatelessWidget {
                           ],
                         ),
                       ),
-                      
+
                       // Health
                       Container(
                         padding: const EdgeInsets.all(4),
@@ -200,7 +200,7 @@ class CardWidget extends StatelessWidget {
                     ],
                   ),
                 ],
-                
+
                 // Abilities (if any)
                 if (card.abilities.isNotEmpty && !isCompact) ...[
                   const SizedBox(height: 4),

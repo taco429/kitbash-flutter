@@ -24,7 +24,7 @@ void main() {
         color: 'red',
         description: 'Test description',
       );
-      
+
       // Test deck selection (this should work regardless of HTTP state)
       deckService.selectDeck(testDeck);
       // Note: In test environment, selectedDeck might be null due to HTTP failures
@@ -40,7 +40,7 @@ void main() {
 
     test('getDeckCards handles invalid deck ID', () {
       const invalidId = 'invalid_deck_id';
-      
+
       expect(deckService.getDeckCards(invalidId), isEmpty);
       expect(deckService.getDeckCardCount(invalidId), 0);
     });

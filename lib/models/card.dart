@@ -175,7 +175,7 @@ class GameCard {
       manaCost: json['manaCost'] ?? 0,
       type: _parseCardType(json['type']),
       color: _parseCardColor(json['color']),
-      unitStats: json['unitStats'] != null 
+      unitStats: json['unitStats'] != null
           ? UnitStats.fromJson(json['unitStats'])
           : null,
       spellEffect: json['spellEffect'] != null

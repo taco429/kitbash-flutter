@@ -25,32 +25,32 @@ class DeckService extends ChangeNotifier {
   /// Load decks from the backend API
   Future<void> _loadDecksFromBackend() async {
     if (_isLoading) return;
-    
+
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/decks/prebuilt'),
         headers: {'Content-Type': 'application/json'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final decksJson = data['decks'] as List<dynamic>;
-        
+
         _availableDecks.clear();
         for (final deckJson in decksJson) {
           final deck = _parseDeckFromBackend(deckJson as Map<String, dynamic>);
           _availableDecks.add(deck);
         }
-        
+
         // Select the first deck by default
         if (_availableDecks.isNotEmpty && _selectedDeck == null) {
           _selectedDeck = _availableDecks.first;
         }
-        
+
         debugPrint('Loaded ${_availableDecks.length} decks from backend');
       } else {
         throw Exception('Failed to load decks: ${response.statusCode}');
@@ -68,17 +68,17 @@ class DeckService extends ChangeNotifier {
   Deck _parseDeckFromBackend(Map<String, dynamic> json) {
     final pawnCards = <DeckCard>[];
     final mainCards = <DeckCard>[];
-    
+
     // Parse populated cards from backend response
     if (json['populatedCards'] != null) {
       final populatedCards = json['populatedCards'] as List<dynamic>;
       for (final cardEntry in populatedCards) {
         final cardData = cardEntry['card'] as Map<String, dynamic>;
         final quantity = cardEntry['quantity'] as int;
-        
+
         final card = GameCard.fromJson(cardData);
         final deckCard = DeckCard(card: card, quantity: quantity);
-        
+
         // For now, we'll categorize based on card ID patterns
         // TODO: Backend should indicate if card is pawn or main card
         if (card.id.contains('pawn')) {
@@ -91,7 +91,7 @@ class DeckService extends ChangeNotifier {
         }
       }
     }
-    
+
     return Deck(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
@@ -133,8 +133,6 @@ class DeckService extends ChangeNotifier {
     // TODO: Implement saving deck selection to backend
     debugPrint('Selected deck: ${_selectedDeck?.name}');
   }
-
-
 
   /// Get all cards in a specific deck
   List<DeckCard> getDeckCards(String deckId) {

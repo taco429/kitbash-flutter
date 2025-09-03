@@ -71,7 +71,7 @@ class _CollectionScreenState extends State<CollectionScreen>
             ),
           );
         }
-        
+
         // Handle error state
         if (cardService.error != null) {
           return Center(
@@ -103,9 +103,9 @@ class _CollectionScreenState extends State<CollectionScreen>
             ),
           );
         }
-        
+
         final allCards = cardService.allCards;
-        
+
         if (allCards.isEmpty) {
           return const Center(
             child: Text('No cards available'),
@@ -141,7 +141,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                 ),
               ),
             ),
-            
+
             // Cards grid
             Expanded(
               child: Padding(
@@ -186,7 +186,7 @@ class _CollectionScreenState extends State<CollectionScreen>
             ),
           );
         }
-        
+
         // Handle error state
         if (deckService.error != null) {
           return Center(
@@ -218,13 +218,12 @@ class _CollectionScreenState extends State<CollectionScreen>
             ),
           );
         }
-        
-        final deck = deckService.availableDecks
-            .where((d) => d.id == deckId)
-            .isNotEmpty 
-            ? deckService.availableDecks.where((d) => d.id == deckId).first
-            : null;
-            
+
+        final deck =
+            deckService.availableDecks.where((d) => d.id == deckId).isNotEmpty
+                ? deckService.availableDecks.where((d) => d.id == deckId).first
+                : null;
+
         if (deck == null) {
           return const Center(
             child: Text('Deck not found'),
@@ -265,7 +264,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: deck.color == 'red' 
+                              color: deck.color == 'red'
                                   ? Colors.red.withValues(alpha: 0.2)
                                   : Colors.purple.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
@@ -274,9 +273,9 @@ class _CollectionScreenState extends State<CollectionScreen>
                               '${deck.color.toUpperCase()} DECK',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                                              color: deck.color == 'red' 
-                                  ? Colors.red.shade700
-                                  : Colors.purple.shade700,
+                                color: deck.color == 'red'
+                                    ? Colors.red.shade700
+                                    : Colors.purple.shade700,
                               ),
                             ),
                           ),
@@ -306,7 +305,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                 ),
               ),
             ),
-            
+
             // Deck cards
             Expanded(
               child: deck.allCards.isEmpty
@@ -347,7 +346,8 @@ class _CollectionScreenState extends State<CollectionScreen>
                                 ),
                               ),
                             ),
-                            onTap: () => _showCardDetails(context, deckCard.card),
+                            onTap: () =>
+                                _showCardDetails(context, deckCard.card),
                           ),
                         );
                       },

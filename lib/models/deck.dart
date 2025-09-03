@@ -22,12 +22,12 @@ class Deck {
   /// Get all cards in the deck (hero + pawns + main cards)
   List<DeckCard> get allCards {
     final cards = <DeckCard>[];
-    
+
     // Note: Hero card would be added here if we have hero card data
     // For now, we'll just combine pawns and main cards
     cards.addAll(pawnCards);
     cards.addAll(mainCards);
-    
+
     return cards;
   }
 

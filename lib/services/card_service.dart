@@ -8,10 +8,10 @@ class CardService extends ChangeNotifier {
   final Map<String, GameCard> _cardDatabase = {};
   bool _isLoading = false;
   String? _error;
-  
+
   // Backend API base URL - should be configurable
   static const String _baseUrl = 'http://localhost:8080/api';
-  
+
   CardService() {
     _loadCardsFromBackend();
   }
@@ -19,27 +19,27 @@ class CardService extends ChangeNotifier {
   /// Load cards from the backend API
   Future<void> _loadCardsFromBackend() async {
     if (_isLoading) return;
-    
+
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/cards'),
         headers: {'Content-Type': 'application/json'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final cardsJson = data['cards'] as List<dynamic>;
-        
+
         _cardDatabase.clear();
         for (final cardJson in cardsJson) {
           final card = GameCard.fromJson(cardJson as Map<String, dynamic>);
           _cardDatabase[card.id] = card;
         }
-        
+
         debugPrint('Loaded ${_cardDatabase.length} cards from backend');
       } else {
         throw Exception('Failed to load cards: ${response.statusCode}');
@@ -55,10 +55,10 @@ class CardService extends ChangeNotifier {
 
   /// Get loading state
   bool get isLoading => _isLoading;
-  
+
   /// Get error state
   String? get error => _error;
-  
+
   /// Refresh cards from backend
   Future<void> refreshCards() async {
     await _loadCardsFromBackend();
@@ -74,27 +74,23 @@ class CardService extends ChangeNotifier {
 
   /// Get all cards of a specific color
   List<GameCard> getCardsByColor(CardColor color) {
-    return _cardDatabase.values
-        .where((card) => card.color == color)
-        .toList();
+    return _cardDatabase.values.where((card) => card.color == color).toList();
   }
 
   /// Get all cards of a specific type
   List<GameCard> getCardsByType(CardType type) {
-    return _cardDatabase.values
-        .where((card) => card.type == type)
-        .toList();
+    return _cardDatabase.values.where((card) => card.type == type).toList();
   }
 
   /// Get all unit cards
   List<GameCard> get unitCards => getCardsByType(CardType.unit);
-  
+
   /// Get all building cards
   List<GameCard> get buildingCards => getCardsByType(CardType.building);
-  
+
   /// Get all order cards
   List<GameCard> get orderCards => getCardsByType(CardType.order);
-  
+
   /// Get all hero cards
   List<GameCard> get heroCards => getCardsByType(CardType.hero);
 
@@ -122,7 +118,7 @@ class CardService extends ChangeNotifier {
   /// Search for cards by name (case-insensitive)
   List<GameCard> searchCardsByName(String query) {
     if (query.isEmpty) return allCards;
-    
+
     final lowercaseQuery = query.toLowerCase();
     return _cardDatabase.values
         .where((card) => card.name.toLowerCase().contains(lowercaseQuery))
@@ -175,19 +171,21 @@ class CardService extends ChangeNotifier {
   /// Get summary statistics about the card collection
   Map<String, int> getCollectionStats() {
     final stats = <String, int>{};
-    
+
     // Count by color
     for (final color in CardColor.values) {
-      stats['${color.toString().split('.').last}_count'] = getCardsByColor(color).length;
+      stats['${color.toString().split('.').last}_count'] =
+          getCardsByColor(color).length;
     }
-    
+
     // Count by type
     for (final type in CardType.values) {
-      stats['${type.toString().split('.').last}_count'] = getCardsByType(type).length;
+      stats['${type.toString().split('.').last}_count'] =
+          getCardsByType(type).length;
     }
-    
+
     stats['total_cards'] = totalCards;
-    
+
     return stats;
   }
 }

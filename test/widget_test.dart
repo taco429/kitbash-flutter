@@ -14,7 +14,7 @@ class _FakeGameService extends GameService {
 
 class _FakeCardService extends CardService {
   final Map<String, GameCard> _fakeCards = {};
-  
+
   _FakeCardService() {
     // Add some fake cards for testing
     _fakeCards['test_card_1'] = const GameCard(
@@ -27,31 +27,31 @@ class _FakeCardService extends CardService {
       color: CardColor.red,
     );
   }
-  
+
   @override
   List<GameCard> get allCards => _fakeCards.values.toList();
-  
+
   @override
   bool get isLoading => false;
-  
+
   @override
   String? get error => null;
-  
+
   @override
   int get totalCards => _fakeCards.length;
-  
+
   @override
   List<GameCard> get redCards => [];
-  
+
   @override
   List<GameCard> get purpleCards => [];
-  
+
   @override
   List<GameCard> get unitCards => [];
-  
+
   @override
   List<GameCard> get spellCards => [];
-  
+
   @override
   Future<void> refreshCards() async {}
 }
@@ -65,19 +65,19 @@ class _FakeDeckService extends DeckService {
       description: 'Test deck description',
     ),
   ];
-  
+
   @override
   List<Deck> get availableDecks => _fakeDecks;
-  
+
   @override
   Deck? get selectedDeck => _fakeDecks.first;
-  
+
   @override
   bool get isLoading => false;
-  
+
   @override
   String? get error => null;
-  
+
   @override
   Future<void> loadDecks() async {}
 }
