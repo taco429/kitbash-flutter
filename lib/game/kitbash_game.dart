@@ -307,7 +307,7 @@ class IsometricGridComponent extends PositionComponent {
       );
       final String info =
           'rowF=${_debugRowF?.toStringAsFixed(2)} colF=${_debugColF?.toStringAsFixed(2)}\n'
-          'rc=${_debugRc} cc=${_debugCc} hovered=(${hoveredRow},${hoveredCol})\n'
+          'rc=$_debugRc cc=$_debugCc hovered=($hoveredRow,$hoveredCol)\n'
           'picked=${_debugPickedRC != null ? '(${_debugPickedRC!.y},${_debugPickedRC!.x})' : 'none'}';
       textPaint.render(
         canvas,

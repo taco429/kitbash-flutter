@@ -12,11 +12,13 @@ class AppLogger {
 
     // Pretty print to console with timestamp and level
     Logger.root.onRecord.listen((LogRecord record) {
+      final String errorPart =
+          record.error != null ? ' | error=${record.error}' : '';
+      final String stackPart =
+          record.stackTrace != null ? '\n${record.stackTrace}' : '';
       final String message =
           '[${record.time.toIso8601String()}] ${record.level.name.padRight(7)} '
-                  '${record.loggerName}: ${record.message}' +
-              (record.error != null ? ' | error=${record.error}' : '') +
-              (record.stackTrace != null ? '\n${record.stackTrace}' : '');
+          '${record.loggerName}: ${record.message}$errorPart$stackPart';
       // Use debugPrint to avoid truncation in Flutter
       debugPrint(message);
     });

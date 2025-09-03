@@ -6,13 +6,11 @@ import 'package:kitbash_flutter/models/tile_data.dart';
 
 void main() {
   group('Hover Highlight Tests', () {
-    late KitbashGame game;
     late GameService gameService;
     late IsometricGridComponent grid;
 
     setUp(() {
       gameService = GameService();
-      game = KitbashGame(gameId: 'test-game', gameService: gameService);
       grid = IsometricGridComponent(
         rows: 5,
         cols: 5,
@@ -105,28 +103,7 @@ void main() {
       expect(tileData.building!.health, equals(100));
     });
 
-    test('should handle hover callback registration', () {
-      TileData? callbackTileData;
-      Offset? callbackPosition;
-
-      game.setTileHoverCallback((tileData, position) {
-        callbackTileData = tileData;
-        callbackPosition = position;
-      });
-
-      expect(game.onTileHover, isNotNull);
-
-      // Simulate callback
-      game.onTileHover!(
-        const TileData(row: 1, col: 1, terrain: TerrainType.grass),
-        const Offset(100, 100),
-      );
-
-      expect(callbackTileData, isNotNull);
-      expect(callbackTileData!.row, equals(1));
-      expect(callbackTileData!.col, equals(1));
-      expect(callbackPosition, equals(const Offset(100, 100)));
-    });
+    // Hover callback registration is removed in simplified architecture.
 
     test('should maintain separate hover and selection states', () {
       final centerPoint = Vector2(grid.size.x / 2, grid.size.y / 4);
