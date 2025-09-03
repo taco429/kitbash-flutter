@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/game_service.dart';
 import 'services/deck_service.dart';
+import 'services/card_service.dart';
 import 'screens/menu_screen.dart';
 import 'services/logger_service.dart';
 
@@ -12,6 +13,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => GameService()),
+        ChangeNotifierProvider(create: (_) => CardService()),
         ChangeNotifierProvider(create: (_) => DeckService()),
       ],
       child: const KitbashApp(),
