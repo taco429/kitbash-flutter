@@ -34,15 +34,15 @@ class TileData {
   /// Returns a description of what's on this tile for tooltips
   String getTooltipDescription() {
     final List<String> descriptions = ['Terrain: ${terrain.displayName}'];
-    
+
     if (building != null) {
       descriptions.add('Building: ${building!.name}');
     }
-    
+
     if (unit != null) {
       descriptions.add('Unit: ${unit!.name}');
     }
-    
+
     return descriptions.join('\n');
   }
 

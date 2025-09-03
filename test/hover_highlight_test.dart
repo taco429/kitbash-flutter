@@ -84,7 +84,7 @@ void main() {
         health: 100,
         maxHealth: 100,
       );
-      
+
       // Create a new grid with the command center
       final gridWithCC = IsometricGridComponent(
         rows: 5,
@@ -108,14 +108,14 @@ void main() {
     test('should handle hover callback registration', () {
       TileData? callbackTileData;
       Offset? callbackPosition;
-      
+
       game.setTileHoverCallback((tileData, position) {
         callbackTileData = tileData;
         callbackPosition = position;
       });
 
       expect(game.onTileHover, isNotNull);
-      
+
       // Simulate callback
       game.onTileHover!(
         const TileData(row: 1, col: 1, terrain: TerrainType.grass),
@@ -130,20 +130,20 @@ void main() {
 
     test('should maintain separate hover and selection states', () {
       final centerPoint = Vector2(grid.size.x / 2, grid.size.y / 4);
-      
+
       // Hover over a tile
       grid.handleHover(centerPoint);
       final hoveredRow = grid.hoveredRow;
       final hoveredCol = grid.hoveredCol;
-      
+
       // Tap on a different tile
       final tapPoint = Vector2(grid.size.x / 3, grid.size.y / 3);
       grid.handleTap(tapPoint);
-      
+
       // Hover state should remain unchanged
       expect(grid.hoveredRow, equals(hoveredRow));
       expect(grid.hoveredCol, equals(hoveredCol));
-      
+
       // Selection state should be different
       expect(grid.highlightedRow, isNot(equals(hoveredRow)));
       expect(grid.highlightedCol, isNot(equals(hoveredCol)));
