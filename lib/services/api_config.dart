@@ -25,15 +25,18 @@ class ApiConfig {
   /// Base URL for WebSockets, e.g. ws://host:8080
   final String wsBase;
 
-  static const String _envHttpBase = String.fromEnvironment('API_BASE_URL', defaultValue: '');
-  static const String _envWsBase = String.fromEnvironment('WS_BASE_URL', defaultValue: '');
+  static const String _envHttpBase =
+      String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  static const String _envWsBase =
+      String.fromEnvironment('WS_BASE_URL', defaultValue: '');
 
   static String _computeHttpBase() {
     if (_envHttpBase.isNotEmpty) return _stripTrailingSlash(_envHttpBase);
 
     if (kIsWeb) {
       final uri = Uri.base;
-      final isLikelyDockerFrontend = uri.port == 80 || uri.port == 8081 || uri.host != 'localhost';
+      final isLikelyDockerFrontend =
+          uri.port == 80 || uri.port == 8081 || uri.host != 'localhost';
       if (isLikelyDockerFrontend) {
         // Use same origin; nginx should proxy /api and /ws
         return '${uri.scheme}://${uri.host}${uri.hasPort && uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';
@@ -68,4 +71,3 @@ class ApiConfig {
     return value;
   }
 }
-
