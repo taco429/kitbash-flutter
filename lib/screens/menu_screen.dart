@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/services.dart';
 import '../services/version_service.dart';
 import 'game_lobby_screen.dart';
 import 'game_screen.dart';
