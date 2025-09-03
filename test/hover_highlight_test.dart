@@ -6,13 +6,11 @@ import 'package:kitbash_flutter/models/tile_data.dart';
 
 void main() {
   group('Hover Highlight Tests', () {
-    late KitbashGame game;
     late GameService gameService;
     late IsometricGridComponent grid;
 
     setUp(() {
       gameService = GameService();
-      game = KitbashGame(gameId: 'test-game', gameService: gameService);
       grid = IsometricGridComponent(
         rows: 5,
         cols: 5,
@@ -105,28 +103,7 @@ void main() {
       expect(tileData.building!.health, equals(100));
     });
 
-    test('should handle hover callback registration', () {
-      TileData? callbackTileData;
-      Offset? callbackPosition;
-
-      game.setTileHoverCallback((tileData, position) {
-        callbackTileData = tileData;
-        callbackPosition = position;
-      });
-
-      expect(game.onTileHover, isNotNull);
-
-      // Simulate callback
-      game.onTileHover!(
-        const TileData(row: 1, col: 1, terrain: TerrainType.grass),
-        const Offset(100, 100),
-      );
-
-      expect(callbackTileData, isNotNull);
-      expect(callbackTileData!.row, equals(1));
-      expect(callbackTileData!.col, equals(1));
-      expect(callbackPosition, equals(const Offset(100, 100)));
-    });
+    // Hover callback registration is removed in simplified architecture.
 
     test('should maintain separate hover and selection states', () {
       final centerPoint = Vector2(grid.size.x / 2, grid.size.y / 4);
@@ -136,17 +113,28 @@ void main() {
       final hoveredRow = grid.hoveredRow;
       final hoveredCol = grid.hoveredCol;
 
-      // Tap on a different tile
-      final tapPoint = Vector2(grid.size.x / 3, grid.size.y / 3);
-      grid.handleTap(tapPoint);
+      // Tap on a diagonally adjacent tile to ensure selection differs
+      expect(hoveredRow, isNotNull);
+      expect(hoveredCol, isNotNull);
+      final int rows = grid.rows;
+      final int cols = grid.cols;
+      final int tapRow = (hoveredRow! + 1 < rows)
+          ? hoveredRow + 1
+          : (hoveredRow - 1).clamp(0, rows - 1);
+      final int tapCol = (hoveredCol! + 1 < cols)
+          ? hoveredCol + 1
+          : (hoveredCol - 1).clamp(0, cols - 1);
+      final Vector2 tapCenter =
+          grid.isoToScreen(tapRow, tapCol, grid.size.x / 2, 0);
+      grid.handleTap(tapCenter);
 
       // Hover state should remain unchanged
       expect(grid.hoveredRow, equals(hoveredRow));
       expect(grid.hoveredCol, equals(hoveredCol));
 
-      // Selection state should be different
-      expect(grid.highlightedRow, isNot(equals(hoveredRow)));
-      expect(grid.highlightedCol, isNot(equals(hoveredCol)));
+      // Selection should equal tapped tile and differ from hover
+      expect(grid.highlightedRow, equals(tapRow));
+      expect(grid.highlightedCol, equals(tapCol));
     });
   });
 

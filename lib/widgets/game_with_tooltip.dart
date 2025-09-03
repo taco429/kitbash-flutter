@@ -30,8 +30,6 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   @override
   void initState() {
     super.initState();
-    // Set up the hover callback for the game
-    widget.game.setTileHoverCallback(_onTileHover);
   }
 
   @override
@@ -93,19 +91,19 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   Widget build(BuildContext context) {
     return MouseRegion(
       onHover: (PointerHoverEvent event) {
-        // Convert hover position to tile using the game's grid
+        // Convert hover position to tile using the game's grid and update tooltip
         final tile = widget.game.resolveHoverAt(event.localPosition);
-        widget.game.onTileHover?.call(tile, event.localPosition);
+        _onTileHover(tile, event.localPosition);
       },
       onExit: (_) {
         widget.game.clearHover();
-        widget.game.onTileHover?.call(null, null);
+        _onTileHover(null, null);
       },
       child: Stack(
         children: [
           // The Flame game
-          GameWidget.controlled(
-            gameFactory: () => widget.game,
+          GameWidget(
+            game: widget.game,
           ),
           // Tooltip overlay
           GameTooltip(

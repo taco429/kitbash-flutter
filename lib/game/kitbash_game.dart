@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'dart:async';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -8,13 +9,10 @@ import 'package:flutter/material.dart';
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
 
-class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
+class KitbashGame extends FlameGame with TapCallbacks {
   final String gameId;
   final GameService gameService;
   IsometricGridComponent? _grid;
-
-  // Tooltip callback
-  Function(TileData?, Offset?)? onTileHover;
 
   KitbashGame({required this.gameId, required this.gameService});
 
@@ -24,7 +22,6 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   Future<void> onLoad() async {
     // Initialize game components
-    debugPrint('Loading game: $gameId');
 
     // Add an isometric grid to the scene
     const int rows = 12;
@@ -66,31 +63,9 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
   }
 
-  @override
-  void onDragStart(DragStartEvent event) {
-    super.onDragStart(event);
-    // Handle drag start for card movement
-    debugPrint('Drag started at: ${event.localPosition}');
-  }
+  // Hover updates are driven by the surrounding MouseRegion in the widget tree
 
-  @override
-  void onDragUpdate(DragUpdateEvent event) {
-    // Handle drag update
-  }
-
-  @override
-  void onDragEnd(DragEndEvent event) {
-    super.onDragEnd(event);
-    // Handle drag end
-    debugPrint('Drag ended');
-  }
-
-  // Note: Hover handling moved to mouse region in GameWithTooltip widget
-
-  /// Sets the callback for tile hover events
-  void setTileHoverCallback(Function(TileData?, Offset?)? callback) {
-    onTileHover = callback;
-  }
+  // Note: Hover handling is managed by the surrounding widget via MouseRegion
 
   /// Resolves the hovered tile given a position in the GameWidget's
   /// local coordinate space and updates hover highlight in the grid.
@@ -125,6 +100,17 @@ class IsometricGridComponent extends PositionComponent {
   // Hover state
   int? hoveredRow;
   int? hoveredCol;
+
+  // Debug overlay state
+  bool debugHoverOverlay = false;
+  Vector2? _debugLocalPoint;
+  double? _debugRowF;
+  double? _debugColF;
+  int? _debugRc;
+  int? _debugCc;
+  List<math.Point<int>> _debugCandidates = <math.Point<int>>[];
+  math.Point<int>? _debugPickedRC;
+  Vector2? _debugPickedCenter;
 
   // Tile data storage - for now we'll generate sample terrain
   late List<List<TileData>> _tileData;
@@ -267,47 +253,107 @@ class IsometricGridComponent extends PositionComponent {
         );
       }
     }
+
+    // Debug overlay for hover picking visualization
+    if (debugHoverOverlay && _debugLocalPoint != null) {
+      final ui.Paint red = ui.Paint()
+        ..color = const Color(0xFFFF3B30)
+        ..style = ui.PaintingStyle.fill;
+      final ui.Paint blue = ui.Paint()
+        ..color = const Color(0xFF007AFF)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      final ui.Paint yellow = ui.Paint()
+        ..color = const Color(0xFFFFCC00)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      final ui.Paint green = ui.Paint()
+        ..color = const Color(0xFF34C759)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      // Cursor local point
+      canvas.drawCircle(
+          ui.Offset(_debugLocalPoint!.x, _debugLocalPoint!.y), 3, red);
+
+      // Draw candidate centers
+      final double originX = size.x / 2;
+      const double originY = 0;
+      for (final math.Point<int> cand in _debugCandidates) {
+        final Vector2 center = isoToScreen(cand.y, cand.x, originX, originY);
+        canvas.drawCircle(ui.Offset(center.x, center.y), 4, blue);
+      }
+
+      // Rounded tile center highlight
+      if (_debugRc != null && _debugCc != null) {
+        final Vector2 roundedCenter =
+            isoToScreen(_debugRc!, _debugCc!, originX, originY);
+        canvas.drawCircle(
+            ui.Offset(roundedCenter.x, roundedCenter.y), 6, yellow);
+      }
+
+      // Picked tile outline
+      if (_debugPickedCenter != null) {
+        final ui.Path pickedDiamond = _tileDiamond(_debugPickedCenter!);
+        canvas.drawPath(pickedDiamond, green);
+      }
+
+      // Optional: textual debug (kept minimal)
+      final textPaint = TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+        ),
+      );
+      final String info =
+          'rowF=${_debugRowF?.toStringAsFixed(2)} colF=${_debugColF?.toStringAsFixed(2)}\n'
+          'rc=$_debugRc cc=$_debugCc hovered=($hoveredRow,$hoveredCol)\n'
+          'picked=${_debugPickedRC != null ? '(${_debugPickedRC!.y},${_debugPickedRC!.x})' : 'none'}';
+      textPaint.render(
+        canvas,
+        info,
+        Vector2(6, 6),
+      );
+    }
   }
 
   void handleTap(Vector2 localPoint) {
-    final Vector2? grid = _screenToIso(localPoint);
-    if (grid != null) {
-      highlightedRow = grid.y.toInt();
-      highlightedCol = grid.x.toInt();
+    final Vector2? picked = _pickTileAt(localPoint);
+    if (picked != null) {
+      highlightedRow = picked.y.toInt();
+      highlightedCol = picked.x.toInt();
     }
   }
 
   TileData? handleHover(Vector2 localPoint) {
-    final Vector2? grid = _screenToIso(localPoint);
-    if (grid != null) {
-      final int row = grid.y.toInt();
-      final int col = grid.x.toInt();
+    final Vector2? picked = _pickTileAt(localPoint);
+    if (picked != null) {
+      final int row = picked.y.toInt();
+      final int col = picked.x.toInt();
 
-      if (row >= 0 && row < rows && col >= 0 && col < cols) {
-        hoveredRow = row;
-        hoveredCol = col;
+      hoveredRow = row;
+      hoveredCol = col;
 
-        // Get enhanced tile data with command center info if present
-        TileData tileData = _tileData[row][col];
+      // Get enhanced tile data with command center info if present
+      TileData tileData = _tileData[row][col];
 
-        // Check if this tile has a command center
-        for (final CommandCenter cc in _commandCenters) {
-          if (_isTileInCommandCenter(row, col, cc)) {
-            tileData = tileData.copyWith(
-              building: Building(
-                name: 'Command Center',
-                playerIndex: cc.playerIndex,
-                health: cc.health,
-                maxHealth: cc.maxHealth,
-                type: BuildingType.commandCenter,
-              ),
-            );
-            break;
-          }
+      // Check if this tile has a command center
+      for (final CommandCenter cc in _commandCenters) {
+        if (_isTileInCommandCenter(row, col, cc)) {
+          tileData = tileData.copyWith(
+            building: Building(
+              name: 'Command Center',
+              playerIndex: cc.playerIndex,
+              health: cc.health,
+              maxHealth: cc.maxHealth,
+              type: BuildingType.commandCenter,
+            ),
+          );
+          break;
         }
-
-        return tileData;
       }
+
+      return tileData;
     }
 
     // Clear hover if outside grid
@@ -397,27 +443,63 @@ class IsometricGridComponent extends PositionComponent {
     );
   }
 
-  Vector2? _screenToIso(Vector2 localPoint) {
-    // Reverse transform from screen (inside component) to grid indices
+  // Removed old _screenToIso; picking now uses precise diamond hit testing in _pickTileAt.
+
+  /// Picks the tile under a local point using a simple inverse transform
+  /// and a single diamond check with minimal neighbor fallback.
+  Vector2? _pickTileAt(Vector2 localPoint) {
     final double originX = size.x / 2;
     const double originY = 0;
 
     final double dx = localPoint.x - originX;
+    // Use direct Y to match render mapping precisely
     final double dy = localPoint.y - originY;
 
-    // Based on equations:
-    // x = (col - row) * tileW/2
-    // y = (col + row) * tileH/2
-    final double col = (dy / (tileSize.y / 2) + dx / (tileSize.x / 2)) / 2;
-    final double row = (dy / (tileSize.y / 2) - dx / (tileSize.x / 2)) / 2;
+    final double halfW = tileSize.x / 2;
+    final double halfH = tileSize.y / 2;
 
-    final int ci = col.floor();
-    final int ri = row.floor();
+    // Invert isoToScreen mapping
+    final double colF = (dy / halfH + dx / halfW) / 2.0;
+    final double rowF = (dy / halfH - dx / halfW) / 2.0;
 
-    if (ci < 0 || ri < 0 || ci >= cols || ri >= rows) {
-      return null;
+    final int rc = rowF.round();
+    final int cc = colF.round();
+
+    // Store debug info
+    _debugLocalPoint = localPoint.clone();
+    _debugRowF = rowF;
+    _debugColF = colF;
+    _debugRc = rc;
+    _debugCc = cc;
+
+    // Check rounded tile first, then direct neighbors
+    final List<math.Point<int>> candidates = <math.Point<int>>[
+      math.Point<int>(cc, rc),
+      math.Point<int>(cc, rc - 1),
+      math.Point<int>(cc, rc + 1),
+      math.Point<int>(cc - 1, rc),
+      math.Point<int>(cc + 1, rc),
+    ];
+    _debugCandidates = candidates;
+
+    for (final math.Point<int> cand in candidates) {
+      final int col = cand.x;
+      final int row = cand.y;
+      if (row < 0 || col < 0 || row >= rows || col >= cols) continue;
+
+      final Vector2 center = isoToScreen(row, col, originX, originY);
+      final double ddx = (localPoint.x - center.x).abs();
+      final double ddy = (localPoint.y - center.y).abs();
+      if ((ddx / halfW) + (ddy / halfH) <= 1.02) {
+        _debugPickedRC = cand;
+        _debugPickedCenter = center;
+        return Vector2(col.toDouble(), row.toDouble());
+      }
     }
-    return Vector2(ci.toDouble(), ri.toDouble());
+
+    _debugPickedRC = null;
+    _debugPickedCenter = null;
+    return null;
   }
 
   static List<CommandCenter> computeDefaultCommandCenters(int rows, int cols) {
