@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'game_lobby_screen.dart';
 import 'game_screen.dart';
 import '../services/game_service.dart';
@@ -13,9 +14,29 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
+  String _version = '';
+
   @override
   void initState() {
     super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final String manifestString = await rootBundle.loadString('pubspec.yaml');
+      final RegExp versionRegex = RegExp(r'version:\s*(.+)');
+      final Match? match = versionRegex.firstMatch(manifestString);
+      if (match != null) {
+        setState(() {
+          _version = match.group(1)!.trim();
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _version = '1.0.0+1'; // Fallback version
+      });
+    }
   }
 
   Future<void> _createGame() async {
@@ -143,6 +164,15 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                   const SizedBox(height: 20),
                 ],
+              ),
+              
+              // Version number at the bottom
+              const SizedBox(height: 40),
+              Text(
+                'Version: $_version',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
               ),
             ],
           ),
