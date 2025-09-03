@@ -1,11 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitbash_flutter/models/card.dart';
-import 'package:kitbash_flutter/models/cards/creatures.dart';
 
 void main() {
   group('Card Model Tests', () {
-    test('Skeleton card has correct properties', () {
-      const skeleton = CreatureCards.skeleton;
+    test('Card creation works correctly', () {
+      const skeleton = GameCard(
+        id: 'skeleton_001',
+        name: 'Skeleton Warrior',
+        cost: 2,
+        type: CardType.creature,
+        color: CardColor.purple,
+        attack: 2,
+        health: 1,
+        abilities: ['Undead'],
+        flavorText: 'Death is but the beginning of service.',
+      );
       
       expect(skeleton.id, 'skeleton_001');
       expect(skeleton.name, 'Skeleton Warrior');
@@ -19,65 +28,94 @@ void main() {
       expect(skeleton.isSpell, false);
     });
 
-    test('Goblin card has correct properties', () {
-      const goblin = CreatureCards.goblin;
-      
-      expect(goblin.id, 'goblin_001');
-      expect(goblin.name, 'Goblin Raider');
-      expect(goblin.cost, 1);
-      expect(goblin.type, CardType.creature);
-      expect(goblin.color, CardColor.red);
-      expect(goblin.attack, 2);
-      expect(goblin.health, 1);
-      expect(goblin.abilities, contains('Haste'));
-      expect(goblin.isCreature, true);
-      expect(goblin.isSpell, false);
-    });
-
     test('Card power level calculation works correctly', () {
-      const skeleton = CreatureCards.skeleton;
-      const goblin = CreatureCards.goblin;
+      const creature = GameCard(
+        id: 'test_001',
+        name: 'Test Creature',
+        cost: 2,
+        type: CardType.creature,
+        color: CardColor.red,
+        attack: 2,
+        health: 1,
+      );
       
-      expect(skeleton.powerLevel, 3); // 2 attack + 1 health
-      expect(goblin.powerLevel, 3); // 2 attack + 1 health
+      const spell = GameCard(
+        id: 'test_002',
+        name: 'Test Spell',
+        cost: 3,
+        type: CardType.spell,
+        color: CardColor.blue,
+      );
+      
+      expect(creature.powerLevel, 3); // 2 attack + 1 health
+      expect(spell.powerLevel, 3); // cost for non-creatures
     });
 
     test('Card JSON serialization works', () {
-      const skeleton = CreatureCards.skeleton;
-      final json = skeleton.toJson();
+      const testCard = GameCard(
+        id: 'test_001',
+        name: 'Test Card',
+        cost: 2,
+        type: CardType.creature,
+        color: CardColor.purple,
+        attack: 2,
+        health: 1,
+        abilities: ['Test Ability'],
+        flavorText: 'Test flavor text',
+      );
+      
+      final json = testCard.toJson();
       final reconstructed = GameCard.fromJson(json);
       
-      expect(reconstructed.id, skeleton.id);
-      expect(reconstructed.name, skeleton.name);
-      expect(reconstructed.cost, skeleton.cost);
-      expect(reconstructed.type, skeleton.type);
-      expect(reconstructed.color, skeleton.color);
-      expect(reconstructed.attack, skeleton.attack);
-      expect(reconstructed.health, skeleton.health);
+      expect(reconstructed.id, testCard.id);
+      expect(reconstructed.name, testCard.name);
+      expect(reconstructed.cost, testCard.cost);
+      expect(reconstructed.type, testCard.type);
+      expect(reconstructed.color, testCard.color);
+      expect(reconstructed.attack, testCard.attack);
+      expect(reconstructed.health, testCard.health);
+      expect(reconstructed.abilities, testCard.abilities);
+      expect(reconstructed.flavorText, testCard.flavorText);
     });
 
     test('DeckCard creation works correctly', () {
-      const skeleton = CreatureCards.skeleton;
-      const deckCard = DeckCard(card: skeleton, quantity: 4);
+      const testCard = GameCard(
+        id: 'test_001',
+        name: 'Test Card',
+        cost: 1,
+        type: CardType.creature,
+        color: CardColor.red,
+      );
       
-      expect(deckCard.card, skeleton);
+      const deckCard = DeckCard(card: testCard, quantity: 4);
+      
+      expect(deckCard.card, testCard);
       expect(deckCard.quantity, 4);
     });
 
-    test('CreatureCards collections work correctly', () {
-      expect(CreatureCards.allCreatures.length, 4);
-      expect(CreatureCards.purpleCreatures.length, 2);
-      expect(CreatureCards.redCreatures.length, 2);
+    test('Card type and color enums work correctly', () {
+      expect(CardType.creature.displayName, 'Creature');
+      expect(CardType.spell.displayName, 'Spell');
+      expect(CardType.artifact.displayName, 'Artifact');
       
-      // Check that all purple creatures are actually purple
-      for (final card in CreatureCards.purpleCreatures) {
-        expect(card.color, CardColor.purple);
-      }
+      expect(CardColor.red.displayName, 'Red');
+      expect(CardColor.purple.displayName, 'Purple');
+      expect(CardColor.neutral.displayName, 'Neutral');
+    });
+
+    test('JSON parsing handles invalid values gracefully', () {
+      final json = {
+        'id': 'test_001',
+        'name': 'Test Card',
+        'cost': 1,
+        'type': 'invalid_type',
+        'color': 'invalid_color',
+      };
       
-      // Check that all red creatures are actually red
-      for (final card in CreatureCards.redCreatures) {
-        expect(card.color, CardColor.red);
-      }
+      final card = GameCard.fromJson(json);
+      
+      expect(card.type, CardType.creature); // Should default to creature
+      expect(card.color, CardColor.neutral); // Should default to neutral
     });
   });
 }

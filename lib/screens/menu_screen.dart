@@ -172,7 +172,7 @@ class _MenuScreenState extends State<MenuScreen> {
               Text(
                 'Version: $_version',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: Colors.grey.shade600,
                     ),
               ),
             ],

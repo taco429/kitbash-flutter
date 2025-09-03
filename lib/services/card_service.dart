@@ -143,12 +143,12 @@ class CardService extends ChangeNotifier {
     
     // Count by color
     for (final color in CardColor.values) {
-      stats['${color.name}_count'] = getCardsByColor(color).length;
+      stats['${color.toString().split('.').last}_count'] = getCardsByColor(color).length;
     }
     
     // Count by type
     for (final type in CardType.values) {
-      stats['${type.name}_count'] = getCardsByType(type).length;
+      stats['${type.toString().split('.').last}_count'] = getCardsByType(type).length;
     }
     
     stats['total_cards'] = totalCards;

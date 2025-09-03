@@ -30,13 +30,48 @@ class GameCard {
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       cost: json['cost'] ?? 0,
-      type: CardType.values.byName(json['type'] ?? 'creature'),
-      color: CardColor.values.byName(json['color'] ?? 'neutral'),
+      type: _parseCardType(json['type']),
+      color: _parseCardColor(json['color']),
       attack: json['attack'],
       health: json['health'],
       abilities: List<String>.from(json['abilities'] ?? []),
       flavorText: json['flavorText'],
     );
+  }
+
+  static CardType _parseCardType(dynamic typeValue) {
+    final typeStr = typeValue?.toString() ?? 'creature';
+    switch (typeStr.toLowerCase()) {
+      case 'creature':
+        return CardType.creature;
+      case 'spell':
+        return CardType.spell;
+      case 'artifact':
+        return CardType.artifact;
+      default:
+        return CardType.creature;
+    }
+  }
+
+  static CardColor _parseCardColor(dynamic colorValue) {
+    final colorStr = colorValue?.toString() ?? 'neutral';
+    switch (colorStr.toLowerCase()) {
+      case 'red':
+        return CardColor.red;
+      case 'purple':
+        return CardColor.purple;
+      case 'blue':
+        return CardColor.blue;
+      case 'green':
+        return CardColor.green;
+      case 'white':
+        return CardColor.white;
+      case 'black':
+        return CardColor.black;
+      case 'neutral':
+      default:
+        return CardColor.neutral;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -45,8 +80,8 @@ class GameCard {
       'name': name,
       'description': description,
       'cost': cost,
-      'type': type.name,
-      'color': color.name,
+      'type': type.toString().split('.').last,
+      'color': color.toString().split('.').last,
       'attack': attack,
       'health': health,
       'abilities': abilities,

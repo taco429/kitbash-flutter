@@ -81,7 +81,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                 Icon(
                   Icons.error_outline,
                   size: 64,
-                  color: Colors.red[300],
+                  color: Colors.red.shade300,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -90,9 +90,9 @@ class _CollectionScreenState extends State<CollectionScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  cardService.error!,
+                  cardService.error ?? 'Unknown error',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -195,7 +195,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                 Icon(
                   Icons.error_outline,
                   size: 64,
-                  color: Colors.red[300],
+                  color: Colors.red.shade300,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -204,9 +204,9 @@ class _CollectionScreenState extends State<CollectionScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  deckService.error!,
+                  deckService.error ?? 'Unknown error',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -220,7 +220,9 @@ class _CollectionScreenState extends State<CollectionScreen>
         
         final deck = deckService.availableDecks
             .where((d) => d.id == deckId)
-            .firstOrNull;
+            .isNotEmpty 
+            ? deckService.availableDecks.where((d) => d.id == deckId).first
+            : null;
             
         if (deck == null) {
           return const Center(
@@ -250,7 +252,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                       Text(
                         deck.description,
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: Colors.grey.shade600,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -271,9 +273,9 @@ class _CollectionScreenState extends State<CollectionScreen>
                               '${deck.color.toUpperCase()} DECK',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: deck.color == 'red' 
-                                    ? Colors.red[700]
-                                    : Colors.purple[700],
+                                                              color: deck.color == 'red' 
+                                  ? Colors.red.shade700
+                                  : Colors.purple.shade700,
                               ),
                             ),
                           ),
