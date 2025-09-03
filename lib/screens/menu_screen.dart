@@ -165,14 +165,14 @@ class _MenuScreenState extends State<MenuScreen> {
                   const SizedBox(height: 20),
                 ],
               ),
-              
+
               // Version number at the bottom
               const SizedBox(height: 40),
               Text(
                 'Version: $_version',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                      color: Colors.grey[600],
+                    ),
               ),
             ],
           ),
