@@ -61,13 +61,42 @@ class CardWidget extends StatelessWidget {
                         color: Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
-                        '${card.cost}',
-                        style: TextStyle(
-                          fontSize: isCompact ? 12 : 14,
-                          fontWeight: FontWeight.bold,
-                          color: _getCardColors().first,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (card.goldCost > 0) ...[
+                            Icon(
+                              Icons.monetization_on,
+                              size: isCompact ? 10 : 12,
+                              color: Colors.amber.shade700,
+                            ),
+                            Text(
+                              '${card.goldCost}',
+                              style: TextStyle(
+                                fontSize: isCompact ? 10 : 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.amber.shade700,
+                              ),
+                            ),
+                          ],
+                          if (card.goldCost > 0 && card.manaCost > 0)
+                            const SizedBox(width: 4),
+                          if (card.manaCost > 0) ...[
+                            Icon(
+                              Icons.auto_awesome,
+                              size: isCompact ? 10 : 12,
+                              color: Colors.blue.shade700,
+                            ),
+                            Text(
+                              '${card.manaCost}',
+                              style: TextStyle(
+                                fontSize: isCompact ? 10 : 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
@@ -110,8 +139,8 @@ class CardWidget extends StatelessWidget {
                   const SizedBox(height: 8),
                 ],
                 
-                // Attack/Health (for creatures)
-                if (card.isCreature) ...[
+                // Attack/Health (for units)
+                if (card.isUnit && card.unitStats != null) ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -131,7 +160,7 @@ class CardWidget extends StatelessWidget {
                               color: Colors.white,
                             ),
                             Text(
-                              '${card.attack ?? 0}',
+                              '${card.unitStats?.attack ?? 0}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -158,7 +187,7 @@ class CardWidget extends StatelessWidget {
                               color: Colors.white,
                             ),
                             Text(
-                              '${card.health ?? 0}',
+                              '${card.unitStats?.health ?? 0}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -210,18 +239,16 @@ class CardWidget extends StatelessWidget {
     switch (card.color) {
       case CardColor.red:
         return [Colors.red.shade400, Colors.red.shade800];
-      case CardColor.purple:
-        return [Colors.purple.shade400, Colors.purple.shade800];
-      case CardColor.blue:
-        return [Colors.blue.shade400, Colors.blue.shade800];
+      case CardColor.orange:
+        return [Colors.orange.shade400, Colors.orange.shade800];
+      case CardColor.yellow:
+        return [Colors.yellow.shade400, Colors.yellow.shade700];
       case CardColor.green:
         return [Colors.green.shade400, Colors.green.shade800];
-      case CardColor.white:
-        return [Colors.grey.shade200, Colors.grey.shade500];
-      case CardColor.black:
-        return [Colors.grey.shade700, Colors.black];
-      case CardColor.neutral:
-        return [Colors.grey.shade400, Colors.grey.shade700];
+      case CardColor.blue:
+        return [Colors.blue.shade400, Colors.blue.shade800];
+      case CardColor.purple:
+        return [Colors.purple.shade400, Colors.purple.shade800];
     }
   }
 }

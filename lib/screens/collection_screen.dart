@@ -134,7 +134,8 @@ class _CollectionScreenState extends State<CollectionScreen>
                       Text('Total Cards: ${cardService.totalCards}'),
                       Text('Red Cards: ${cardService.redCards.length}'),
                       Text('Purple Cards: ${cardService.purpleCards.length}'),
-                      Text('Creatures: ${cardService.creatureCards.length}'),
+                      Text('Unit Cards: ${cardService.getCardsByType(CardType.unit).length}'),
+                      Text('Spell Cards: ${cardService.getCardsByType(CardType.spell).length}'),
                     ],
                   ),
                 ),
@@ -296,13 +297,13 @@ class _CollectionScreenState extends State<CollectionScreen>
             
             // Deck cards
             Expanded(
-              child: deck.cards.isEmpty
+              child: deck.allCards.isEmpty
                   ? const Center(child: Text('No cards in deck'))
                   : ListView.builder(
                       padding: const EdgeInsets.all(8),
-                      itemCount: deck.cards.length,
+                      itemCount: deck.allCards.length,
                       itemBuilder: (context, index) {
-                        final deckCard = deck.cards[index];
+                        final deckCard = deck.allCards[index];
                         return Card(
                           child: ListTile(
                             leading: SizedBox(
@@ -315,7 +316,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                             title: Text(deckCard.card.name),
                             subtitle: Text(
                               '${deckCard.card.description}\n'
-                              'Cost: ${deckCard.card.cost} | '
+                              'Gold: ${deckCard.card.goldCost} | Mana: ${deckCard.card.manaCost} | '
                               '${deckCard.card.type.displayName}',
                             ),
                             trailing: Container(
@@ -357,12 +358,20 @@ class _CollectionScreenState extends State<CollectionScreen>
           children: [
             CardWidget(card: card),
             const SizedBox(height: 16),
-            Text('Cost: ${card.cost}'),
+            Text('Gold Cost: ${card.goldCost}'),
+            Text('Mana Cost: ${card.manaCost}'),
             Text('Type: ${card.type.displayName}'),
             Text('Color: ${card.color.displayName}'),
-            if (card.isCreature) ...[
-              Text('Attack: ${card.attack}'),
-              Text('Health: ${card.health}'),
+            if (card.isUnit && card.unitStats != null) ...[
+              Text('Attack: ${card.unitStats!.attack}'),
+              Text('Health: ${card.unitStats!.health}'),
+              Text('Armor: ${card.unitStats!.armor}'),
+              Text('Speed: ${card.unitStats!.speed}'),
+              Text('Range: ${card.unitStats!.range}'),
+            ],
+            if (card.isSpell && card.spellEffect != null) ...[
+              Text('Target: ${card.spellEffect!.targetType}'),
+              Text('Effect: ${card.spellEffect!.effect}'),
             ],
             if (card.abilities.isNotEmpty) ...[
               const SizedBox(height: 8),

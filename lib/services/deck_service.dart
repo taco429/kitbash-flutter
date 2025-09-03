@@ -66,7 +66,8 @@ class DeckService extends ChangeNotifier {
 
   /// Parse a deck from backend response format
   Deck _parseDeckFromBackend(Map<String, dynamic> json) {
-    final cards = <DeckCard>[];
+    final pawnCards = <DeckCard>[];
+    final mainCards = <DeckCard>[];
     
     // Parse populated cards from backend response
     if (json['populatedCards'] != null) {
@@ -76,7 +77,18 @@ class DeckService extends ChangeNotifier {
         final quantity = cardEntry['quantity'] as int;
         
         final card = GameCard.fromJson(cardData);
-        cards.add(DeckCard(card: card, quantity: quantity));
+        final deckCard = DeckCard(card: card, quantity: quantity);
+        
+        // For now, we'll categorize based on card ID patterns
+        // TODO: Backend should indicate if card is pawn or main card
+        if (card.id.contains('pawn')) {
+          pawnCards.add(deckCard);
+        } else if (card.id.contains('hero')) {
+          // Hero cards are handled separately
+          continue;
+        } else {
+          mainCards.add(deckCard);
+        }
       }
     }
     
@@ -85,7 +97,9 @@ class DeckService extends ChangeNotifier {
       name: json['name'] ?? '',
       color: json['color'] ?? '',
       description: json['description'] ?? '',
-      cards: cards,
+      heroCardId: json['heroCardId'],
+      pawnCards: pawnCards,
+      mainCards: mainCards,
     );
   }
 
@@ -126,7 +140,7 @@ class DeckService extends ChangeNotifier {
   List<DeckCard> getDeckCards(String deckId) {
     try {
       final deck = _availableDecks.firstWhere((d) => d.id == deckId);
-      return deck.cards;
+      return deck.allCards;
     } catch (e) {
       debugPrint('Deck with id $deckId not found');
       return [];

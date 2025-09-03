@@ -55,12 +55,12 @@ func TestGetAllCards(t *testing.T) {
 func TestGetCard(t *testing.T) {
 	api := setupTestAPI()
 	
-	req := httptest.NewRequest("GET", "/api/cards/skeleton_001", nil)
+	req := httptest.NewRequest("GET", "/api/cards/red_pawn_goblin", nil)
 	w := httptest.NewRecorder()
 	
 	// Set up chi URL params
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("cardId", "skeleton_001")
+	rctx.URLParams.Add("cardId", "red_pawn_goblin")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 	
 	api.GetCard(w, req)
@@ -72,9 +72,9 @@ func TestGetCard(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &card)
 	require.NoError(t, err)
 	
-	assert.Equal(t, "skeleton_001", card["id"])
-	assert.Equal(t, "Skeleton Warrior", card["name"])
-	assert.Equal(t, "purple", card["color"])
+	assert.Equal(t, "red_pawn_goblin", card["id"])
+	assert.Equal(t, "Goblin", card["name"])
+	assert.Equal(t, "red", card["color"])
 }
 
 func TestGetCardsByColor(t *testing.T) {

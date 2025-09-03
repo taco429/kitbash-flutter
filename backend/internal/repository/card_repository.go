@@ -34,66 +34,90 @@ func NewInMemoryCardRepository(log *logger.Logger) *InMemoryCardRepository {
 func (r *InMemoryCardRepository) seedDefaultCards() {
 	now := time.Now()
 	
-	// Helper function to create int pointers
-	intPtr := func(i int) *int { return &i }
+	// Helper function to create string pointers
 	strPtr := func(s string) *string { return &s }
 	
 	defaultCards := []*domain.Card{
+		// Red Pawn - Goblin (according to docs: 2/2, Armor 0, Melee)
 		{
-			ID:          "skeleton_001",
-			Name:        "Skeleton Warrior",
-			Description: "A reanimated warrior that fights with undying loyalty.",
-			Cost:        2,
-			Type:        domain.CardTypeCreature,
-			Color:       domain.CardColorPurple,
-			Attack:      intPtr(2),
-			Health:      intPtr(1),
-			Abilities:   []string{"Undead"},
-			FlavorText:  strPtr("Death is but the beginning of service."),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			ID:          "skeleton_002",
-			Name:        "Skeleton Archer",
-			Description: "An undead archer that can strike from a distance.",
-			Cost:        3,
-			Type:        domain.CardTypeCreature,
-			Color:       domain.CardColorPurple,
-			Attack:      intPtr(2),
-			Health:      intPtr(2),
-			Abilities:   []string{"Undead", "Ranged"},
-			FlavorText:  strPtr("Even in death, their aim remains true."),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			ID:          "goblin_001",
-			Name:        "Goblin Raider",
-			Description: "A fierce and quick goblin warrior ready for battle.",
-			Cost:        1,
-			Type:        domain.CardTypeCreature,
+			ID:          "red_pawn_goblin",
+			Name:        "Goblin",
+			Description: "Summons a Goblin unit.",
+			GoldCost:    1,
+			ManaCost:    0,
+			Type:        domain.CardTypeUnit,
 			Color:       domain.CardColorRed,
-			Attack:      intPtr(2),
-			Health:      intPtr(1),
-			Abilities:   []string{"Haste"},
-			FlavorText:  strPtr("Small in stature, big in fury."),
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			UnitStats: &domain.UnitStats{
+				Attack: 2,
+				Health: 2,
+				Armor:  0,
+				Speed:  1,
+				Range:  1, // Melee
+			},
+			Abilities:  []string{"Melee"},
+			FlavorText: strPtr("Scrappy fighters of the warband."),
+			CreatedAt:  now,
+			UpdatedAt:  now,
 		},
+		// Purple Pawn - Ghoul (according to docs: 1/2, Rekindle, Melee)
 		{
-			ID:          "goblin_002",
-			Name:        "Goblin Chieftain",
-			Description: "A powerful goblin leader that rallies other goblins.",
-			Cost:        3,
-			Type:        domain.CardTypeCreature,
+			ID:          "purple_pawn_ghoul",
+			Name:        "Ghoul",
+			Description: "Summons a Ghoul unit.",
+			GoldCost:    1,
+			ManaCost:    0,
+			Type:        domain.CardTypeUnit,
+			Color:       domain.CardColorPurple,
+			UnitStats: &domain.UnitStats{
+				Attack: 1,
+				Health: 2,
+				Armor:  0,
+				Speed:  1,
+				Range:  1, // Melee
+			},
+			Abilities:  []string{"Rekindle", "Melee"},
+			FlavorText: strPtr("Undead servants that refuse to stay dead."),
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		},
+		// Simple Red Unit Card - Orc Warrior
+		{
+			ID:          "red_unit_orc_warrior",
+			Name:        "Orc Warrior",
+			Description: "Summons an Orc Warrior unit.",
+			GoldCost:    2,
+			ManaCost:    1,
+			Type:        domain.CardTypeUnit,
 			Color:       domain.CardColorRed,
-			Attack:      intPtr(3),
-			Health:      intPtr(2),
-			Abilities:   []string{"Haste", "Rally"},
-			FlavorText:  strPtr("Where the chieftain leads, the tribe follows."),
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			UnitStats: &domain.UnitStats{
+				Attack: 3,
+				Health: 2,
+				Armor:  0,
+				Speed:  1,
+				Range:  1, // Melee
+			},
+			Abilities:  []string{"Melee"},
+			FlavorText: strPtr("Fierce warriors of the warband."),
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		},
+		// Simple Purple Spell Card
+		{
+			ID:          "purple_spell_drain",
+			Name:        "Drain Life",
+			Description: "Target unit takes 2 damage. You gain 2 health.",
+			GoldCost:    0,
+			ManaCost:    2,
+			Type:        domain.CardTypeSpell,
+			Color:       domain.CardColorPurple,
+			SpellEffect: &domain.SpellEffect{
+				TargetType: "unit",
+				Effect:     "Deal 2 damage to target unit. Heal 2 health.",
+			},
+			Abilities:  []string{},
+			FlavorText: strPtr("Life force flows from enemy to caster."),
+			CreatedAt:  now,
+			UpdatedAt:  now,
 		},
 	}
 	

@@ -37,12 +37,15 @@ func (r *InMemoryDeckRepository) seedDefaultDecks() {
 	defaultDecks := []*domain.Deck{
 		{
 			ID:          "red_deck_001",
-			Name:        "Goblin Swarm",
-			Description: "An aggressive deck full of fierce goblins ready for battle. Quick strikes and overwhelming numbers.",
+			Name:        "Goblin Warband",
+			Description: "An aggressive red deck focused on overwhelming swarm tactics with goblin units.",
 			Color:       domain.CardColorRed,
-			Cards: []domain.DeckCardEntry{
-				{CardID: "goblin_001", Quantity: 23}, // Goblin Raiders
-				{CardID: "goblin_002", Quantity: 7},  // Goblin Chieftains
+			HeroCardID:  "red_hero_warchief", // TODO: Create hero cards
+			PawnCards: []domain.DeckCardEntry{
+				{CardID: "red_pawn_goblin", Quantity: 10}, // 10 Goblin pawns
+			},
+			MainCards: []domain.DeckCardEntry{
+				{CardID: "red_unit_orc_warrior", Quantity: 20}, // 20 Orc Warriors for now
 			},
 			IsPrebuilt: true,
 			CreatedAt:  now,
@@ -50,12 +53,15 @@ func (r *InMemoryDeckRepository) seedDefaultDecks() {
 		},
 		{
 			ID:          "purple_deck_001",
-			Name:        "Undead Legion",
-			Description: "A strategic deck of undead warriors that never truly die. Balanced mix of melee and ranged units.",
+			Name:        "Undead Horde",
+			Description: "A purple deck that leverages necromancy and spell power to overwhelm enemies.",
 			Color:       domain.CardColorPurple,
-			Cards: []domain.DeckCardEntry{
-				{CardID: "skeleton_001", Quantity: 15}, // Skeleton Warriors
-				{CardID: "skeleton_002", Quantity: 15}, // Skeleton Archers
+			HeroCardID:  "purple_hero_necromancer", // TODO: Create hero cards
+			PawnCards: []domain.DeckCardEntry{
+				{CardID: "purple_pawn_ghoul", Quantity: 10}, // 10 Ghoul pawns
+			},
+			MainCards: []domain.DeckCardEntry{
+				{CardID: "purple_spell_drain", Quantity: 20}, // 20 Drain Life spells for now
 			},
 			IsPrebuilt: true,
 			CreatedAt:  now,
@@ -82,8 +88,10 @@ func (r *InMemoryDeckRepository) GetDeck(ctx context.Context, id domain.DeckID) 
 	
 	// Return a copy to prevent external modifications
 	deckCopy := *deck
-	deckCopy.Cards = make([]domain.DeckCardEntry, len(deck.Cards))
-	copy(deckCopy.Cards, deck.Cards)
+	deckCopy.PawnCards = make([]domain.DeckCardEntry, len(deck.PawnCards))
+	copy(deckCopy.PawnCards, deck.PawnCards)
+	deckCopy.MainCards = make([]domain.DeckCardEntry, len(deck.MainCards))
+	copy(deckCopy.MainCards, deck.MainCards)
 	
 	return &deckCopy, nil
 }
@@ -96,8 +104,10 @@ func (r *InMemoryDeckRepository) GetAllDecks(ctx context.Context) ([]*domain.Dec
 	decks := make([]*domain.Deck, 0, len(r.decks))
 	for _, deck := range r.decks {
 		deckCopy := *deck
-		deckCopy.Cards = make([]domain.DeckCardEntry, len(deck.Cards))
-		copy(deckCopy.Cards, deck.Cards)
+		deckCopy.PawnCards = make([]domain.DeckCardEntry, len(deck.PawnCards))
+		copy(deckCopy.PawnCards, deck.PawnCards)
+		deckCopy.MainCards = make([]domain.DeckCardEntry, len(deck.MainCards))
+		copy(deckCopy.MainCards, deck.MainCards)
 		decks = append(decks, &deckCopy)
 	}
 	
@@ -113,8 +123,10 @@ func (r *InMemoryDeckRepository) GetPrebuiltDecks(ctx context.Context) ([]*domai
 	for _, deck := range r.decks {
 		if deck.IsPrebuilt {
 			deckCopy := *deck
-			deckCopy.Cards = make([]domain.DeckCardEntry, len(deck.Cards))
-			copy(deckCopy.Cards, deck.Cards)
+			deckCopy.PawnCards = make([]domain.DeckCardEntry, len(deck.PawnCards))
+			copy(deckCopy.PawnCards, deck.PawnCards)
+			deckCopy.MainCards = make([]domain.DeckCardEntry, len(deck.MainCards))
+			copy(deckCopy.MainCards, deck.MainCards)
 			decks = append(decks, &deckCopy)
 		}
 	}
@@ -131,8 +143,10 @@ func (r *InMemoryDeckRepository) GetDecksByColor(ctx context.Context, color doma
 	for _, deck := range r.decks {
 		if deck.Color == color {
 			deckCopy := *deck
-			deckCopy.Cards = make([]domain.DeckCardEntry, len(deck.Cards))
-			copy(deckCopy.Cards, deck.Cards)
+			deckCopy.PawnCards = make([]domain.DeckCardEntry, len(deck.PawnCards))
+			copy(deckCopy.PawnCards, deck.PawnCards)
+			deckCopy.MainCards = make([]domain.DeckCardEntry, len(deck.MainCards))
+			copy(deckCopy.MainCards, deck.MainCards)
 			decks = append(decks, &deckCopy)
 		}
 	}

@@ -132,11 +132,15 @@ func (a *api) GetDecksByColor(w http.ResponseWriter, r *http.Request) {
 func (a *api) populateDeckCards(ctx context.Context, deck *domain.Deck) (*DeckWithCards, error) {
 	var populatedCards []PopulatedDeckCard
 	
-	for _, entry := range deck.Cards {
+	// Get all cards in the deck (hero + pawns + main cards)
+	allCards := deck.GetAllCards()
+	
+	for _, entry := range allCards {
 		card, err := a.cardRepo.GetCard(ctx, entry.CardID)
 		if err != nil {
 			a.log.Error("Failed to get card for deck", "cardID", entry.CardID, "deckID", deck.ID, "error", err)
-			return nil, err
+			// For now, skip missing cards rather than failing the whole deck
+			continue
 		}
 		
 		populatedCards = append(populatedCards, PopulatedDeckCard{

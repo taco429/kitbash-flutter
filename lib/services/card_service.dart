@@ -86,8 +86,8 @@ class CardService extends ChangeNotifier {
         .toList();
   }
 
-  /// Get all creature cards
-  List<GameCard> get creatureCards => getCardsByType(CardType.creature);
+  /// Get all unit cards
+  List<GameCard> get unitCards => getCardsByType(CardType.unit);
 
   /// Get all spell cards
   List<GameCard> get spellCards => getCardsByType(CardType.spell);

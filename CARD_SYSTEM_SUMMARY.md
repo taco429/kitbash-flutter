@@ -4,12 +4,14 @@ This document summarizes the card collection and deck system that has been imple
 
 ## Overview
 
-We've successfully created a comprehensive **backend-driven** card system with:
+We've successfully created a comprehensive **backend-driven** card system following the game design specifications:
 - **Go Backend API**: RESTful endpoints for cards and decks
-- **4 Creature Cards**: Skeleton Warrior, Skeleton Archer (purple) and Goblin Raider, Goblin Chieftain (red)
-- **2 Pre-built Decks**: Red Goblin Swarm and Purple Undead Legion served from backend
+- **Proper Card Structure**: Gold cost, mana cost, unit stats (attack/health/armor/speed/range)
+- **Correct Card Types**: Units, Spells, Buildings, Orders, Hero cards
+- **Proper Pawns**: Red Goblin (2/2) and Purple Ghoul (1/2) matching design docs
+- **Correct Deck Structure**: Hero + 10 pawns + 20 main cards (31 total)
+- **6 Game Colors**: Red, Orange, Yellow, Green, Blue, Purple (no neutral)
 - **Flutter Frontend**: Consumes backend APIs with proper loading states and error handling
-- **Complete Architecture**: Proper separation between client and server
 
 ## Architecture Overview
 
@@ -43,15 +45,21 @@ We've successfully created a comprehensive **backend-driven** card system with:
    - `DeckService`: HTTP client for deck API endpoints
    - Both include loading states, error handling, and caching
 
-### Card Implementations
+### Card Implementations (Following Design Docs)
 
-#### Skeleton Cards (Purple)
-- **Skeleton Warrior**: Cost 2, 2/1 creature with Undead ability
-- **Skeleton Archer**: Cost 3, 2/2 creature with Undead and Ranged abilities
+#### Red Cards
+- **Goblin Pawn**: 1 Gold, 0 Mana - Creates Goblin unit (2/2/0 armor, speed 1, range 1, Melee)
+- **Orc Warrior**: 2 Gold, 1 Mana - Creates Orc Warrior unit (3/2/0 armor, speed 1, range 1, Melee)
 
-#### Goblin Cards (Red)
-- **Goblin Raider**: Cost 1, 2/1 creature with Haste ability
-- **Goblin Chieftain**: Cost 3, 3/2 creature with Haste and Rally abilities
+#### Purple Cards  
+- **Ghoul Pawn**: 1 Gold, 0 Mana - Creates Ghoul unit (1/2/0 armor, speed 1, range 1, Rekindle, Melee)
+- **Drain Life Spell**: 0 Gold, 2 Mana - Target unit takes 2 damage, heal 2 health
+
+### Proper Card Structure
+- **Costs**: Separate Gold and Mana costs as per requirements
+- **Unit Stats**: Attack/Health/Armor/Speed/Range for units created by Unit cards
+- **Card Types**: Units (create units), Spells (effects), Buildings, Orders, Hero
+- **Colors**: Red (Orcs/Goblins), Orange (Dragons/Ogres), Yellow (Dwarves), Green (Elves), Blue (Humans/Knights), Purple (Undead/Wizards)
 
 ## API Endpoints
 
