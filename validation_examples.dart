@@ -1,6 +1,6 @@
 // This file demonstrates the key functionality of the hover tooltip implementation
 // It shows how the various components work together
-
+//ignore_for_file: avoid_print
 import 'package:flutter/material.dart';
 import 'lib/models/tile_data.dart';
 import 'lib/widgets/game_tooltip.dart';
@@ -9,16 +9,16 @@ void main() {
   // This file serves as documentation and validation of the implementation
   print('Hover Tooltip Implementation Validation');
   print('=========================================');
-  
+
   // Demonstrate tile data creation
   demonstrateTileDataCreation();
-  
+
   // Demonstrate terrain system
   demonstrateTerrainSystem();
-  
+
   // Demonstrate tooltip content generation
   demonstrateTooltipContent();
-  
+
   // Demonstrate coordinate system
   demonstrateCoordinateSystem();
 }
@@ -26,7 +26,7 @@ void main() {
 void demonstrateTileDataCreation() {
   print('\n1. Tile Data Creation:');
   print('----------------------');
-  
+
   // Basic tile with just terrain
   const grassTile = TileData(
     row: 2,
@@ -34,7 +34,7 @@ void demonstrateTileDataCreation() {
     terrain: TerrainType.grass,
   );
   print('Basic tile: ${grassTile.getTooltipDescription()}');
-  
+
   // Tile with unit
   const tileWithUnit = TileData(
     row: 1,
@@ -49,7 +49,7 @@ void demonstrateTileDataCreation() {
     ),
   );
   print('Tile with unit: ${tileWithUnit.getTooltipDescription()}');
-  
+
   // Tile with building
   const tileWithBuilding = TileData(
     row: 5,
@@ -64,7 +64,7 @@ void demonstrateTileDataCreation() {
     ),
   );
   print('Tile with building: ${tileWithBuilding.getTooltipDescription()}');
-  
+
   // Tile with both unit and building
   const complexTile = TileData(
     row: 0,
@@ -91,11 +91,11 @@ void demonstrateTileDataCreation() {
 void demonstrateTerrainSystem() {
   print('\n2. Terrain System:');
   print('------------------');
-  
+
   for (final terrain in TerrainType.values) {
     print('${terrain.displayName}: Available for tile generation');
   }
-  
+
   print('\nTerrain generation example (distance-based):');
   for (int distance = 0; distance < 6; distance++) {
     final terrain = _getTerrainForDistance(distance);
@@ -119,13 +119,13 @@ TerrainType _getTerrainForDistance(int distance) {
 void demonstrateTooltipContent() {
   print('\n3. Tooltip Content Generation:');
   print('------------------------------');
-  
+
   const examples = [
     TileData(row: 0, col: 0, terrain: TerrainType.water),
     TileData(row: 1, col: 1, terrain: TerrainType.desert),
     TileData(
-      row: 2, 
-      col: 2, 
+      row: 2,
+      col: 2,
       terrain: TerrainType.grass,
       unit: Unit(
         name: 'Knight',
@@ -136,7 +136,7 @@ void demonstrateTooltipContent() {
       ),
     ),
   ];
-  
+
   for (final tile in examples) {
     print('Tile (${tile.row}, ${tile.col}):');
     print('  ${tile.getTooltipDescription().replaceAll('\n', '\n  ')}');
@@ -147,7 +147,7 @@ void demonstrateTooltipContent() {
 void demonstrateCoordinateSystem() {
   print('\n4. Coordinate System:');
   print('--------------------');
-  
+
   // Demonstrate isometric coordinate conversion
   print('Isometric grid coordinate examples:');
   const examples = [
@@ -156,7 +156,7 @@ void demonstrateCoordinateSystem() {
     (5, 0, 'Right edge'),
     (0, 5, 'Left edge'),
   ];
-  
+
   for (final (row, col, description) in examples) {
     // This would normally use the actual conversion from IsometricGridComponent
     final screenX = (col - row) * 32; // tileSize.x / 2
@@ -204,22 +204,52 @@ void exampleHoverCallback(TileData? tileData, Offset? position) {
 void demonstrateHealthCalculations() {
   print('\n5. Health Calculations:');
   print('----------------------');
-  
+
   const entities = [
-    Unit(name: 'Healthy Unit', playerIndex: 0, health: 100, maxHealth: 100, type: UnitType.infantry),
-    Unit(name: 'Injured Unit', playerIndex: 0, health: 30, maxHealth: 100, type: UnitType.infantry),
-    Unit(name: 'Critical Unit', playerIndex: 0, health: 10, maxHealth: 100, type: UnitType.infantry),
-    Building(name: 'Strong Building', playerIndex: 1, health: 250, maxHealth: 300, type: BuildingType.commandCenter),
-    Building(name: 'Damaged Building', playerIndex: 1, health: 50, maxHealth: 200, type: BuildingType.tower),
+    Unit(
+        name: 'Healthy Unit',
+        playerIndex: 0,
+        health: 100,
+        maxHealth: 100,
+        type: UnitType.infantry),
+    Unit(
+        name: 'Injured Unit',
+        playerIndex: 0,
+        health: 30,
+        maxHealth: 100,
+        type: UnitType.infantry),
+    Unit(
+        name: 'Critical Unit',
+        playerIndex: 0,
+        health: 10,
+        maxHealth: 100,
+        type: UnitType.infantry),
+    Building(
+        name: 'Strong Building',
+        playerIndex: 1,
+        health: 250,
+        maxHealth: 300,
+        type: BuildingType.commandCenter),
+    Building(
+        name: 'Damaged Building',
+        playerIndex: 1,
+        health: 50,
+        maxHealth: 200,
+        type: BuildingType.tower),
   ];
-  
+
   for (final entity in entities) {
-    final healthPercent = entity is Unit ? entity.healthPercentage : (entity as Building).healthPercentage;
-    final isDestroyed = entity is Unit ? entity.isDestroyed : (entity as Building).isDestroyed;
+    final healthPercent = entity is Unit
+        ? entity.healthPercentage
+        : (entity as Building).healthPercentage;
+    final isDestroyed =
+        entity is Unit ? entity.isDestroyed : (entity as Building).isDestroyed;
     final health = entity is Unit ? entity.health : (entity as Building).health;
-    final maxHealth = entity is Unit ? entity.maxHealth : (entity as Building).maxHealth;
+    final maxHealth =
+        entity is Unit ? entity.maxHealth : (entity as Building).maxHealth;
     final name = entity is Unit ? entity.name : (entity as Building).name;
-    
-    print('$name: $health/$maxHealth (${(healthPercent * 100).toInt()}%) - ${isDestroyed ? 'DESTROYED' : 'ALIVE'}');
+
+    print(
+        '$name: $health/$maxHealth (${(healthPercent * 100).toInt()}%) - ${isDestroyed ? 'DESTROYED' : 'ALIVE'}');
   }
 }
