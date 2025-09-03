@@ -4,62 +4,86 @@ import 'package:kitbash_flutter/models/card.dart';
 void main() {
   group('Card Model Tests', () {
     test('Card creation works correctly', () {
-      const skeleton = GameCard(
-        id: 'skeleton_001',
-        name: 'Skeleton Warrior',
-        cost: 2,
-        type: CardType.creature,
-        color: CardColor.purple,
-        attack: 2,
-        health: 1,
-        abilities: ['Undead'],
-        flavorText: 'Death is but the beginning of service.',
+      const goblin = GameCard(
+        id: 'red_pawn_goblin',
+        name: 'Goblin',
+        description: 'Summons a Goblin unit.',
+        goldCost: 1,
+        manaCost: 0,
+        type: CardType.unit,
+        color: CardColor.red,
+        unitStats: UnitStats(
+          attack: 2,
+          health: 2,
+          armor: 0,
+          speed: 1,
+          range: 1,
+        ),
+        abilities: ['Melee'],
+        flavorText: 'Scrappy fighters of the warband.',
       );
       
-      expect(skeleton.id, 'skeleton_001');
-      expect(skeleton.name, 'Skeleton Warrior');
-      expect(skeleton.cost, 2);
-      expect(skeleton.type, CardType.creature);
-      expect(skeleton.color, CardColor.purple);
-      expect(skeleton.attack, 2);
-      expect(skeleton.health, 1);
-      expect(skeleton.abilities, contains('Undead'));
-      expect(skeleton.isCreature, true);
-      expect(skeleton.isSpell, false);
+      expect(goblin.id, 'red_pawn_goblin');
+      expect(goblin.name, 'Goblin');
+      expect(goblin.goldCost, 1);
+      expect(goblin.manaCost, 0);
+      expect(goblin.type, CardType.unit);
+      expect(goblin.color, CardColor.red);
+      expect(goblin.unitStats?.attack, 2);
+      expect(goblin.unitStats?.health, 2);
+      expect(goblin.abilities, contains('Melee'));
+      expect(goblin.isUnit, true);
+      expect(goblin.isSpell, false);
     });
 
     test('Card power level calculation works correctly', () {
-      const creature = GameCard(
+      const unitCard = GameCard(
         id: 'test_001',
-        name: 'Test Creature',
-        cost: 2,
-        type: CardType.creature,
+        name: 'Test Unit',
+        description: 'Test unit card',
+        goldCost: 1,
+        manaCost: 1,
+        type: CardType.unit,
         color: CardColor.red,
-        attack: 2,
-        health: 1,
+        unitStats: UnitStats(
+          attack: 2,
+          health: 1,
+          armor: 0,
+          speed: 1,
+          range: 1,
+        ),
       );
       
       const spell = GameCard(
         id: 'test_002',
         name: 'Test Spell',
-        cost: 3,
+        description: 'Test spell card',
+        goldCost: 0,
+        manaCost: 3,
         type: CardType.spell,
         color: CardColor.blue,
       );
       
-      expect(creature.powerLevel, 3); // 2 attack + 1 health
-      expect(spell.powerLevel, 3); // cost for non-creatures
+      expect(unitCard.powerLevel, 3); // 2 attack + 1 health
+      expect(spell.powerLevel, 3); // totalCost for spells
     });
 
     test('Card JSON serialization works', () {
       const testCard = GameCard(
         id: 'test_001',
         name: 'Test Card',
-        cost: 2,
-        type: CardType.creature,
+        description: 'Test description',
+        goldCost: 1,
+        manaCost: 1,
+        type: CardType.unit,
         color: CardColor.purple,
-        attack: 2,
-        health: 1,
+        unitStats: UnitStats(
+          attack: 2,
+          health: 1,
+          armor: 0,
+          speed: 1,
+          range: 1,
+        ),
         abilities: ['Test Ability'],
         flavorText: 'Test flavor text',
       );
@@ -69,11 +93,12 @@ void main() {
       
       expect(reconstructed.id, testCard.id);
       expect(reconstructed.name, testCard.name);
-      expect(reconstructed.cost, testCard.cost);
+      expect(reconstructed.goldCost, testCard.goldCost);
+      expect(reconstructed.manaCost, testCard.manaCost);
       expect(reconstructed.type, testCard.type);
       expect(reconstructed.color, testCard.color);
-      expect(reconstructed.attack, testCard.attack);
-      expect(reconstructed.health, testCard.health);
+      expect(reconstructed.unitStats?.attack, testCard.unitStats?.attack);
+      expect(reconstructed.unitStats?.health, testCard.unitStats?.health);
       expect(reconstructed.abilities, testCard.abilities);
       expect(reconstructed.flavorText, testCard.flavorText);
     });
@@ -82,8 +107,10 @@ void main() {
       const testCard = GameCard(
         id: 'test_001',
         name: 'Test Card',
-        cost: 1,
-        type: CardType.creature,
+        description: 'Test description',
+        goldCost: 1,
+        manaCost: 0,
+        type: CardType.unit,
         color: CardColor.red,
       );
       
@@ -94,28 +121,35 @@ void main() {
     });
 
     test('Card type and color enums work correctly', () {
-      expect(CardType.creature.displayName, 'Creature');
+      expect(CardType.unit.displayName, 'Unit');
       expect(CardType.spell.displayName, 'Spell');
-      expect(CardType.artifact.displayName, 'Artifact');
+      expect(CardType.building.displayName, 'Building');
+      expect(CardType.order.displayName, 'Order');
+      expect(CardType.hero.displayName, 'Hero');
       
       expect(CardColor.red.displayName, 'Red');
+      expect(CardColor.orange.displayName, 'Orange');
+      expect(CardColor.yellow.displayName, 'Yellow');
+      expect(CardColor.green.displayName, 'Green');
+      expect(CardColor.blue.displayName, 'Blue');
       expect(CardColor.purple.displayName, 'Purple');
-      expect(CardColor.neutral.displayName, 'Neutral');
     });
 
     test('JSON parsing handles invalid values gracefully', () {
       final json = {
         'id': 'test_001',
         'name': 'Test Card',
-        'cost': 1,
+        'description': 'Test description',
+        'goldCost': 1,
+        'manaCost': 0,
         'type': 'invalid_type',
         'color': 'invalid_color',
       };
       
       final card = GameCard.fromJson(json);
       
-      expect(card.type, CardType.creature); // Should default to creature
-      expect(card.color, CardColor.neutral); // Should default to neutral
+      expect(card.type, CardType.unit); // Should default to unit
+      expect(card.color, CardColor.red); // Should default to red
     });
   });
 }

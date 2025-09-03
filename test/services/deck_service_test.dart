@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitbash_flutter/services/deck_service.dart';
-import 'package:kitbash_flutter/models/card.dart';
 import 'package:kitbash_flutter/models/deck.dart';
 
 void main() {
@@ -19,7 +18,7 @@ void main() {
     });
 
     test('Deck selection works correctly', () {
-      // Create test decks
+      // Create test deck
       final testDeck1 = Deck(
         id: 'test_deck_1',
         name: 'Test Deck 1',
@@ -27,14 +26,7 @@ void main() {
         description: 'Test description',
       );
       
-      final testDeck2 = Deck(
-        id: 'test_deck_2',
-        name: 'Test Deck 2',
-        color: 'purple',
-        description: 'Test description',
-      );
-      
-      // Manually set available decks for testing
+      // Test deck selection
       deckService.selectDeck(testDeck1);
       expect(deckService.selectedDeck, testDeck1);
     });

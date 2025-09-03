@@ -5,7 +5,7 @@ import '../models/deck.dart';
 import '../models/card.dart';
 
 class DeckService extends ChangeNotifier {
-  List<Deck> _availableDecks = [];
+  final List<Deck> _availableDecks = [];
   Deck? _selectedDeck;
   bool _isLoading = false;
   String? _error;

@@ -5,7 +5,7 @@ import '../models/card.dart';
 
 /// Service for managing the game's card collection
 class CardService extends ChangeNotifier {
-  Map<String, GameCard> _cardDatabase = {};
+  final Map<String, GameCard> _cardDatabase = {};
   bool _isLoading = false;
   String? _error;
   
@@ -88,14 +88,35 @@ class CardService extends ChangeNotifier {
 
   /// Get all unit cards
   List<GameCard> get unitCards => getCardsByType(CardType.unit);
+  
+  /// Get all building cards
+  List<GameCard> get buildingCards => getCardsByType(CardType.building);
+  
+  /// Get all order cards
+  List<GameCard> get orderCards => getCardsByType(CardType.order);
+  
+  /// Get all hero cards
+  List<GameCard> get heroCards => getCardsByType(CardType.hero);
 
   /// Get all spell cards
   List<GameCard> get spellCards => getCardsByType(CardType.spell);
 
-  /// Get all red cards (goblins)
+  /// Get all red cards
   List<GameCard> get redCards => getCardsByColor(CardColor.red);
 
-  /// Get all purple cards (skeletons)
+  /// Get all orange cards
+  List<GameCard> get orangeCards => getCardsByColor(CardColor.orange);
+
+  /// Get all yellow cards
+  List<GameCard> get yellowCards => getCardsByColor(CardColor.yellow);
+
+  /// Get all green cards
+  List<GameCard> get greenCards => getCardsByColor(CardColor.green);
+
+  /// Get all blue cards
+  List<GameCard> get blueCards => getCardsByColor(CardColor.blue);
+
+  /// Get all purple cards
   List<GameCard> get purpleCards => getCardsByColor(CardColor.purple);
 
   /// Search for cards by name (case-insensitive)
@@ -108,17 +129,31 @@ class CardService extends ChangeNotifier {
         .toList();
   }
 
-  /// Get cards that cost a specific amount
-  List<GameCard> getCardsByCost(int cost) {
+  /// Get cards that cost a specific total amount
+  List<GameCard> getCardsByTotalCost(int totalCost) {
     return _cardDatabase.values
-        .where((card) => card.cost == cost)
+        .where((card) => card.totalCost == totalCost)
         .toList();
   }
 
-  /// Get cards within a cost range
-  List<GameCard> getCardsByCostRange(int minCost, int maxCost) {
+  /// Get cards within a total cost range
+  List<GameCard> getCardsByTotalCostRange(int minCost, int maxCost) {
     return _cardDatabase.values
-        .where((card) => card.cost >= minCost && card.cost <= maxCost)
+        .where((card) => card.totalCost >= minCost && card.totalCost <= maxCost)
+        .toList();
+  }
+
+  /// Get cards by gold cost
+  List<GameCard> getCardsByGoldCost(int goldCost) {
+    return _cardDatabase.values
+        .where((card) => card.goldCost == goldCost)
+        .toList();
+  }
+
+  /// Get cards by mana cost
+  List<GameCard> getCardsByManaCost(int manaCost) {
+    return _cardDatabase.values
+        .where((card) => card.manaCost == manaCost)
         .toList();
   }
 

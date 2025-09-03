@@ -58,7 +58,7 @@ class CardWidget extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -111,7 +111,7 @@ class CardWidget extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
+                                              color: Colors.white.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -148,7 +148,7 @@ class CardWidget extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.8),
+                          color: Colors.red.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -175,7 +175,7 @@ class CardWidget extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.8),
+                          color: Colors.green.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -213,7 +213,7 @@ class CardWidget extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(

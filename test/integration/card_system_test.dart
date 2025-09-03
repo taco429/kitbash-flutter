@@ -8,22 +8,36 @@ void main() {
       // Create test cards
       const testCard1 = GameCard(
         id: 'test_001',
-        name: 'Test Creature 1',
-        cost: 1,
-        type: CardType.creature,
+        name: 'Test Unit 1',
+        description: 'Test unit card 1',
+        goldCost: 1,
+        manaCost: 0,
+        type: CardType.unit,
         color: CardColor.red,
-        attack: 1,
-        health: 1,
+        unitStats: UnitStats(
+          attack: 1,
+          health: 1,
+          armor: 0,
+          speed: 1,
+          range: 1,
+        ),
       );
       
       const testCard2 = GameCard(
         id: 'test_002',
-        name: 'Test Creature 2',
-        cost: 2,
-        type: CardType.creature,
+        name: 'Test Unit 2',
+        description: 'Test unit card 2',
+        goldCost: 2,
+        manaCost: 0,
+        type: CardType.unit,
         color: CardColor.red,
-        attack: 2,
-        health: 2,
+        unitStats: UnitStats(
+          attack: 2,
+          health: 2,
+          armor: 0,
+          speed: 1,
+          range: 1,
+        ),
       );
       
       // Create deck cards
@@ -36,14 +50,16 @@ void main() {
         name: 'Test Deck',
         color: 'red',
         description: 'A test deck for validation',
-        cards: [deckCard1, deckCard2],
+        heroCardId: 'test_hero_001',
+        pawnCards: [deckCard1],
+        mainCards: [deckCard2],
       );
       
       // Verify deck properties
-      expect(testDeck.cardCount, 6); // 4 + 2
-      expect(testDeck.cards.length, 2);
-      expect(testDeck.cards.first.card.name, 'Test Creature 1');
-      expect(testDeck.cards.last.card.name, 'Test Creature 2');
+      expect(testDeck.cardCount, 7); // 1 hero + 4 pawns + 2 main = 7
+      expect(testDeck.allCards.length, 2);
+      expect(testDeck.allCards.first.card.name, 'Test Unit 1');
+      expect(testDeck.allCards.last.card.name, 'Test Unit 2');
     });
 
     test('Card JSON round-trip preserves data', () {
@@ -51,7 +67,8 @@ void main() {
         id: 'test_001',
         name: 'Test Card',
         description: 'Test description',
-        cost: 3,
+        goldCost: 0,
+        manaCost: 3,
         type: CardType.spell,
         color: CardColor.blue,
         abilities: ['Test', 'Ability'],
@@ -64,7 +81,8 @@ void main() {
       expect(reconstructedCard.id, originalCard.id);
       expect(reconstructedCard.name, originalCard.name);
       expect(reconstructedCard.description, originalCard.description);
-      expect(reconstructedCard.cost, originalCard.cost);
+      expect(reconstructedCard.goldCost, originalCard.goldCost);
+      expect(reconstructedCard.manaCost, originalCard.manaCost);
       expect(reconstructedCard.type, originalCard.type);
       expect(reconstructedCard.color, originalCard.color);
       expect(reconstructedCard.abilities, originalCard.abilities);
@@ -75,8 +93,10 @@ void main() {
       const testCard = GameCard(
         id: 'test_001',
         name: 'Test Card',
-        cost: 1,
-        type: CardType.creature,
+        description: 'Test description',
+        goldCost: 1,
+        manaCost: 0,
+        type: CardType.unit,
         color: CardColor.red,
       );
       
@@ -85,7 +105,9 @@ void main() {
         name: 'Test Deck',
         color: 'red',
         description: 'Test deck',
-        cards: [DeckCard(card: testCard, quantity: 3)],
+        heroCardId: 'test_hero_001',
+        pawnCards: [const DeckCard(card: testCard, quantity: 3)],
+        mainCards: [],
       );
       
       final json = testDeck.toJson();
@@ -93,8 +115,9 @@ void main() {
       expect(json['id'], 'test_deck_001');
       expect(json['name'], 'Test Deck');
       expect(json['color'], 'red');
-      expect(json['cards'], isA<List>());
-      expect((json['cards'] as List).length, 1);
+      expect(json['heroCardId'], 'test_hero_001');
+      expect(json['pawnCards'], isA<List>());
+      expect((json['pawnCards'] as List).length, 1);
     });
   });
 }

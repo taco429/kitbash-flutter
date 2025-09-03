@@ -134,8 +134,8 @@ class _CollectionScreenState extends State<CollectionScreen>
                       Text('Total Cards: ${cardService.totalCards}'),
                       Text('Red Cards: ${cardService.redCards.length}'),
                       Text('Purple Cards: ${cardService.purpleCards.length}'),
-                      Text('Unit Cards: ${cardService.getCardsByType(CardType.unit).length}'),
-                      Text('Spell Cards: ${cardService.getCardsByType(CardType.spell).length}'),
+                      Text('Unit Cards: ${cardService.unitCards.length}'),
+                      Text('Spell Cards: ${cardService.spellCards.length}'),
                     ],
                   ),
                 ),
@@ -266,8 +266,8 @@ class _CollectionScreenState extends State<CollectionScreen>
                             ),
                             decoration: BoxDecoration(
                               color: deck.color == 'red' 
-                                  ? Colors.red.withOpacity(0.2)
-                                  : Colors.purple.withOpacity(0.2),
+                                  ? Colors.red.withValues(alpha: 0.2)
+                                  : Colors.purple.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -281,11 +281,23 @@ class _CollectionScreenState extends State<CollectionScreen>
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Text(
-                            '${deck.cardCount} cards',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${deck.cardCount} total cards',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Hero + ${deck.pawnCards.fold(0, (sum, card) => sum + card.quantity)} pawns + ${deck.mainCards.fold(0, (sum, card) => sum + card.quantity)} main',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -325,7 +337,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.2),
+                                color: Colors.blue.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
