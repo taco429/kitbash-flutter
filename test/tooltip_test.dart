@@ -73,20 +73,26 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 2,
-                col: 3,
-                terrain: TerrainType.forest,
-              ),
-              position: Offset(150, 200),
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 2,
+                    col: 3,
+                    terrain: TerrainType.forest,
+                  ),
+                  position: Offset(150, 200),
+                ),
+              ],
             ),
           ),
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump(); // Start animation
+      await tester
+          .pump(const Duration(milliseconds: 200)); // Complete animation
 
       expect(find.text('Tile (2, 3)'), findsOneWidget);
       expect(find.text('Forest'), findsOneWidget);
@@ -107,20 +113,26 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: GameTooltip(
-                isVisible: true,
-                tileData: TileData(
-                  row: 0,
-                  col: 0,
-                  terrain: terrain,
-                ),
-                position: const Offset(100, 100),
+              body: Stack(
+                children: [
+                  GameTooltip(
+                    isVisible: true,
+                    tileData: TileData(
+                      row: 0,
+                      col: 0,
+                      terrain: terrain,
+                    ),
+                    position: const Offset(100, 100),
+                  ),
+                ],
               ),
             ),
           ),
         );
 
-        await tester.pumpAndSettle();
+        await tester.pump(); // Start animation
+        await tester
+            .pump(const Duration(milliseconds: 200)); // Complete animation
 
         expect(find.text(name), findsOneWidget,
             reason: 'Failed to find terrain name: $name');
@@ -136,27 +148,33 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 1,
-                col: 1,
-                terrain: TerrainType.grass,
-                unit: Unit(
-                  name: 'Elite Archer',
-                  playerIndex: 0,
-                  health: 75,
-                  maxHealth: 100,
-                  type: UnitType.archer,
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 1,
+                    col: 1,
+                    terrain: TerrainType.grass,
+                    unit: Unit(
+                      name: 'Elite Archer',
+                      playerIndex: 0,
+                      health: 75,
+                      maxHealth: 100,
+                      type: UnitType.archer,
+                    ),
+                  ),
+                  position: Offset(100, 100),
                 ),
-              ),
-              position: Offset(100, 100),
+              ],
             ),
           ),
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump(); // Start animation
+      await tester
+          .pump(const Duration(milliseconds: 200)); // Complete animation
 
       expect(find.text('Elite Archer'), findsOneWidget);
       expect(find.text('Player 1'), findsOneWidget);
@@ -169,21 +187,25 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 2,
-                col: 2,
-                terrain: TerrainType.stone,
-                building: Building(
-                  name: 'Command Center',
-                  playerIndex: 1,
-                  health: 150,
-                  maxHealth: 200,
-                  type: BuildingType.commandCenter,
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 2,
+                    col: 2,
+                    terrain: TerrainType.stone,
+                    building: Building(
+                      name: 'Command Center',
+                      playerIndex: 1,
+                      health: 150,
+                      maxHealth: 200,
+                      type: BuildingType.commandCenter,
+                    ),
+                  ),
+                  position: Offset(200, 150),
                 ),
-              ),
-              position: Offset(200, 150),
+              ],
             ),
           ),
         ),
@@ -202,28 +224,32 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 3,
-                col: 3,
-                terrain: TerrainType.desert,
-                unit: Unit(
-                  name: 'Knight',
-                  playerIndex: 0,
-                  health: 90,
-                  maxHealth: 120,
-                  type: UnitType.cavalry,
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 3,
+                    col: 3,
+                    terrain: TerrainType.desert,
+                    unit: Unit(
+                      name: 'Knight',
+                      playerIndex: 0,
+                      health: 90,
+                      maxHealth: 120,
+                      type: UnitType.cavalry,
+                    ),
+                    building: Building(
+                      name: 'Barracks',
+                      playerIndex: 0,
+                      health: 80,
+                      maxHealth: 100,
+                      type: BuildingType.barracks,
+                    ),
+                  ),
+                  position: Offset(250, 300),
                 ),
-                building: Building(
-                  name: 'Barracks',
-                  playerIndex: 0,
-                  health: 80,
-                  maxHealth: 100,
-                  type: BuildingType.barracks,
-                ),
-              ),
-              position: Offset(250, 300),
+              ],
             ),
           ),
         ),
@@ -260,21 +286,25 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: GameTooltip(
-                isVisible: true,
-                tileData: TileData(
-                  row: 0,
-                  col: 0,
-                  terrain: TerrainType.grass,
-                  unit: Unit(
-                    name: 'Test Unit',
-                    playerIndex: 0,
-                    health: 100,
-                    maxHealth: 100,
-                    type: unitType,
+              body: Stack(
+                children: [
+                  GameTooltip(
+                    isVisible: true,
+                    tileData: TileData(
+                      row: 0,
+                      col: 0,
+                      terrain: TerrainType.grass,
+                      unit: Unit(
+                        name: 'Test Unit',
+                        playerIndex: 0,
+                        health: 100,
+                        maxHealth: 100,
+                        type: unitType,
+                      ),
+                    ),
+                    position: const Offset(100, 100),
                   ),
-                ),
-                position: const Offset(100, 100),
+                ],
               ),
             ),
           ),
@@ -297,21 +327,25 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 0,
-                col: 0,
-                terrain: TerrainType.grass,
-                unit: Unit(
-                  name: 'Healthy Unit',
-                  playerIndex: 0,
-                  health: 80,
-                  maxHealth: 100,
-                  type: UnitType.infantry,
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 0,
+                    col: 0,
+                    terrain: TerrainType.grass,
+                    unit: Unit(
+                      name: 'Healthy Unit',
+                      playerIndex: 0,
+                      health: 80,
+                      maxHealth: 100,
+                      type: UnitType.infantry,
+                    ),
+                  ),
+                  position: Offset(100, 100),
                 ),
-              ),
-              position: Offset(100, 100),
+              ],
             ),
           ),
         ),
@@ -334,21 +368,25 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 0,
-                col: 0,
-                terrain: TerrainType.grass,
-                unit: Unit(
-                  name: 'Injured Unit',
-                  playerIndex: 0,
-                  health: 20,
-                  maxHealth: 100,
-                  type: UnitType.infantry,
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 0,
+                    col: 0,
+                    terrain: TerrainType.grass,
+                    unit: Unit(
+                      name: 'Injured Unit',
+                      playerIndex: 0,
+                      health: 20,
+                      maxHealth: 100,
+                      type: UnitType.infantry,
+                    ),
+                  ),
+                  position: Offset(100, 100),
                 ),
-              ),
-              position: Offset(100, 100),
+              ],
             ),
           ),
         ),
@@ -374,14 +412,18 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 1,
-                col: 1,
-                terrain: TerrainType.grass,
-              ),
-              position: testPosition,
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 1,
+                    col: 1,
+                    terrain: TerrainType.grass,
+                  ),
+                  position: testPosition,
+                ),
+              ],
             ),
           ),
         ),
@@ -403,14 +445,18 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 1,
-                col: 1,
-                terrain: TerrainType.grass,
-              ),
-              position: Offset(100, 100),
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 1,
+                    col: 1,
+                    terrain: TerrainType.grass,
+                  ),
+                  position: Offset(100, 100),
+                ),
+              ],
             ),
           ),
         ),
@@ -419,9 +465,12 @@ void main() {
       // Animation should start
       await tester.pump();
 
-      // Find the AnimatedBuilder
-      final animatedBuilderFinder = find.byType(AnimatedBuilder);
-      expect(animatedBuilderFinder, findsOneWidget);
+      // Find the AnimatedBuilder(s) within the tooltip
+      final animatedBuilderFinder = find.descendant(
+        of: find.byType(GameTooltip),
+        matching: find.byType(AnimatedBuilder),
+      );
+      expect(animatedBuilderFinder, findsWidgets);
 
       // Let the animation complete
       await tester.pumpAndSettle();
@@ -438,14 +487,18 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: false,
-              tileData: TileData(
-                row: 1,
-                col: 1,
-                terrain: TerrainType.grass,
-              ),
-              position: Offset(100, 100),
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: false,
+                  tileData: TileData(
+                    row: 1,
+                    col: 1,
+                    terrain: TerrainType.grass,
+                  ),
+                  position: Offset(100, 100),
+                ),
+              ],
             ),
           ),
         ),
@@ -458,14 +511,18 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 1,
-                col: 1,
-                terrain: TerrainType.grass,
-              ),
-              position: Offset(100, 100),
+            body: Stack(
+              children: [
+                GameTooltip(
+                  isVisible: true,
+                  tileData: TileData(
+                    row: 1,
+                    col: 1,
+                    terrain: TerrainType.grass,
+                  ),
+                  position: Offset(100, 100),
+                ),
+              ],
             ),
           ),
         ),
@@ -488,14 +545,18 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: GameTooltip(
-                isVisible: i.isEven,
-                tileData: const TileData(
-                  row: 1,
-                  col: 1,
-                  terrain: TerrainType.grass,
-                ),
-                position: const Offset(100, 100),
+              body: Stack(
+                children: [
+                  GameTooltip(
+                    isVisible: i.isEven,
+                    tileData: const TileData(
+                      row: 1,
+                      col: 1,
+                      terrain: TerrainType.grass,
+                    ),
+                    position: const Offset(100, 100),
+                  ),
+                ],
               ),
             ),
           ),
