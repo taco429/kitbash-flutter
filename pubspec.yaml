@@ -24,4 +24,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - assets/audio/ 
+    - assets/audio/
+    - pubspec.yaml 
