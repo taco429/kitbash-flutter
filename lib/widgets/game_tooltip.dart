@@ -69,7 +69,9 @@ class _GameTooltipState extends State<GameTooltip>
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.isVisible || widget.tileData == null || widget.position == null) {
+    if (!widget.isVisible ||
+        widget.tileData == null ||
+        widget.position == null) {
       return const SizedBox.shrink();
     }
 
@@ -79,6 +81,11 @@ class _GameTooltipState extends State<GameTooltip>
       child: AnimatedBuilder(
         animation: _animationController,
         builder: (context, child) {
+          // Only show the tooltip if animation has started
+          if (_animationController.value == 0.0 && !widget.isVisible) {
+            return const SizedBox.shrink();
+          }
+
           return Transform.scale(
             scale: _scaleAnimation.value,
             child: Opacity(
@@ -111,7 +118,7 @@ class _GameTooltipState extends State<GameTooltip>
 
   Widget _buildTooltipContent() {
     final tileData = widget.tileData!;
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,7 +133,7 @@ class _GameTooltipState extends State<GameTooltip>
           ),
         ),
         const SizedBox(height: 4),
-        
+
         // Terrain information
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -147,7 +154,7 @@ class _GameTooltipState extends State<GameTooltip>
             ),
           ],
         ),
-        
+
         // Building information
         if (tileData.building != null) ...[
           const SizedBox(height: 6),
@@ -159,7 +166,7 @@ class _GameTooltipState extends State<GameTooltip>
             maxHealth: tileData.building!.maxHealth,
           ),
         ],
-        
+
         // Unit information
         if (tileData.unit != null) ...[
           const SizedBox(height: 6),
@@ -184,7 +191,7 @@ class _GameTooltipState extends State<GameTooltip>
   }) {
     final healthPercentage = maxHealth > 0 ? health / maxHealth : 0.0;
     final playerColor = playerIndex == 0 ? Colors.green : Colors.red;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,

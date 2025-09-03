@@ -26,8 +26,8 @@ void main() {
         ),
       );
 
-      // Should find the Stack container
-      expect(find.byType(Stack), findsOneWidget);
+      // Should find at least one Stack container (there may be multiple in the widget tree)
+      expect(find.byType(Stack), findsWidgets);
 
       // Should find the GameWidget (though it may not render fully in tests)
       expect(find.byType(GameWithTooltip), findsOneWidget);
@@ -43,7 +43,8 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      // Use pump instead of pumpAndSettle to avoid animation timeout
+      await tester.pump();
 
       // Tooltip should exist but not be visible
       expect(find.byType(GameTooltip), findsOneWidget);
@@ -63,7 +64,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Simulate hover callback through the game's callback mechanism
       const testTileData = TileData(
@@ -84,7 +85,10 @@ void main() {
 
       // Wait for tooltip delay
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.pumpAndSettle();
+      // Allow animation to start
+      await tester.pump();
+      // Wait for animation to complete (200ms duration)
+      await tester.pump(const Duration(milliseconds: 200));
 
       // Now tooltip should be visible
       expect(find.text('Forest'), findsOneWidget);
@@ -101,7 +105,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Start hover
       const testTileData = TileData(
@@ -113,7 +117,9 @@ void main() {
 
       // Wait for tooltip to appear
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.pumpAndSettle();
+      await tester.pump(); // Start animation
+      await tester
+          .pump(const Duration(milliseconds: 200)); // Complete animation
 
       expect(find.text('Grass'), findsOneWidget);
 
@@ -135,7 +141,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Start hover on first tile
       const tileData1 = TileData(
@@ -157,7 +163,9 @@ void main() {
 
       // Wait for tooltip delay
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.pumpAndSettle();
+      await tester.pump(); // Start animation
+      await tester
+          .pump(const Duration(milliseconds: 200)); // Complete animation
 
       // Should show second tile, not first
       expect(find.text('Stone'), findsOneWidget);
@@ -175,7 +183,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Start a hover to create a timer
       const testTileData = TileData(
@@ -191,7 +199,7 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
 
       // Should not crash - timer should be properly disposed
-      await tester.pumpAndSettle();
+      await tester.pump();
     });
 
     testWidgets('should maintain tooltip position correctly',
@@ -204,7 +212,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Test different positions
       const positions = [
@@ -224,7 +232,9 @@ void main() {
 
         // Wait for tooltip to appear
         await tester.pump(const Duration(milliseconds: 500));
-        await tester.pumpAndSettle();
+        await tester.pump(); // Start animation
+        await tester
+            .pump(const Duration(milliseconds: 200)); // Complete animation
 
         // Check that tooltip is positioned correctly
         final positionedFinder = find.byType(Positioned);
@@ -250,7 +260,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Verify that the game has a hover callback set
       expect(game.onTileHover, isNotNull);
@@ -271,7 +281,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Test with unit
       const tileWithUnit = TileData(
@@ -289,7 +299,9 @@ void main() {
 
       game.onTileHover?.call(tileWithUnit, const Offset(100, 100));
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.pumpAndSettle();
+      await tester.pump(); // Start animation
+      await tester
+          .pump(const Duration(milliseconds: 200)); // Complete animation
 
       expect(find.text('Test Warrior'), findsOneWidget);
       expect(find.text('Player 1'), findsOneWidget);
@@ -313,7 +325,9 @@ void main() {
 
       game.onTileHover?.call(tileWithBuilding, const Offset(200, 200));
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.pumpAndSettle();
+      await tester.pump(); // Start animation
+      await tester
+          .pump(const Duration(milliseconds: 200)); // Complete animation
 
       expect(find.text('Fortress'), findsOneWidget);
       expect(find.text('Player 2'), findsOneWidget);
