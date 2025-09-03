@@ -10,6 +10,68 @@ class DeckSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DeckService>(
       builder: (context, deckService, child) {
+        if (deckService.isLoading) {
+          return const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Select Your Deck',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 12),
+              SizedBox(
+                height: 120,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
+          );
+        }
+
+        if (deckService.error != null) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Select Your Deck',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red.shade400),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        deckService.error ?? 'Failed to load decks',
+                        style: TextStyle(color: Colors.red.shade700),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => deckService.loadDecks(),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -21,24 +83,42 @@ class DeckSelector extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 120,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: deckService.availableDecks.length,
-                itemBuilder: (context, index) {
-                  final deck = deckService.availableDecks[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DeckCard(
-                      deck: deck,
-                      isSelected: deckService.isDeckSelected(deck),
-                      onTap: () => deckService.selectDeck(deck),
+            if (deckService.availableDecks.isEmpty)
+              Container(
+                height: 120,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline),
+                    const SizedBox(width: 8),
+                    const Text('No decks available'),
+                    const SizedBox(width: 12),
+                    TextButton(
+                      onPressed: () => deckService.loadDecks(),
+                      child: const Text('Reload'),
                     ),
-                  );
-                },
+                  ],
+                ),
+              )
+            else
+              SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: deckService.availableDecks.length,
+                  itemBuilder: (context, index) {
+                    final deck = deckService.availableDecks[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: DeckCard(
+                        deck: deck,
+                        isSelected: deckService.isDeckSelected(deck),
+                        onTap: () => deckService.selectDeck(deck),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
             const SizedBox(height: 8),
             if (deckService.selectedDeck != null)
               Text(

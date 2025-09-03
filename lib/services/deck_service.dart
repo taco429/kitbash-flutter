@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/deck.dart';
 import '../models/card.dart';
+import 'api_config.dart';
 
 class DeckService extends ChangeNotifier {
   final List<Deck> _availableDecks = [];
@@ -10,8 +11,8 @@ class DeckService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  // Backend API base URL - should be configurable
-  static const String _baseUrl = 'http://localhost:8080/api';
+  // Backend API base URL
+  static final String _baseUrl = ApiConfig.instance.apiBase;
 
   List<Deck> get availableDecks => List.unmodifiable(_availableDecks);
   Deck? get selectedDeck => _selectedDeck;
@@ -37,8 +38,13 @@ class DeckService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        final decksJson = data['decks'] as List<dynamic>;
+        final body = json.decode(response.body);
+        // Accept both array and wrapped object with { decks: [...] }
+        final List<dynamic> decksJson = body is List
+            ? body
+            : (body is Map<String, dynamic> && body['decks'] is List
+                ? (body['decks'] as List<dynamic>)
+                : <dynamic>[]);
 
         _availableDecks.clear();
         for (final deckJson in decksJson) {

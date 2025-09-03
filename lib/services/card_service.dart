@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'api_config.dart';
 import '../models/card.dart';
 
 /// Service for managing the game's card collection
@@ -9,8 +10,8 @@ class CardService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  // Backend API base URL - should be configurable
-  static const String _baseUrl = 'http://localhost:8080/api';
+  // Backend API base URL
+  static final String _baseUrl = ApiConfig.instance.apiBase;
 
   CardService() {
     _loadCardsFromBackend();

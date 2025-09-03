@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
+import 'api_config.dart';
 
 class CommandCenter {
   final int playerIndex;
@@ -121,9 +122,10 @@ class GameState {
 }
 
 class GameService extends ChangeNotifier {
-  // Change this to your backend server IP address
-  static const String baseUrl = 'http://192.168.4.156:8080';
-  static const String wsUrl = 'ws://192.168.4.156:8080';
+  // Centralized API configuration
+  static final String baseUrl = ApiConfig.instance.httpBase;
+  static final String apiBase = ApiConfig.instance.apiBase;
+  static final String wsUrl = ApiConfig.instance.wsBase;
   WebSocketChannel? _channel;
 
   bool _isConnected = false;
@@ -143,10 +145,10 @@ class GameService extends ChangeNotifier {
   Future<List<dynamic>> findGames() async {
     try {
       _lastError = null;
-      debugPrint('GameService: Finding games at $baseUrl/api/games');
+      debugPrint('GameService: Finding games at $apiBase/games');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/api/games'),
+        Uri.parse('$apiBase/games'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
 
@@ -174,7 +176,7 @@ class GameService extends ChangeNotifier {
   Future<Map<String, dynamic>?> createGame() async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/lobbies'),
+        Uri.parse('$apiBase/lobbies'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'name': 'Quick Match',
@@ -201,7 +203,7 @@ class GameService extends ChangeNotifier {
   Future<Map<String, dynamic>?> createCpuGame() async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/games/cpu'),
+        Uri.parse('$apiBase/games/cpu'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -224,11 +226,11 @@ class GameService extends ChangeNotifier {
     try {
       _lastError = null;
       debugPrint(
-        'GameService: Joining game $gameId at $baseUrl/api/games/$gameId/join',
+        'GameService: Joining game $gameId at $apiBase/games/$gameId/join',
       );
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/games/$gameId/join'),
+        Uri.parse('$apiBase/games/$gameId/join'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
 
@@ -342,7 +344,7 @@ class GameService extends ChangeNotifier {
       _lastError = null;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/games/$gameId/damage'),
+        Uri.parse('$apiBase/games/$gameId/damage'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'playerIndex': playerIndex,
@@ -426,7 +428,7 @@ class GameService extends ChangeNotifier {
       try {
         final response = await http
             .post(
-              Uri.parse('$baseUrl/api/games/$gameId/lock-choice'),
+              Uri.parse('$apiBase/games/$gameId/lock-choice'),
               headers: {'Content-Type': 'application/json'},
               body: json.encode({
                 'playerIndex': playerIndex,
