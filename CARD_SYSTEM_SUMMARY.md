@@ -4,30 +4,44 @@ This document summarizes the card collection and deck system that has been imple
 
 ## Overview
 
-We've successfully created a comprehensive card system with:
-- **2 Creature Cards**: Skeleton Warrior (purple) and Goblin Raider (red)
-- **2 Enhanced Variants**: Skeleton Archer and Goblin Chieftain
-- **2 Pre-built Decks**: Red Goblin Swarm and Purple Undead Legion
-- **Complete UI**: Card display widgets and collection viewer
+We've successfully created a comprehensive **backend-driven** card system with:
+- **Go Backend API**: RESTful endpoints for cards and decks
+- **4 Creature Cards**: Skeleton Warrior, Skeleton Archer (purple) and Goblin Raider, Goblin Chieftain (red)
+- **2 Pre-built Decks**: Red Goblin Swarm and Purple Undead Legion served from backend
+- **Flutter Frontend**: Consumes backend APIs with proper loading states and error handling
+- **Complete Architecture**: Proper separation between client and server
 
-## Card System Architecture
+## Architecture Overview
 
-### Core Models
+### Backend (Go)
 
-1. **GameCard** (`lib/models/card.dart`)
-   - Represents individual cards with properties like cost, attack, health, abilities
-   - Supports different card types (Creature, Spell, Artifact)
-   - Includes card colors/factions (Red, Purple, Blue, Green, White, Black, Neutral)
-   - JSON serialization for data persistence
+1. **Domain Models** (`backend/internal/domain/card.go`)
+   - `Card`: Core card definition with cost, attack, health, abilities
+   - `Deck`: Collection of cards with metadata
+   - `DeckCardEntry`: Card instances in decks with quantities
+   - Support for card types (Creature, Spell, Artifact) and colors (Red, Purple, etc.)
 
-2. **DeckCard** (`lib/models/card.dart`)
-   - Represents card instances in decks with quantity
-   - Links GameCard with deck-specific data
+2. **Repositories** (`backend/internal/repository/`)
+   - `InMemoryCardRepository`: Manages card data with thread-safe operations
+   - `InMemoryDeckRepository`: Manages deck data with prebuilt deck seeding
+   - Both implement proper interfaces for future database integration
 
-3. **Deck** (`lib/models/deck.dart`)
-   - Updated to contain actual DeckCard instances
-   - Automatically calculates total card count
-   - Maintains deck metadata (name, color, description)
+3. **API Handlers** (`backend/internal/httpapi/`)
+   - RESTful endpoints for cards and decks
+   - Proper error handling and JSON responses
+   - Card population for deck details
+
+### Frontend (Flutter)
+
+1. **Models** (`lib/models/`)
+   - `GameCard`: Flutter representation matching backend Card structure
+   - `DeckCard`: Card instances with quantities
+   - `Deck`: Frontend deck model
+
+2. **Services** (`lib/services/`)
+   - `CardService`: HTTP client for card API endpoints
+   - `DeckService`: HTTP client for deck API endpoints
+   - Both include loading states, error handling, and caching
 
 ### Card Implementations
 
@@ -39,19 +53,29 @@ We've successfully created a comprehensive card system with:
 - **Goblin Raider**: Cost 1, 2/1 creature with Haste ability
 - **Goblin Chieftain**: Cost 3, 3/2 creature with Haste and Rally abilities
 
-### Services
+## API Endpoints
 
-1. **CardService** (`lib/services/card_service.dart`)
-   - Manages the complete card database
-   - Provides search and filtering capabilities
-   - Offers collection statistics
-   - Supports querying by color, type, cost, abilities
+### Card Endpoints
+- `GET /api/cards` - Get all available cards
+- `GET /api/cards/{cardId}` - Get specific card by ID
+- `GET /api/cards/color/{color}` - Get cards by color (red, purple, etc.)
+- `GET /api/cards/type/{type}` - Get cards by type (creature, spell, artifact)
 
-2. **DeckService** (`lib/services/deck_service.dart`)
-   - Updated to create actual decks with cards
-   - Pre-built Red Goblin deck (30 cards: 23 Goblin Raiders + 7 Goblin Chieftains)
-   - Pre-built Purple Skeleton deck (30 cards: 15 Skeleton Warriors + 15 Skeleton Archers)
-   - Deck selection and management functionality
+### Deck Endpoints
+- `GET /api/decks` - Get all decks
+- `GET /api/decks/prebuilt` - Get prebuilt decks with populated card details
+- `GET /api/decks/{deckId}` - Get specific deck with full card information
+- `GET /api/decks/color/{color}` - Get decks by color
+
+### Health Check
+- `GET /healthz` - Server health check endpoint
+
+## Data Flow
+
+1. **Backend**: Serves card definitions and prebuilt decks via REST API
+2. **Frontend**: Fetches data on startup and caches it locally
+3. **Real-time**: Ready for WebSocket integration for live deck updates
+4. **Persistence**: In-memory storage (easily replaceable with database)
 
 ## User Interface
 
@@ -120,19 +144,30 @@ The system is designed for easy expansion:
 
 ## Files Created/Modified
 
-### New Files
-- `lib/models/card.dart` - Core card system
-- `lib/models/cards/creatures.dart` - Creature card definitions
-- `lib/services/card_service.dart` - Card management service
+### Backend Files (New)
+- `backend/internal/domain/card.go` - Card and deck domain models with repositories interfaces
+- `backend/internal/repository/card_repository.go` - In-memory card repository with default cards
+- `backend/internal/repository/deck_repository.go` - In-memory deck repository with prebuilt decks
+- `backend/internal/httpapi/card_handlers.go` - REST API handlers for card endpoints
+- `backend/internal/httpapi/deck_handlers.go` - REST API handlers for deck endpoints
+- `backend/internal/httpapi/card_handlers_test.go` - API endpoint tests
+- `backend/test_api.sh` - API testing script
+
+### Frontend Files (New)
+- `lib/models/card.dart` - Frontend card models matching backend structure
 - `lib/widgets/card_widget.dart` - Card display widget
-- `lib/screens/collection_screen.dart` - Collection viewer
+- `lib/screens/collection_screen.dart` - Collection viewer with API integration
 - `test/models/card_test.dart` - Card model tests
 - `test/services/deck_service_test.dart` - Deck service tests
 
-### Modified Files
-- `lib/models/deck.dart` - Updated to use actual cards
-- `lib/services/deck_service.dart` - Updated with real deck compositions
+### Frontend Files (Modified)
+- `lib/models/deck.dart` - Updated to use DeckCard instances
+- `lib/services/card_service.dart` - HTTP client for backend card API
+- `lib/services/deck_service.dart` - HTTP client for backend deck API with loading states
 - `lib/main.dart` - Added CardService provider
 - `lib/screens/menu_screen.dart` - Added collection screen navigation
+
+### Backend Files (Modified)
+- `backend/internal/httpapi/router.go` - Added card and deck API routes and repositories
 
 The card collection and deck system is now fully functional and ready for gameplay integration!

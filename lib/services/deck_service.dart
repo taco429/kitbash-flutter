@@ -1,29 +1,92 @@
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/deck.dart';
 import '../models/card.dart';
-import '../models/cards/creatures.dart';
 
 class DeckService extends ChangeNotifier {
   List<Deck> _availableDecks = [];
   Deck? _selectedDeck;
+  bool _isLoading = false;
+  String? _error;
+
+  // Backend API base URL - should be configurable
+  static const String _baseUrl = 'http://localhost:8080/api';
 
   List<Deck> get availableDecks => List.unmodifiable(_availableDecks);
   Deck? get selectedDeck => _selectedDeck;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
   DeckService() {
-    _initializeTestDecks();
+    _loadDecksFromBackend();
   }
 
-  void _initializeTestDecks() {
-    _availableDecks = [
-      _createRedGoblinDeck(),
-      _createPurpleSkeletonDeck(),
-    ];
-
-    // Select the first deck by default
-    if (_availableDecks.isNotEmpty) {
-      _selectedDeck = _availableDecks.first;
+  /// Load decks from the backend API
+  Future<void> _loadDecksFromBackend() async {
+    if (_isLoading) return;
+    
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/decks/prebuilt'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final decksJson = data['decks'] as List<dynamic>;
+        
+        _availableDecks.clear();
+        for (final deckJson in decksJson) {
+          final deck = _parseDeckFromBackend(deckJson as Map<String, dynamic>);
+          _availableDecks.add(deck);
+        }
+        
+        // Select the first deck by default
+        if (_availableDecks.isNotEmpty && _selectedDeck == null) {
+          _selectedDeck = _availableDecks.first;
+        }
+        
+        debugPrint('Loaded ${_availableDecks.length} decks from backend');
+      } else {
+        throw Exception('Failed to load decks: ${response.statusCode}');
+      }
+    } catch (e) {
+      _error = 'Failed to load decks: $e';
+      debugPrint(_error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
+  }
+
+  /// Parse a deck from backend response format
+  Deck _parseDeckFromBackend(Map<String, dynamic> json) {
+    final cards = <DeckCard>[];
+    
+    // Parse populated cards from backend response
+    if (json['populatedCards'] != null) {
+      final populatedCards = json['populatedCards'] as List<dynamic>;
+      for (final cardEntry in populatedCards) {
+        final cardData = cardEntry['card'] as Map<String, dynamic>;
+        final quantity = cardEntry['quantity'] as int;
+        
+        final card = GameCard.fromJson(cardData);
+        cards.add(DeckCard(card: card, quantity: quantity));
+      }
+    }
+    
+    return Deck(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      color: json['color'] ?? '',
+      description: json['description'] ?? '',
+      cards: cards,
+    );
   }
 
   void selectDeck(Deck deck) {
@@ -46,11 +109,9 @@ class DeckService extends ChangeNotifier {
     return _selectedDeck?.id == deck.id;
   }
 
-  // Future method for when we add deck loading from backend
+  /// Refresh decks from backend
   Future<void> loadDecks() async {
-    // TODO: Implement loading decks from backend
-    // For now, just notify listeners that decks are ready
-    notifyListeners();
+    await _loadDecksFromBackend();
   }
 
   // Future method for when we add deck saving to backend
@@ -59,39 +120,7 @@ class DeckService extends ChangeNotifier {
     debugPrint('Selected deck: ${_selectedDeck?.name}');
   }
 
-  /// Create a red deck focused on goblins
-  Deck _createRedGoblinDeck() {
-    final cards = <DeckCard>[
-      // Main goblin creatures - 23 basic goblins, 7 chieftains = 30 total
-      DeckCard(card: CreatureCards.goblin, quantity: 23),
-      DeckCard(card: CreatureCards.goblinChieftain, quantity: 7),
-    ];
 
-    return Deck(
-      id: 'red_deck_001',
-      name: 'Goblin Swarm',
-      color: 'red',
-      description: 'An aggressive deck full of fierce goblins ready for battle. Quick strikes and overwhelming numbers.',
-      cards: cards,
-    );
-  }
-
-  /// Create a purple deck focused on skeletons
-  Deck _createPurpleSkeletonDeck() {
-    final cards = <DeckCard>[
-      // Main skeleton creatures - 15 basic skeletons, 15 archers = 30 total
-      DeckCard(card: CreatureCards.skeleton, quantity: 15),
-      DeckCard(card: CreatureCards.skeletonArcher, quantity: 15),
-    ];
-
-    return Deck(
-      id: 'purple_deck_001',
-      name: 'Undead Legion',
-      color: 'purple',
-      description: 'A strategic deck of undead warriors that never truly die. Balanced mix of melee and ranged units.',
-      cards: cards,
-    );
-  }
 
   /// Get all cards in a specific deck
   List<DeckCard> getDeckCards(String deckId) {

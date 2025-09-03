@@ -1,25 +1,67 @@
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/card.dart';
-import '../models/cards/creatures.dart';
 
 /// Service for managing the game's card collection
 class CardService extends ChangeNotifier {
-  late final Map<String, GameCard> _cardDatabase;
+  Map<String, GameCard> _cardDatabase = {};
+  bool _isLoading = false;
+  String? _error;
+  
+  // Backend API base URL - should be configurable
+  static const String _baseUrl = 'http://localhost:8080/api';
   
   CardService() {
-    _initializeCardDatabase();
+    _loadCardsFromBackend();
   }
 
-  /// Initialize the card database with all available cards
-  void _initializeCardDatabase() {
-    _cardDatabase = <String, GameCard>{};
+  /// Load cards from the backend API
+  Future<void> _loadCardsFromBackend() async {
+    if (_isLoading) return;
     
-    // Add all creature cards to the database
-    for (final card in CreatureCards.allCreatures) {
-      _cardDatabase[card.id] = card;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/cards'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final cardsJson = data['cards'] as List<dynamic>;
+        
+        _cardDatabase.clear();
+        for (final cardJson in cardsJson) {
+          final card = GameCard.fromJson(cardJson as Map<String, dynamic>);
+          _cardDatabase[card.id] = card;
+        }
+        
+        debugPrint('Loaded ${_cardDatabase.length} cards from backend');
+      } else {
+        throw Exception('Failed to load cards: ${response.statusCode}');
+      }
+    } catch (e) {
+      _error = 'Failed to load cards: $e';
+      debugPrint(_error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    
-    debugPrint('Initialized card database with ${_cardDatabase.length} cards');
+  }
+
+  /// Get loading state
+  bool get isLoading => _isLoading;
+  
+  /// Get error state
+  String? get error => _error;
+  
+  /// Refresh cards from backend
+  Future<void> refreshCards() async {
+    await _loadCardsFromBackend();
   }
 
   /// Get all available cards

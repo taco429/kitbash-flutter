@@ -20,6 +20,8 @@ import (
 type api struct {
 	repo     *repository.InMemoryLobbyRepository
 	gameRepo repository.GameRepository
+	cardRepo domain.CardRepository
+	deckRepo domain.DeckRepository
 	cfg      config.Config
 	log      *logger.Logger
 }
@@ -43,6 +45,8 @@ func NewRouter(cfg config.Config) http.Handler {
 	a := &api{
 		repo:     repository.NewInMemoryLobbyRepository(log),
 		gameRepo: repository.NewInMemoryGameRepository(log),
+		cardRepo: repository.NewInMemoryCardRepository(log),
+		deckRepo: repository.NewInMemoryDeckRepository(log),
 		cfg:      cfg,
 		log:      log,
 	}
@@ -97,6 +101,30 @@ func NewRouter(cfg config.Config) http.Handler {
 			r.Post("/damage", a.handleDealDamage)
 			// GET /api/games/{id}/state: get current game state
 			r.Get("/state", a.handleGetGameState)
+		})
+
+		// Card endpoints
+		r.Route("/cards", func(r chi.Router) {
+			// GET /api/cards: get all cards
+			r.Get("/", a.GetAllCards)
+			// GET /api/cards/{cardId}: get specific card
+			r.Get("/{cardId}", a.GetCard)
+			// GET /api/cards/color/{color}: get cards by color
+			r.Get("/color/{color}", a.GetCardsByColor)
+			// GET /api/cards/type/{type}: get cards by type
+			r.Get("/type/{type}", a.GetCardsByType)
+		})
+
+		// Deck endpoints
+		r.Route("/decks", func(r chi.Router) {
+			// GET /api/decks: get all decks
+			r.Get("/", a.GetAllDecks)
+			// GET /api/decks/prebuilt: get prebuilt decks
+			r.Get("/prebuilt", a.GetPrebuiltDecks)
+			// GET /api/decks/{deckId}: get specific deck with card details
+			r.Get("/{deckId}", a.GetDeck)
+			// GET /api/decks/color/{color}: get decks by color
+			r.Get("/color/{color}", a.GetDecksByColor)
 		})
 	})
 

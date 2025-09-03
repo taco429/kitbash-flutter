@@ -58,6 +58,52 @@ class _CollectionScreenState extends State<CollectionScreen>
   Widget _buildAllCardsTab() {
     return Consumer<CardService>(
       builder: (context, cardService, child) {
+        // Handle loading state
+        if (cardService.isLoading) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading cards from server...'),
+              ],
+            ),
+          );
+        }
+        
+        // Handle error state
+        if (cardService.error != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red[300],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load cards',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  cardService.error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => cardService.refreshCards(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        
         final allCards = cardService.allCards;
         
         if (allCards.isEmpty) {
@@ -126,6 +172,52 @@ class _CollectionScreenState extends State<CollectionScreen>
   Widget _buildDeckTab(String deckId) {
     return Consumer<DeckService>(
       builder: (context, deckService, child) {
+        // Handle loading state
+        if (deckService.isLoading) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading decks from server...'),
+              ],
+            ),
+          );
+        }
+        
+        // Handle error state
+        if (deckService.error != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red[300],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load decks',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  deckService.error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => deckService.loadDecks(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        
         final deck = deckService.availableDecks
             .where((d) => d.id == deckId)
             .firstOrNull;
