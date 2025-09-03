@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 import 'services/game_service.dart';
 import 'services/deck_service.dart';
 import 'screens/menu_screen.dart';
+import 'services/logger_service.dart';
 
 void main() {
+  // Initialize application-wide logging
+  AppLogger.init();
   runApp(
     MultiProvider(
       providers: [

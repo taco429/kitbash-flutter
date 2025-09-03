@@ -4,6 +4,7 @@ import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
@@ -12,6 +13,9 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   final String gameId;
   final GameService gameService;
   IsometricGridComponent? _grid;
+  final Logger _log = Logger('Game.KitbashGame');
+  Vector2? _lastDragGameLocal;
+  Vector2? _lastDragGridLocal;
 
   // Tooltip callback
   Function(TileData?, Offset?)? onTileHover;
@@ -24,7 +28,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   Future<void> onLoad() async {
     // Initialize game components
-    debugPrint('Loading game: $gameId');
+    _log.info('onLoad: gameId=$gameId, size=${size.toString()}');
 
     // Add an isometric grid to the scene
     const int rows = 12;
@@ -54,6 +58,7 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (grid != null) {
       grid.position = this.size / 2;
     }
+    _log.info('onGameResize: newSize=${this.size}, gridPos=${_grid?.position}');
   }
 
   @override
@@ -64,25 +69,83 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
       final Vector2 localPoint = grid.parentToLocal(event.localPosition);
       grid.handleTap(localPoint);
     }
+    _log.info(
+      'onTapDown: local=${event.localPosition}, gridLocal=' +
+          (_grid != null
+              ? _grid!.parentToLocal(event.localPosition).toString()
+              : 'n/a') +
+          ', highlighted=(${_grid?.highlightedRow}, ${_grid?.highlightedCol})',
+    );
   }
 
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     // Handle drag start for card movement
-    debugPrint('Drag started at: ${event.localPosition}');
+    final IsometricGridComponent? grid = _grid;
+    final Vector2? gridLocal =
+        grid != null ? grid.parentToLocal(event.localPosition) : null;
+    _lastDragGameLocal = event.localPosition.clone();
+    _lastDragGridLocal = gridLocal?.clone();
+    _log.info(
+      'onDragStart: gameId=$gameId, local=${event.localPosition}, ' +
+          'gridLocal=${gridLocal ?? 'n/a'}, hovered=(${grid?.hoveredRow}, ${grid?.hoveredCol}), ' +
+          'highlighted=(${grid?.highlightedRow}, ${grid?.highlightedCol}), ' +
+          'tileSize=${grid?.tileSize}, gridSize=${grid != null ? '${grid.rows}x${grid.cols}' : 'n/a'}, ' +
+          'event=${event.toString()}',
+    );
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     // Handle drag update
+    final IsometricGridComponent? grid = _grid;
+    // Attempt to access delta; update our last known positions
+    // Attempt to include delta if available (Flame DragUpdateEvent has delta)
+    String deltaStr;
+    try {
+      // ignore: avoid_dynamic_calls
+      final dynamic maybeDelta = (event as dynamic).delta;
+      deltaStr = maybeDelta?.toString() ?? 'n/a';
+      if (maybeDelta != null && _lastDragGameLocal != null) {
+        try {
+          // Vector2 addition
+          _lastDragGameLocal = _lastDragGameLocal! + (maybeDelta as Vector2);
+        } catch (_) {
+          // Fallback: keep previous
+        }
+      }
+    } catch (_) {
+      deltaStr = 'n/a';
+    }
+    Vector2? gridLocal;
+    if (grid != null && _lastDragGameLocal != null) {
+      gridLocal = grid.parentToLocal(_lastDragGameLocal!);
+      _lastDragGridLocal = gridLocal.clone();
+    }
+    _log.info(
+      'onDragUpdate: local=${_lastDragGameLocal ?? 'n/a'}, gridLocal=${gridLocal ?? _lastDragGridLocal ?? 'n/a'}, ' +
+          'delta=$deltaStr, hovered=(${grid?.hoveredRow}, ${grid?.hoveredCol}), ' +
+          'highlighted=(${grid?.highlightedRow}, ${grid?.highlightedCol}), event=${event.toString()}',
+    );
   }
 
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
     // Handle drag end
-    debugPrint('Drag ended');
+    String velocityStr;
+    try {
+      // ignore: avoid_dynamic_calls
+      final dynamic maybeVelocity = (event as dynamic).velocity;
+      velocityStr = maybeVelocity?.toString() ?? 'n/a';
+    } catch (_) {
+      velocityStr = 'n/a';
+    }
+    _log.info(
+        'onDragEnd: velocity=$velocityStr, lastLocal=${_lastDragGameLocal ?? 'n/a'}, lastGrid=${_lastDragGridLocal ?? 'n/a'}, event=${event.toString()}');
+    _lastDragGameLocal = null;
+    _lastDragGridLocal = null;
   }
 
   // Note: Hover handling moved to mouse region in GameWithTooltip widget
