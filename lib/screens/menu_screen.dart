@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
+import '../services/version_service.dart';
 import 'game_lobby_screen.dart';
 import 'game_screen.dart';
 import 'collection_screen.dart';
@@ -24,20 +25,11 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Future<void> _loadVersion() async {
-    try {
-      final String manifestString = await rootBundle.loadString('pubspec.yaml');
-      final RegExp versionRegex = RegExp(r'version:\s*(.+)');
-      final Match? match = versionRegex.firstMatch(manifestString);
-      if (match != null) {
-        setState(() {
-          _version = match.group(1)!.trim();
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _version = '1.0.0+1'; // Fallback version
-      });
-    }
+    final version = await VersionService.getVersionLabel();
+    if (!mounted) return;
+    setState(() {
+      _version = version;
+    });
   }
 
   Future<void> _createGame() async {
