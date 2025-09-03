@@ -32,8 +32,6 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   @override
   void initState() {
     super.initState();
-    // Set up the hover callback for the game
-    widget.game.setTileHoverCallback(_onTileHover);
   }
 
   @override
@@ -44,11 +42,9 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
 
   void _onTileHover(TileData? tileData, Offset? position) {
     _log.info(
-      'onTileHover: tile=' +
-          (tileData != null
-              ? 'r=${tileData.row},c=${tileData.col},terrain=${tileData.terrain},building=${tileData.building?.type}'
-              : 'null') +
-          ', pos=${position?.toString() ?? 'null'}',
+      'onTileHover: tile='
+      '${tileData != null ? 'r=${tileData.row},c=${tileData.col},terrain=${tileData.terrain},building=${tileData.building?.type}' : 'null'}'
+      ', pos=${position?.toString() ?? 'null'}',
     );
     final bool sameTile = _isSameTile(_hoveredTile, tileData);
 
@@ -107,22 +103,22 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   Widget build(BuildContext context) {
     return MouseRegion(
       onHover: (PointerHoverEvent event) {
-        // Convert hover position to tile using the game's grid
+        // Convert hover position to tile using the game's grid and update tooltip
         final tile = widget.game.resolveHoverAt(event.localPosition);
-        widget.game.onTileHover?.call(tile, event.localPosition);
-        _log.info('onHover: pos=${event.localPosition}, tile=' +
-            (tile != null ? 'r=${tile.row},c=${tile.col}' : 'null'));
+        _onTileHover(tile, event.localPosition);
+        _log.info('onHover: pos=${event.localPosition}, '
+            'tile=${tile != null ? 'r=${tile.row},c=${tile.col}' : 'null'}');
       },
       onExit: (_) {
         widget.game.clearHover();
-        widget.game.onTileHover?.call(null, null);
+        _onTileHover(null, null);
         _log.info('onExit: hover cleared');
       },
       child: Stack(
         children: [
           // The Flame game
-          GameWidget.controlled(
-            gameFactory: () => widget.game,
+          GameWidget(
+            game: widget.game,
           ),
           // Tooltip overlay
           GameTooltip(

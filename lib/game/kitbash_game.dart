@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'dart:async';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -9,14 +10,11 @@ import 'package:logging/logging.dart';
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
 
-class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
+class KitbashGame extends FlameGame with TapCallbacks {
   final String gameId;
   final GameService gameService;
   IsometricGridComponent? _grid;
   final Logger _log = Logger('Game.KitbashGame');
-
-  // Tooltip callback
-  Function(TileData?, Offset?)? onTileHover;
 
   KitbashGame({required this.gameId, required this.gameService});
 
@@ -46,6 +44,43 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     _grid = isoGrid;
     add(isoGrid);
+
+    // Debug: Log expected coordinates for each tile at load
+    final double originX = isoGrid.size.x / 2;
+    const double originY = 0.0;
+    final double halfW = isoGrid.tileSize.x / 2;
+    final double halfH = isoGrid.tileSize.y / 2;
+    _log.info(
+        'gridDebug: rows=$rows, cols=$cols, tileSize=${isoGrid.tileSize}, gridSize=${isoGrid.size}, gridAnchor=${isoGrid.anchor}, gridPos=${isoGrid.position}, origin=($originX,$originY)');
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        final Vector2 centerLocal = isoGrid.isoToScreen(r, c, originX, originY);
+        final Vector2 centerParent = isoGrid.localToParent(centerLocal);
+
+        final Vector2 topLocal = Vector2(centerLocal.x, centerLocal.y - halfH);
+        final Vector2 rightLocal =
+            Vector2(centerLocal.x + halfW, centerLocal.y);
+        final Vector2 bottomLocal =
+            Vector2(centerLocal.x, centerLocal.y + halfH);
+        final Vector2 leftLocal = Vector2(centerLocal.x - halfW, centerLocal.y);
+
+        final Vector2 topParent = isoGrid.localToParent(topLocal);
+        final Vector2 rightParent = isoGrid.localToParent(rightLocal);
+        final Vector2 bottomParent = isoGrid.localToParent(bottomLocal);
+        final Vector2 leftParent = isoGrid.localToParent(leftLocal);
+
+        _log.info(
+            'tile[r=$r,c=$c] centerLocal=$centerLocal centerParent=$centerParent '
+            'cornersLocal(top=${topLocal.x.toStringAsFixed(1)},${topLocal.y.toStringAsFixed(1)} '
+            'right=${rightLocal.x.toStringAsFixed(1)},${rightLocal.y.toStringAsFixed(1)} '
+            'bottom=${bottomLocal.x.toStringAsFixed(1)},${bottomLocal.y.toStringAsFixed(1)} '
+            'left=${leftLocal.x.toStringAsFixed(1)},${leftLocal.y.toStringAsFixed(1)}) '
+            'cornersParent(top=${topParent.x.toStringAsFixed(1)},${topParent.y.toStringAsFixed(1)} '
+            'right=${rightParent.x.toStringAsFixed(1)},${rightParent.y.toStringAsFixed(1)} '
+            'bottom=${bottomParent.x.toStringAsFixed(1)},${bottomParent.y.toStringAsFixed(1)} '
+            'left=${leftParent.x.toStringAsFixed(1)},${leftParent.y.toStringAsFixed(1)})');
+      }
+    }
   }
 
   @override
@@ -68,20 +103,15 @@ class KitbashGame extends FlameGame with TapCallbacks, DragCallbacks {
       grid.handleTap(localPoint);
     }
     _log.info(
-      'onTapDown: local=${event.localPosition}, gridLocal=' +
-          (_grid != null
-              ? _grid!.parentToLocal(event.localPosition).toString()
-              : 'n/a') +
-          ', highlighted=(${_grid?.highlightedRow}, ${_grid?.highlightedCol})',
+      'onTapDown: local=${event.localPosition}, '
+      'gridLocal=${_grid != null ? _grid!.parentToLocal(event.localPosition) : 'n/a'}, '
+      'highlighted=(${_grid?.highlightedRow}, ${_grid?.highlightedCol})',
     );
   }
 
-  // Note: Hover handling moved to mouse region in GameWithTooltip widget
+  // Hover updates are driven by the surrounding MouseRegion in the widget tree
 
-  /// Sets the callback for tile hover events
-  void setTileHoverCallback(Function(TileData?, Offset?)? callback) {
-    onTileHover = callback;
-  }
+  // Note: Hover handling is managed by the surrounding widget via MouseRegion
 
   /// Resolves the hovered tile given a position in the GameWidget's
   /// local coordinate space and updates hover highlight in the grid.
@@ -116,6 +146,17 @@ class IsometricGridComponent extends PositionComponent {
   // Hover state
   int? hoveredRow;
   int? hoveredCol;
+
+  // Debug overlay state
+  bool debugHoverOverlay = true;
+  Vector2? _debugLocalPoint;
+  double? _debugRowF;
+  double? _debugColF;
+  int? _debugRc;
+  int? _debugCc;
+  List<math.Point<int>> _debugCandidates = <math.Point<int>>[];
+  math.Point<int>? _debugPickedRC;
+  Vector2? _debugPickedCenter;
 
   // Tile data storage - for now we'll generate sample terrain
   late List<List<TileData>> _tileData;
@@ -258,6 +299,68 @@ class IsometricGridComponent extends PositionComponent {
         );
       }
     }
+
+    // Debug overlay for hover picking visualization
+    if (debugHoverOverlay && _debugLocalPoint != null) {
+      final ui.Paint red = ui.Paint()
+        ..color = const Color(0xFFFF3B30)
+        ..style = ui.PaintingStyle.fill;
+      final ui.Paint blue = ui.Paint()
+        ..color = const Color(0xFF007AFF)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      final ui.Paint yellow = ui.Paint()
+        ..color = const Color(0xFFFFCC00)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      final ui.Paint green = ui.Paint()
+        ..color = const Color(0xFF34C759)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      // Cursor local point
+      canvas.drawCircle(
+          ui.Offset(_debugLocalPoint!.x, _debugLocalPoint!.y), 3, red);
+
+      // Draw candidate centers
+      final double originX = size.x / 2;
+      const double originY = 0;
+      for (final math.Point<int> cand in _debugCandidates) {
+        final Vector2 center = isoToScreen(cand.y, cand.x, originX, originY);
+        canvas.drawCircle(ui.Offset(center.x, center.y), 4, blue);
+      }
+
+      // Rounded tile center highlight
+      if (_debugRc != null && _debugCc != null) {
+        final Vector2 roundedCenter =
+            isoToScreen(_debugRc!, _debugCc!, originX, originY);
+        canvas.drawCircle(
+            ui.Offset(roundedCenter.x, roundedCenter.y), 6, yellow);
+      }
+
+      // Picked tile outline
+      if (_debugPickedCenter != null) {
+        final ui.Path pickedDiamond = _tileDiamond(_debugPickedCenter!);
+        canvas.drawPath(pickedDiamond, green);
+      }
+
+      // Optional: textual debug (kept minimal)
+      final textPaint = TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+        ),
+      );
+      final String info =
+          'rowF=${_debugRowF?.toStringAsFixed(2)} colF=${_debugColF?.toStringAsFixed(2)}\n'
+          'rc=${_debugRc} cc=${_debugCc} hovered=(${hoveredRow},${hoveredCol})\n'
+          'picked=${_debugPickedRC != null ? '(${_debugPickedRC!.y},${_debugPickedRC!.x})' : 'none'}';
+      textPaint.render(
+        canvas,
+        info,
+        Vector2(6, 6),
+      );
+    }
   }
 
   void handleTap(Vector2 localPoint) {
@@ -388,52 +491,60 @@ class IsometricGridComponent extends PositionComponent {
 
   // Removed old _screenToIso; picking now uses precise diamond hit testing in _pickTileAt.
 
-  /// Picks the tile under a local point using precise rhombus hit testing.
+  /// Picks the tile under a local point using a simple inverse transform
+  /// and a single diamond check with minimal neighbor fallback.
   Vector2? _pickTileAt(Vector2 localPoint) {
-    // Compute continuous iso coordinates
     final double originX = size.x / 2;
     const double originY = 0;
 
-    // Compensate for visual diamond top-half by shifting pick upward by half tile height
-    final double adjustedY = localPoint.y - (tileSize.y / 2);
-
     final double dx = localPoint.x - originX;
-    final double dy = adjustedY - originY;
+    // Use direct Y to match render mapping precisely
+    final double dy = localPoint.y - originY;
 
-    final double colF = (dy / (tileSize.y / 2) + dx / (tileSize.x / 2)) / 2;
-    final double rowF = (dy / (tileSize.y / 2) - dx / (tileSize.x / 2)) / 2;
+    final double halfW = tileSize.x / 2;
+    final double halfH = tileSize.y / 2;
 
-    final int baseCol = colF.floor();
-    final int baseRow = rowF.floor();
-    final int roundCol = colF.round();
-    final int roundRow = rowF.round();
+    // Invert isoToScreen mapping
+    final double colF = (dy / halfH + dx / halfW) / 2.0;
+    final double rowF = (dy / halfH - dx / halfW) / 2.0;
 
-    // Candidate tiles around the computed position
-    final List<Vector2> candidates = <Vector2>[
-      Vector2(baseCol.toDouble(), baseRow.toDouble()),
-      Vector2((baseCol + 1).toDouble(), baseRow.toDouble()),
-      Vector2(baseCol.toDouble(), (baseRow + 1).toDouble()),
-      Vector2((baseCol + 1).toDouble(), (baseRow + 1).toDouble()),
-      Vector2(roundCol.toDouble(), roundRow.toDouble()),
+    final int rc = rowF.round();
+    final int cc = colF.round();
+
+    // Store debug info
+    _debugLocalPoint = localPoint.clone();
+    _debugRowF = rowF;
+    _debugColF = colF;
+    _debugRc = rc;
+    _debugCc = cc;
+
+    // Check rounded tile first, then direct neighbors
+    final List<math.Point<int>> candidates = <math.Point<int>>[
+      math.Point<int>(cc, rc),
+      math.Point<int>(cc, rc - 1),
+      math.Point<int>(cc, rc + 1),
+      math.Point<int>(cc - 1, rc),
+      math.Point<int>(cc + 1, rc),
     ];
+    _debugCandidates = candidates;
 
-    for (final Vector2 candidate in candidates) {
-      final int col = candidate.x.toInt();
-      final int row = candidate.y.toInt();
-      if (row < 0 || col < 0 || row >= rows || col >= cols) {
-        continue;
-      }
+    for (final math.Point<int> cand in candidates) {
+      final int col = cand.x;
+      final int row = cand.y;
+      if (row < 0 || col < 0 || row >= rows || col >= cols) continue;
+
       final Vector2 center = isoToScreen(row, col, originX, originY);
-      final double halfW = tileSize.x / 2;
-      final double halfH = tileSize.y / 2;
       final double ddx = (localPoint.x - center.x).abs();
       final double ddy = (localPoint.y - center.y).abs();
-      // Point-in-diamond test: L1 metric within radii
-      if ((ddx / halfW) + (ddy / halfH) <= 1.0 + 1e-6) {
+      if ((ddx / halfW) + (ddy / halfH) <= 1.02) {
+        _debugPickedRC = cand;
+        _debugPickedCenter = center;
         return Vector2(col.toDouble(), row.toDouble());
       }
     }
 
+    _debugPickedRC = null;
+    _debugPickedCenter = null;
     return null;
   }
 
