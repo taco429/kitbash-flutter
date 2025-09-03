@@ -10,15 +10,109 @@ class DeckSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DeckService>(
       builder: (context, deckService, child) {
+        // Show loading indicator
+        if (deckService.isLoading) {
+          return const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading decks...'),
+              ],
+            ),
+          );
+        }
+        
+        // Show error with retry button if there's an error and no decks
+        if (deckService.error != null && deckService.availableDecks.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load decks',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  deckService.error!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => deckService.loadDecks(),
+                      child: const Text('Retry'),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => deckService.loadSampleDecksManually(),
+                      child: const Text('Use Sample Decks'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Show empty state if no decks available
+        if (deckService.availableDecks.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.style,
+                  size: 48,
+                  color: Colors.grey,
+                ),
+                const SizedBox(height: 16),
+                const Text('No decks available'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => deckService.loadSampleDecksManually(),
+                  child: const Text('Load Sample Decks'),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Show deck selector
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Select Your Deck',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Select Your Deck',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (deckService.error != null)
+                  Tooltip(
+                    message: 'Using fallback decks. Backend connection failed.',
+                    child: Icon(
+                      Icons.warning_amber,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
             SizedBox(
