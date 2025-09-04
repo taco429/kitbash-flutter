@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'game_lobby_screen.dart';
 import 'game_screen.dart';
 import 'collection_screen.dart';
+import 'card_showcase_demo.dart';
 import '../services/game_service.dart';
 import '../widgets/deck_selector.dart';
 
@@ -162,6 +163,23 @@ class _MenuScreenState extends State<MenuScreen> {
                       minimumSize: const Size(200, 50),
                     ),
                     child: const Text('Find Games'),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CardShowcaseDemo(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(200, 50),
+                      backgroundColor: Colors.purple,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Card Showcase'),
                   ),
                   const SizedBox(height: 20),
                 ],
