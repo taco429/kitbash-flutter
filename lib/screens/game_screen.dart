@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../game/kitbash_game.dart';
 import '../services/game_service.dart';
 import '../services/card_service.dart';
+import '../services/deck_service.dart';
 import '../widgets/game_with_tooltip.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
@@ -22,6 +23,14 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   bool _hasNavigatedToGameOver = false;
+  late final KitbashGame _game;
+
+  @override
+  void initState() {
+    super.initState();
+    final gameService = Provider.of<GameService>(context, listen: false);
+    _game = KitbashGame(gameId: widget.gameId, gameService: gameService);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -175,10 +184,7 @@ class _GameScreenState extends State<GameScreen> {
                         borderRadius:
                             const BorderRadius.all(Radius.circular(8)),
                         child: GameWithTooltip(
-                          game: KitbashGame(
-                            gameId: widget.gameId,
-                            gameService: gameService,
-                          ),
+                          game: _game,
                         ),
                       ),
                     ),
@@ -194,48 +200,94 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
               ),
-              // Player control area with hand and lock-in button
-              Column(
-                children: [
-                  // Lock-in button and waiting indicator
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (gameService.gameState != null)
-                          LockInButton(
-                            isLocked: gameService.gameState!.isPlayerLocked(
-                              gameService.currentPlayerIndex,
-                            ),
-                            isOpponentLocked:
-                                gameService.gameState!.isPlayerLocked(
-                              1 - gameService.currentPlayerIndex,
-                            ),
-                            playerIndex: gameService.currentPlayerIndex,
-                            onLockIn: () {
-                              gameService.lockPlayerChoice(
-                                widget.gameId,
-                                gameService.currentPlayerIndex,
-                              );
-                            },
+              // Player control area reorganized into Left/Middle/Right
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Left: Lock-in + Reset, with Hero badge next to them
+                    SizedBox(
+                      width: 320,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Buttons column
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (gameService.gameState != null)
+                                LockInButton(
+                                  isLocked: gameService.gameState!.isPlayerLocked(
+                                    gameService.currentPlayerIndex,
+                                  ),
+                                  isOpponentLocked:
+                                      gameService.gameState!.isPlayerLocked(
+                                    1 - gameService.currentPlayerIndex,
+                                  ),
+                                  playerIndex: gameService.currentPlayerIndex,
+                                  onLockIn: () {
+                                    gameService.lockPlayerChoice(
+                                      widget.gameId,
+                                      gameService.currentPlayerIndex,
+                                    );
+                                  },
+                                ),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  _game.clearSelection();
+                                },
+                                icon: const Icon(Icons.restart_alt),
+                                label: const Text('Reset'),
+                              ),
+                              const SizedBox(height: 8),
+                              if (gameService.gameState != null &&
+                                  gameService.gameState!.isPlayerLocked(
+                                    gameService.currentPlayerIndex,
+                                  ) &&
+                                  !gameService.gameState!.allPlayersLocked)
+                                const WaitingIndicator(
+                                  isWaiting: true,
+                                  waitingText: 'Waiting for opponent to lock in...',
+                                ),
+                            ],
                           ),
-                        const SizedBox(width: 16),
-                        if (gameService.gameState != null &&
-                            gameService.gameState!.isPlayerLocked(
-                              gameService.currentPlayerIndex,
-                            ) &&
-                            !gameService.gameState!.allPlayersLocked)
-                          const WaitingIndicator(
-                            isWaiting: true,
-                            waitingText: 'Waiting for opponent to lock in...',
+                          const SizedBox(width: 12),
+                          // Hero compact display
+                          _HeroBadge(
+                            deckId: playerState?.deckId,
                           ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  // Player hand at the bottom
-                  _HandBar(cards: playerHandCards),
-                ],
+                    // Middle: Player hand centered
+                    Expanded(
+                      child: _HandBar(cards: playerHandCards),
+                    ),
+                    // Right: Discard pile and Deck
+                    SizedBox(
+                      width: 180,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _MiniStack(
+                            label: 'Discard',
+                            accentColor: Colors.orange.shade700,
+                            countText: null,
+                          ),
+                          const SizedBox(width: 12),
+                          _MiniStack(
+                            label: 'Deck',
+                            accentColor: Colors.green.shade700,
+                            countText: '$playerDeckCount',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -314,6 +366,181 @@ class _HandBar extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _HeroBadge extends StatelessWidget {
+  final String? deckId;
+
+  const _HeroBadge({required this.deckId});
+
+  @override
+  Widget build(BuildContext context) {
+    final cardService = context.watch<CardService>();
+    final deckService = context.watch<DeckService>();
+
+    if (deckId == null || deckId!.isEmpty) {
+      return _HeroPlaceholder();
+    }
+
+    final String? heroId = deckService.getHeroCardIdForDeck(deckId!);
+    if (heroId == null) {
+      return _HeroPlaceholder();
+    }
+
+    final GameCard? heroCard = cardService.getCardById(heroId);
+    if (heroCard == null) {
+      return _HeroPlaceholder();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: AdvancedCardDisplay(
+        card: heroCard,
+        width: 84,
+        height: 118,
+        enableParallax: false,
+        enableGlow: false,
+        enableShadow: false,
+      ),
+    );
+  }
+}
+
+class _HeroPlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 84,
+      height: 118,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black26),
+      ),
+      child: Text(
+        'No Hero',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    );
+  }
+}
+
+class _MiniStack extends StatelessWidget {
+  final String label;
+  final Color accentColor;
+  final String? countText;
+
+  const _MiniStack({
+    required this.label,
+    required this.accentColor,
+    this.countText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: 6),
+          _MiniStackCards(color: accentColor),
+          if (countText != null) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: accentColor.withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                countText!,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: accentColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStackCards extends StatelessWidget {
+  final Color color;
+
+  const _MiniStackCards({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    const double w = 48;
+    const double h = 66;
+    const double dx = 6;
+    const double dy = 5;
+
+    return SizedBox(
+      width: w + (dx * 3),
+      height: h + (dy * 3),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: List.generate(4, (index) {
+          final double ox = (3 - index) * dx;
+          final double oy = (3 - index) * dy;
+          final double alpha = 0.9 - index * 0.15;
+          return Positioned(
+            left: ox,
+            top: oy,
+            child: Container(
+              width: w,
+              height: h,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    color.withValues(alpha: alpha.clamp(0.4, 0.9)),
+                    color.withValues(alpha: (alpha - 0.2).clamp(0.3, 0.8)),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.black26, width: 1),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

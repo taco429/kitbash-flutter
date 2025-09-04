@@ -155,4 +155,19 @@ class DeckService extends ChangeNotifier {
       return 0;
     }
   }
+
+  /// Get a deck by its id
+  Deck? getDeckById(String deckId) {
+    try {
+      return _availableDecks.firstWhere((d) => d.id == deckId);
+    } catch (e) {
+      debugPrint('Deck with id $deckId not found');
+      return null;
+    }
+  }
+
+  /// Get the hero card id for a deck, if any
+  String? getHeroCardIdForDeck(String deckId) {
+    return getDeckById(deckId)?.heroCardId;
+  }
 }

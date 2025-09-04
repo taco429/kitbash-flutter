@@ -67,6 +67,17 @@ class KitbashGame extends FlameGame with TapCallbacks {
 
   // Note: Hover handling is managed by the surrounding widget via MouseRegion
 
+  /// Clears any tile selection/highlights in the grid
+  void clearSelection() {
+    final IsometricGridComponent? grid = _grid;
+    if (grid != null) {
+      grid.highlightedRow = null;
+      grid.highlightedCol = null;
+      grid.hoveredRow = null;
+      grid.hoveredCol = null;
+    }
+  }
+
   /// Resolves the hovered tile given a position in the GameWidget's
   /// local coordinate space and updates hover highlight in the grid.
   /// Returns the [TileData] at that position or null if out of bounds.
