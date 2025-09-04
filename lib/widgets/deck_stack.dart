@@ -148,4 +148,3 @@ class _CardBack extends StatelessWidget {
     );
   }
 }
-
