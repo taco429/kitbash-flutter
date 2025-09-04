@@ -154,6 +154,7 @@ type Deck struct {
 	Description string          `json:"description"`
 	Color       CardColor       `json:"color"`
 	HeroCardID  CardID          `json:"heroCardId"`  // The hero card
+	HeroSignatureCardID CardID  `json:"heroSignatureCardId"` // The hero's signature card
 	PawnCards   []DeckCardEntry `json:"pawnCards"`   // 10 pawn cards
 	MainCards   []DeckCardEntry `json:"mainCards"`   // 20 cards of choice
 	IsPrebuilt  bool            `json:"isPrebuilt"`
@@ -170,6 +171,13 @@ func (d *Deck) GetAllCards() []DeckCardEntry {
 		CardID:   d.HeroCardID,
 		Quantity: 1,
 	})
+	// Add hero signature card if present
+	if d.HeroSignatureCardID != "" {
+		allCards = append(allCards, DeckCardEntry{
+			CardID:   d.HeroSignatureCardID,
+			Quantity: 1,
+		})
+	}
 	
 	// Add pawn cards
 	allCards = append(allCards, d.PawnCards...)
@@ -183,6 +191,11 @@ func (d *Deck) GetAllCards() []DeckCardEntry {
 // CardCount returns the total number of cards in the deck.
 func (d *Deck) CardCount() int {
 	total := 1 // Hero card
+	
+	// Include hero signature card if present
+	if d.HeroSignatureCardID != "" {
+		total += 1
+	}
 	
 	// Add pawn cards
 	for _, entry := range d.PawnCards {
@@ -200,6 +213,10 @@ func (d *Deck) CardCount() int {
 // HasCard returns true if the deck contains the specified card.
 func (d *Deck) HasCard(cardID CardID) bool {
 	if d.HeroCardID == cardID {
+		return true
+	}
+	
+	if d.HeroSignatureCardID == cardID {
 		return true
 	}
 	
@@ -221,6 +238,10 @@ func (d *Deck) HasCard(cardID CardID) bool {
 // GetCardQuantity returns the quantity of a specific card in the deck.
 func (d *Deck) GetCardQuantity(cardID CardID) int {
 	if d.HeroCardID == cardID {
+		return 1
+	}
+	
+	if d.HeroSignatureCardID == cardID {
 		return 1
 	}
 	
