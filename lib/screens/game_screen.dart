@@ -303,21 +303,52 @@ class _HandBar extends StatelessWidget {
           ),
         ],
       ),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: cards.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          return SizedBox(
-            width: 96,
-            child: AdvancedCardDisplay(
-              card: cards[index],
-              width: 96,
-              height: 136,
-              enableParallax: false,
-              enableGlow: true,
-              enableShadow: true,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const double cardWidth = 96;
+          const double gapWidth = 12;
+          const double horizontalPadding = 12;
+
+          final int numCards = cards.length;
+          final double contentWidth = numCards > 0
+              ? (numCards * cardWidth) + ((numCards - 1) * gapWidth)
+              : 0;
+
+          final double viewportWidth =
+              constraints.maxWidth > (horizontalPadding * 2)
+                  ? (constraints.maxWidth - (horizontalPadding * 2))
+                  : 0;
+
+          final double sizedBoxWidth =
+              contentWidth > viewportWidth ? contentWidth : viewportWidth;
+
+          final List<Widget> children = [];
+          for (int i = 0; i < numCards; i++) {
+            children.add(SizedBox(
+              width: cardWidth,
+              child: AdvancedCardDisplay(
+                card: cards[i],
+                width: cardWidth,
+                height: 136,
+                enableParallax: false,
+                enableGlow: true,
+                enableShadow: true,
+              ),
+            ));
+            if (i < numCards - 1) {
+              children.add(const SizedBox(width: gapWidth));
+            }
+          }
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: SizedBox(
+              width: sizedBoxWidth,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: children,
+              ),
             ),
           );
         },
