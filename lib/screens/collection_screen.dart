@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/card_service.dart';
 import '../services/deck_service.dart';
 import '../models/card.dart';
-import '../widgets/card_widget.dart';
+import '../widgets/advanced_card_display.dart';
 
 /// Screen for viewing the card collection and deck contents
 class CollectionScreen extends StatefulWidget {
@@ -149,16 +149,25 @@ class _CollectionScreenState extends State<CollectionScreen>
                 child: GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.75,
+                    childAspectRatio: 0.7,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                   ),
                   itemCount: allCards.length,
                   itemBuilder: (context, index) {
                     final card = allCards[index];
-                    return CardWidget(
-                      card: card,
-                      onTap: () => _showCardDetails(context, card),
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double width = constraints.maxWidth;
+                        final double height = width / 0.7;
+                        return AdvancedCardDisplay(
+                          card: card,
+                          width: width,
+                          height: height,
+                          enableParallax: false,
+                          onTap: () => _showCardDetails(context, card),
+                        );
+                      },
                     );
                   },
                 ),
@@ -319,9 +328,16 @@ class _CollectionScreenState extends State<CollectionScreen>
                           child: ListTile(
                             leading: SizedBox(
                               width: 60,
-                              child: CardWidget(
-                                card: deckCard.card,
-                                isCompact: true,
+                              child: AspectRatio(
+                                aspectRatio: 0.7,
+                                child: AdvancedCardDisplay(
+                                  card: deckCard.card,
+                                  width: 60,
+                                  height: 60 / 0.7,
+                                  enableInteraction: false,
+                                  enableParallax: false,
+                                  enableGlow: false,
+                                ),
                               ),
                             ),
                             title: Text(deckCard.card.name),
@@ -368,7 +384,12 @@ class _CollectionScreenState extends State<CollectionScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CardWidget(card: card),
+            AdvancedCardDisplay(
+              card: card,
+              width: 280,
+              height: 400,
+              enableParallax: true,
+            ),
             const SizedBox(height: 16),
             Text('Gold Cost: ${card.goldCost}'),
             Text('Mana Cost: ${card.manaCost}'),
