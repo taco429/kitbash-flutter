@@ -162,8 +162,8 @@ class _GameScreenState extends State<GameScreen> {
                     // Opponent deck area (left)
                     SizedBox(
                       width: 110,
-                      child:
-                          _DeckPanel(title: 'Opponent Deck', count: opponentDeckCount),
+                      child: _DeckPanel(
+                          title: 'Opponent Deck', count: opponentDeckCount),
                     ),
                     // Game area with Flame GameWidget in the middle
                     Expanded(
@@ -181,7 +181,8 @@ class _GameScreenState extends State<GameScreen> {
                     // Player deck area (right)
                     SizedBox(
                       width: 110,
-                      child: _DeckPanel(title: 'Your Deck', count: playerDeckCount),
+                      child: _DeckPanel(
+                          title: 'Your Deck', count: playerDeckCount),
                     ),
                   ],
                 ),
