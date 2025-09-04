@@ -342,7 +342,7 @@ class _HandBar extends StatelessWidget {
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: SizedBox(
               width: sizedBoxWidth,
               child: Row(
