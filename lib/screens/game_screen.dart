@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../game/kitbash_game.dart';
 import '../services/game_service.dart';
-import '../services/deck_service.dart';
+import '../services/card_service.dart';
 import '../widgets/game_with_tooltip.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
 import '../widgets/advanced_card_display.dart';
 import '../models/card.dart';
-import '../models/deck.dart';
 import 'game_over_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -22,75 +21,41 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   bool _hasNavigatedToGameOver = false;
-  bool _decksInitialized = false;
-  List<GameCard> _playerDrawPile = [];
-  List<GameCard> _opponentDrawPile = [];
-  List<GameCard> _playerHand = [];
-
-  void _initializeDecks(DeckService deckService) {
-    if (_decksInitialized) return;
-    if (deckService.availableDecks.isEmpty) return;
-
-    final Deck playerDeckSelection =
-        deckService.selectedDeck ?? deckService.availableDecks.first;
-    final Deck opponentDeckSelection = deckService.availableDecks.firstWhere(
-      (d) => d.id != playerDeckSelection.id,
-      orElse: () => deckService.availableDecks.first,
-    );
-
-    final List<GameCard> playerCards = _expandDeck(playerDeckSelection);
-    final List<GameCard> opponentCards = _expandDeck(opponentDeckSelection);
-    playerCards.shuffle();
-    opponentCards.shuffle();
-
-    setState(() {
-      _playerDrawPile = playerCards;
-      _opponentDrawPile = opponentCards;
-      _playerHand = [];
-      _decksInitialized = true;
-    });
-
-    _drawInitialHand(7);
-  }
-
-  List<GameCard> _expandDeck(Deck deck) {
-    final List<GameCard> cards = [];
-    for (final deckCard in deck.allCards) {
-      for (int i = 0; i < deckCard.quantity; i++) {
-        cards.add(deckCard.card);
-      }
-    }
-    return cards;
-  }
-
-  void _drawInitialHand(int count) {
-    if (_playerDrawPile.isEmpty) return;
-    final int toDraw = count.clamp(0, _playerDrawPile.length);
-    final List<GameCard> drawn = [];
-    for (int i = 0; i < toDraw; i++) {
-      drawn.add(_playerDrawPile.removeLast());
-    }
-    setState(() {
-      _playerHand.addAll(drawn);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<GameService>(
       builder: (context, gameService, child) {
-        final deckService = context.watch<DeckService>();
-        if (!_decksInitialized && !deckService.isLoading && deckService.availableDecks.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _initializeDecks(deckService);
-          });
-        }
-
-        final int opponentDeckCount =
-            _decksInitialized ? _opponentDrawPile.length : 0;
-        final int playerDeckCount = _decksInitialized ? _playerDrawPile.length : 0;
-        // Check if game is over and navigate to game over screen
+        final cardService = context.watch<CardService>();
         final gameState = gameService.gameState;
+        final int myIndex = gameService.currentPlayerIndex;
+        final playerState = gameState?.playerStates.firstWhere(
+          (ps) => ps.playerIndex == myIndex,
+          orElse: () => PlayerBattleState(
+            playerIndex: myIndex,
+            deckId: '',
+            hand: const [],
+            deckCount: 0,
+          ),
+        );
+        final opponentState = gameState?.playerStates.firstWhere(
+          (ps) => ps.playerIndex != myIndex,
+          orElse: () => PlayerBattleState(
+            playerIndex: 1 - myIndex,
+            deckId: '',
+            hand: const [],
+            deckCount: 0,
+          ),
+        );
+
+        final int playerDeckCount = playerState?.deckCount ?? 0;
+        final int opponentDeckCount = opponentState?.deckCount ?? 0;
+
+        final List<GameCard> playerHandCards = (playerState?.hand ?? [])
+            .map((id) => cardService.getCardById(id))
+            .whereType<GameCard>()
+            .toList();
+        // Check if game is over and navigate to game over screen
         if (gameState != null &&
             !_hasNavigatedToGameOver &&
             (gameState.isGameOver || gameState.computedWinner != null)) {
@@ -261,7 +226,7 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
                   // Player hand at the bottom
-                  _HandBar(cards: _playerHand),
+                  _HandBar(cards: playerHandCards),
                 ],
               ),
             ],

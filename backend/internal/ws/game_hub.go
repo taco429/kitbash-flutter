@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+	"math/rand"
+	"time"
 
 	"kitbash/backend/internal/config"
 	"kitbash/backend/internal/domain"
@@ -25,6 +27,7 @@ type GameClient struct {
 type GameHub struct {
 	mu         sync.RWMutex
 	gameRepo   repository.GameRepository
+	deckRepo   domain.DeckRepository
 	clients    map[domain.GameID]map[*websocket.Conn]*GameClient
 	upgrader   websocket.Upgrader
 	log        *logger.Logger
@@ -45,6 +48,13 @@ func NewGameHub(gameRepo repository.GameRepository, log *logger.Logger, cfg conf
 		log: log,
 		cfg: cfg,
 	}
+}
+
+// NewGameHubWithRepos creates a new game hub with both game and deck repositories.
+func NewGameHubWithRepos(gameRepo repository.GameRepository, deckRepo domain.DeckRepository, log *logger.Logger, cfg config.Config) *GameHub {
+	hub := NewGameHub(gameRepo, log, cfg)
+	hub.deckRepo = deckRepo
+	return hub
 }
 
 // HandleGameWS handles WebSocket connections for specific games.
@@ -159,6 +169,11 @@ func (h *GameHub) getOrCreateGameState(ctx context.Context, gameID string) (*dom
 	gameState, err = h.gameRepo.Create(ctx, domain.GameID(gameID), players, h.cfg.BoardRows, h.cfg.BoardCols)
 	if err != nil {
 		return nil, err
+	}
+
+	// Assign decks and draw initial hands if deck repository is available
+	if h.deckRepo != nil {
+		h.assignTestDecksAndHands(ctx, gameState)
 	}
 
 	// Start the game immediately for testing
@@ -387,4 +402,76 @@ func (h *GameHub) broadcastTurnAdvanced(ctx context.Context, gameID domain.GameI
 			h.log.LogError(ctx, err, "Failed to send turn advanced notification")
 		}
 	}
+}
+
+// assignTestDecksAndHands assigns prebuilt decks and draws initial hands for players.
+func (h *GameHub) assignTestDecksAndHands(ctx context.Context, gs *domain.GameState) {
+	decks, err := h.deckRepo.GetPrebuiltDecks(ctx)
+	if err != nil || len(decks) == 0 {
+		h.log.WithContext(ctx).Warn("No prebuilt decks available for assignment")
+		return
+	}
+
+	// Choose two decks: randomly for variety
+	rand.Seed(time.Now().UnixNano())
+	var idx0 = 0
+	var idx1 = 1
+	if len(decks) > 1 {
+		idx0 = rand.Intn(len(decks))
+		for {
+			idx1 = rand.Intn(len(decks))
+			if idx1 != idx0 {
+				break
+			}
+		}
+	}
+	deck0 := decks[idx0]
+	deck1 := decks[idx1%len(decks)]
+
+	gs.PlayerStates = make([]domain.PlayerBattleState, 2)
+	gs.PlayerStates[0] = buildPlayerStateFromDeck(0, deck0)
+	gs.PlayerStates[1] = buildPlayerStateFromDeck(1, deck1)
+
+	// Draw initial hands (7 cards)
+	drawCardsForPlayer(&gs.PlayerStates[0], 7)
+	drawCardsForPlayer(&gs.PlayerStates[1], 7)
+}
+
+// buildPlayerStateFromDeck expands deck entries into a shuffled draw pile and initializes state.
+func buildPlayerStateFromDeck(playerIndex int, deck *domain.Deck) domain.PlayerBattleState {
+	// Expand deck entries to card IDs by quantity
+	var drawPile []domain.CardID
+	for _, entry := range deck.GetAllCards() {
+		for i := 0; i < entry.Quantity; i++ {
+			drawPile = append(drawPile, entry.CardID)
+		}
+	}
+	// Shuffle drawPile
+	for i := len(drawPile) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		drawPile[i], drawPile[j] = drawPile[j], drawPile[i]
+	}
+
+	return domain.PlayerBattleState{
+		PlayerIndex: playerIndex,
+		DeckID:      deck.ID,
+		Hand:        []domain.CardID{},
+		DeckCount:   len(drawPile),
+		DrawPile:    drawPile,
+		DiscardPile: []domain.CardID{},
+	}
+}
+
+// drawCardsForPlayer draws up to count cards from player's draw pile into hand.
+func drawCardsForPlayer(ps *domain.PlayerBattleState, count int) {
+	if count <= 0 || len(ps.DrawPile) == 0 {
+		return
+	}
+	if count > len(ps.DrawPile) {
+		count = len(ps.DrawPile)
+	}
+	drawn := ps.DrawPile[len(ps.DrawPile)-count:]
+	ps.DrawPile = ps.DrawPile[:len(ps.DrawPile)-count]
+	ps.Hand = append(ps.Hand, drawn...)
+	ps.DeckCount = len(ps.DrawPile)
 }

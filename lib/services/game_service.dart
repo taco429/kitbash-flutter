@@ -36,6 +36,7 @@ class GameState {
   final String id;
   final String status;
   final List<CommandCenter> commandCenters;
+  final List<PlayerBattleState> playerStates;
   final int currentTurn;
   final int turnCount;
   final int? winnerPlayerIndex;
@@ -45,6 +46,7 @@ class GameState {
     required this.id,
     required this.status,
     required this.commandCenters,
+    required this.playerStates,
     required this.currentTurn,
     required this.turnCount,
     this.winnerPlayerIndex,
@@ -71,6 +73,10 @@ class GameState {
       status: json['status'] ?? 'waiting',
       commandCenters: (json['commandCenters'] as List<dynamic>?)
               ?.map((cc) => CommandCenter.fromJson(cc))
+              .toList() ??
+          [],
+      playerStates: (json['playerStates'] as List<dynamic>?)
+              ?.map((ps) => PlayerBattleState.fromJson(ps))
               .toList() ??
           [],
       currentTurn: json['currentTurn'] ?? 0,
@@ -117,6 +123,34 @@ class GameState {
   /// Check if a specific player has locked their choice
   bool isPlayerLocked(int playerIndex) {
     return playerChoicesLocked[playerIndex] ?? false;
+  }
+}
+
+class PlayerBattleState {
+  final int playerIndex;
+  final String deckId;
+  final List<String> hand; // List of CardIDs
+  final int deckCount;
+
+  const PlayerBattleState({
+    required this.playerIndex,
+    required this.deckId,
+    required this.hand,
+    required this.deckCount,
+  });
+
+  factory PlayerBattleState.fromJson(Map<String, dynamic> json) {
+    final rawHand = json['hand'];
+    List<String> handIds = [];
+    if (rawHand is List) {
+      handIds = rawHand.map((e) => e.toString()).toList();
+    }
+    return PlayerBattleState(
+      playerIndex: json['playerIndex'] ?? 0,
+      deckId: json['deckId']?.toString() ?? '',
+      hand: handIds,
+      deckCount: json['deckCount'] ?? 0,
+    );
   }
 }
 

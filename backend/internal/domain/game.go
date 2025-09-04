@@ -16,6 +16,19 @@ const (
 	GameStatusFinished   GameStatus = "finished"
 )
 
+// PlayerBattleState represents per-player runtime state such as deck/hand.
+type PlayerBattleState struct {
+    PlayerIndex int        `json:"playerIndex"`
+    DeckID      DeckID     `json:"deckId"`
+    // Hand contains the visible cards in the player's hand (by CardID).
+    Hand        []CardID   `json:"hand"`
+    // DeckCount is the remaining number of cards in the player's deck/draw pile.
+    DeckCount   int        `json:"deckCount"`
+    // DrawPile and DiscardPile are server-internal and not serialized to clients.
+    DrawPile    []CardID   `json:"-"`
+    DiscardPile []CardID   `json:"-"`
+}
+
 // CommandCenter represents a player's command center with health.
 type CommandCenter struct {
 	PlayerIndex int `json:"playerIndex"`
@@ -57,6 +70,7 @@ type GameState struct {
 	Status              GameStatus       `json:"status"`
 	Players             []Player         `json:"players"`
 	CommandCenters      []*CommandCenter `json:"commandCenters"`
+	PlayerStates        []PlayerBattleState `json:"playerStates"`
 	CurrentTurn         int              `json:"currentTurn"`
 	TurnCount           int              `json:"turnCount"`
 	BoardRows           int              `json:"boardRows"`
@@ -75,6 +89,7 @@ func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *Ga
 		Status:              GameStatusWaiting,
 		Players:             players,
 		CommandCenters:      commandCenters,
+		PlayerStates:        []PlayerBattleState{},
 		CurrentTurn:         0,
 		TurnCount:           0,
 		BoardRows:           boardRows,
