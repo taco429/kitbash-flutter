@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/card.dart';
 import '../models/card_variation.dart';
 
@@ -20,7 +19,7 @@ class AdvancedCardDisplay extends StatefulWidget {
   final bool showBackside;
   final double borderRadius;
   final bool enableShadow;
-  
+
   const AdvancedCardDisplay({
     super.key,
     required this.card,
@@ -48,34 +47,34 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
   late AnimationController _glowController;
   late AnimationController _flipController;
   late Animation<double> _flipAnimation;
-  
+
   double _rotateX = 0.0;
   double _rotateY = 0.0;
   bool _isHovering = false;
   bool _isFlipped = false;
-  
+
   // Touch position for parallax effect
   Offset _localPosition = Offset.zero;
 
   @override
   void initState() {
     super.initState();
-    
+
     _hoverController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    
+
     _glowController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _flipController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _flipAnimation = Tween<double>(
       begin: 0,
       end: 1,
@@ -95,24 +94,25 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
 
   void _handlePanUpdate(DragUpdateDetails details) {
     if (!widget.enableInteraction || !widget.enableParallax) return;
-    
+
     setState(() {
       _localPosition = details.localPosition;
-      
+
       // Calculate rotation based on mouse position
       final centerX = widget.width / 2;
       final centerY = widget.height / 2;
-      
+
       _rotateY = (_localPosition.dx - centerX) / centerX * 15; // Max 15 degrees
-      _rotateX = -(_localPosition.dy - centerY) / centerY * 15; // Max 15 degrees
+      _rotateX =
+          -(_localPosition.dy - centerY) / centerY * 15; // Max 15 degrees
     });
-    
+
     widget.onPanUpdate?.call(details);
   }
 
   void _handlePanEnd(DragEndDetails details) {
     if (!widget.enableInteraction || !widget.enableParallax) return;
-    
+
     setState(() {
       _rotateX = 0;
       _rotateY = 0;
@@ -121,11 +121,12 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
 
   @override
   Widget build(BuildContext context) {
-    final visualData = widget.visualData ?? CardVisualData(
-      cardId: widget.card.id,
-      rarity: CardRarity.common,
-      variation: CardVariation.standard,
-    );
+    final visualData = widget.visualData ??
+        CardVisualData(
+          cardId: widget.card.id,
+          rarity: CardRarity.common,
+          variation: CardVariation.standard,
+        );
 
     return MouseRegion(
       onEnter: (_) {
@@ -184,12 +185,16 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
                 height: widget.height,
                 decoration: widget.enableShadow
                     ? BoxDecoration(
-                        borderRadius: BorderRadius.circular(widget.borderRadius),
+                        borderRadius:
+                            BorderRadius.circular(widget.borderRadius),
                         boxShadow: [
                           BoxShadow(
-                            color: widget.enableGlow && visualData.rarity.tier >= 3
+                            color: widget.enableGlow &&
+                                    visualData.rarity.tier >= 3
                                 ? Color(visualData.rarity.glowColors[0])
-                                    .withValues(alpha: 0.3 + _glowController.value * 0.2)
+                                    .withValues(
+                                        alpha:
+                                            0.3 + _glowController.value * 0.2)
                                 : Colors.black.withValues(alpha: 0.3),
                             blurRadius: 20 + (_isHovering ? 10 : 0),
                             spreadRadius: _isHovering ? 5 : 0,
@@ -219,29 +224,27 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
         children: [
           // Base card background
           _buildCardBackground(visualData),
-          
+
           // Card art layer
           _buildCardArt(visualData),
-          
+
           // Frame overlay
           _buildFrameOverlay(visualData),
-          
+
           // Special effects overlays
           if (visualData.variation == CardVariation.holographic)
             _buildHolographicOverlay(),
-          
+
           if (visualData.variation == CardVariation.foilEtched)
             _buildFoilEtchedOverlay(),
-          
-          if (visualData.isPremium)
-            _buildPremiumShineOverlay(),
-          
+
+          if (visualData.isPremium) _buildPremiumShineOverlay(),
+
           // Card information overlay
           _buildCardInfo(visualData),
-          
+
           // Promo stamp if applicable
-          if (visualData.isPromo)
-            _buildPromoStamp(),
+          if (visualData.isPromo) _buildPromoStamp(),
         ],
       ),
     );
@@ -271,7 +274,7 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
                 secondaryColor: Color(visualData.rarity.glowColors[1]),
               ),
             ),
-            
+
             // Game logo or symbol
             Center(
               child: Icon(
@@ -311,9 +314,9 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
           borderRadius: BorderRadius.circular(8),
           color: Colors.black26,
           image: DecorationImage(
-            image: AssetImage('assets/placeholder_card_art.jpg'),
+            image: const AssetImage('assets/placeholder_card_art.jpg'),
             fit: visualData.variation == CardVariation.fullArt ||
-                 visualData.variation == CardVariation.extendedArt
+                    visualData.variation == CardVariation.extendedArt
                 ? BoxFit.cover
                 : BoxFit.contain,
             onError: (exception, stackTrace) {
@@ -335,7 +338,7 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
         visualData.variation == CardVariation.fullArt) {
       return const SizedBox.shrink();
     }
-    
+
     return CustomPaint(
       size: Size(widget.width, widget.height),
       painter: CardFramePainter(
@@ -424,7 +427,7 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
   Widget _buildCardInfo(CardVisualData visualData) {
     final fontSize = widget.width / 15;
     final smallFontSize = widget.width / 20;
-    
+
     return Positioned(
       bottom: 0,
       left: 0,
@@ -456,7 +459,7 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
                       fontSize: fontSize,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      shadows: [
+                      shadows: const [
                         Shadow(
                           blurRadius: 4,
                           color: Colors.black,
@@ -470,9 +473,9 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
                 _buildCostIndicator(),
               ],
             ),
-            
+
             SizedBox(height: widget.height * 0.01),
-            
+
             // Card type and rarity
             Row(
               children: [
@@ -497,13 +500,13 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
                 _buildRarityIndicator(visualData.rarity),
               ],
             ),
-            
+
             // Stats for units
             if (widget.card.isUnit && widget.card.unitStats != null) ...[
               SizedBox(height: widget.height * 0.02),
               _buildStatsBar(),
             ],
-            
+
             // Artist credit
             if (visualData.artistName != null) ...[
               SizedBox(height: widget.height * 0.01),
@@ -546,7 +549,7 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
           fontSize: widget.width / 12,
           fontWeight: FontWeight.bold,
           color: Colors.white,
-          shadows: [
+          shadows: const [
             Shadow(
               blurRadius: 2,
               color: Colors.black,
@@ -638,13 +641,13 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
           shape: BoxShape.circle,
           gradient: RadialGradient(
             colors: [
-              Colors.gold,
+              const Color(0xFFFFD700),
               Colors.amber.shade800,
             ],
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.gold.withValues(alpha: 0.5),
+              color: const Color(0xFFFFD700).withValues(alpha: 0.5),
               blurRadius: 10,
               spreadRadius: 2,
             ),
@@ -703,7 +706,6 @@ class CardFramePainter extends CustomPainter {
         ],
       );
 
-    final path = Path();
     final cornerRadius = size.width * 0.06;
 
     // Draw ornate frame based on variation
@@ -722,7 +724,7 @@ class CardFramePainter extends CustomPainter {
         ),
         Radius.circular(cornerRadius * 0.8),
       );
-      
+
       canvas.drawRRect(outerRect, paint);
       canvas.drawRRect(innerRect, paint..strokeWidth = size.width * 0.008);
     } else if (variation == CardVariation.showcase) {
@@ -740,7 +742,7 @@ class CardFramePainter extends CustomPainter {
 
   void _drawShowcaseFrame(Canvas canvas, Size size, Paint paint) {
     final cornerSize = size.width * 0.15;
-    
+
     // Top-left corner
     canvas.drawPath(
       Path()
@@ -749,7 +751,7 @@ class CardFramePainter extends CustomPainter {
         ..lineTo(cornerSize, 0),
       paint,
     );
-    
+
     // Top-right corner
     canvas.drawPath(
       Path()
@@ -758,7 +760,7 @@ class CardFramePainter extends CustomPainter {
         ..lineTo(size.width, cornerSize),
       paint,
     );
-    
+
     // Bottom-left corner
     canvas.drawPath(
       Path()
@@ -767,7 +769,7 @@ class CardFramePainter extends CustomPainter {
         ..lineTo(cornerSize, size.height),
       paint,
     );
-    
+
     // Bottom-right corner
     canvas.drawPath(
       Path()
@@ -794,17 +796,17 @@ class FrameBreakPainter extends CustomPainter {
     // Draw breaking frame effect
     final path = Path();
     final random = math.Random(42); // Fixed seed for consistent pattern
-    
+
     for (int i = 0; i < 5; i++) {
       final startX = random.nextDouble() * size.width;
       final startY = random.nextDouble() * size.height;
       final endX = startX + (random.nextDouble() - 0.5) * 50;
       final endY = startY + (random.nextDouble() - 0.5) * 50;
-      
+
       path.moveTo(startX, startY);
       path.lineTo(endX, endY);
     }
-    
+
     canvas.drawPath(path, paint);
   }
 
@@ -863,7 +865,7 @@ class CardBackPatternPainter extends CustomPainter {
 
     // Draw geometric pattern
     final cellSize = size.width / 8;
-    
+
     for (double x = 0; x < size.width; x += cellSize) {
       for (double y = 0; y < size.height; y += cellSize) {
         // Draw diamond pattern
@@ -873,9 +875,9 @@ class CardBackPatternPainter extends CustomPainter {
           ..lineTo(x + cellSize / 2, y + cellSize)
           ..lineTo(x, y + cellSize / 2)
           ..close();
-        
+
         canvas.drawPath(path, paint);
-        
+
         // Draw center circle
         canvas.drawCircle(
           Offset(x + cellSize / 2, y + cellSize / 2),

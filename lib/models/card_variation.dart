@@ -80,46 +80,45 @@ class CardVisualData {
     if (artAssets != null && artAssets!.containsKey(resolution)) {
       return artAssets![resolution]!;
     }
-    
+
     // Generate default path based on card ID and variation
-    final basePath = 'assets/cards/art';
-    final variationPath = variation == CardVariation.standard 
-        ? '' 
-        : '_${variation.assetSuffix}';
+    const basePath = 'assets/cards/art';
+    final variationPath =
+        variation == CardVariation.standard ? '' : '_${variation.assetSuffix}';
     final premiumPath = isPremium ? '_premium' : '';
-    
-    return '$basePath/${cardId}${variationPath}${premiumPath}_$resolution.webp';
+
+    return '$basePath/$cardId$variationPath${premiumPath}_$resolution.webp';
   }
 
   /// Get the frame asset path based on variation and rarity
   String getFrameAssetPath() {
-    final basePath = 'assets/cards/frames';
+    const basePath = 'assets/cards/frames';
     final rarityName = rarity.name;
     final variationName = variation.assetSuffix;
-    
-    return '$basePath/${variationName}_${rarityName}.png';
+
+    return '$basePath/${variationName}_$rarityName.png';
   }
 
   /// Get overlay effects for special variations
   List<String> getOverlayAssets() {
     final overlays = <String>[];
-    
+
     if (variation == CardVariation.holographic) {
       overlays.add('assets/cards/overlays/holographic_pattern.webp');
     }
-    
+
     if (variation == CardVariation.foilEtched) {
       overlays.add('assets/cards/overlays/foil_etched_texture.webp');
     }
-    
+
     if (isPremium) {
       overlays.add('assets/cards/overlays/premium_shine.webp');
     }
-    
+
     if (isPromo) {
       overlays.add('assets/cards/overlays/promo_stamp.png');
     }
-    
+
     return overlays;
   }
 

@@ -23,15 +23,16 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
 
   // Sample cards for demonstration
   final List<GameCard> _sampleCards = [
-    GameCard(
+    const GameCard(
       id: 'demo_dragon_001',
       name: 'Ancient Dragon Lord',
-      description: 'Flying, Trample. When Ancient Dragon Lord enters the battlefield, deal 3 damage to any target.',
+      description:
+          'Flying, Trample. When Ancient Dragon Lord enters the battlefield, deal 3 damage to any target.',
       goldCost: 3,
       manaCost: 5,
       type: CardType.unit,
       color: CardColor.red,
-      unitStats: const UnitStats(
+      unitStats: UnitStats(
         attack: 8,
         health: 8,
         armor: 2,
@@ -41,7 +42,7 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
       abilities: ['Flying', 'Trample', 'Firebreath'],
       flavorText: 'The skies burn with ancient fury.',
     ),
-    GameCard(
+    const GameCard(
       id: 'demo_spell_001',
       name: 'Lightning Storm',
       description: 'Deal 4 damage to all enemy units. Draw a card.',
@@ -49,14 +50,14 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
       manaCost: 3,
       type: CardType.spell,
       color: CardColor.blue,
-      spellEffect: const SpellEffect(
+      spellEffect: SpellEffect(
         targetType: 'all_enemies',
         effect: 'damage_4_draw_1',
       ),
       abilities: ['Instant'],
       flavorText: 'Thunder echoes through the battlefield.',
     ),
-    GameCard(
+    const GameCard(
       id: 'demo_hero_001',
       name: 'Valeria, Storm Knight',
       description: 'Charge, Vigilance. Other knights you control get +1/+1.',
@@ -64,7 +65,7 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
       manaCost: 2,
       type: CardType.hero,
       color: CardColor.purple,
-      heroStats: const HeroStats(
+      heroStats: HeroStats(
         attack: 5,
         health: 6,
         armor: 3,
@@ -75,7 +76,7 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
       abilities: ['Charge', 'Vigilance', 'Knight Lord'],
       flavorText: 'Leader of the Storm Legion.',
     ),
-    GameCard(
+    const GameCard(
       id: 'demo_building_001',
       name: 'Mystic Tower',
       description: 'At the beginning of your turn, gain 2 mana.',
@@ -83,7 +84,7 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
       manaCost: 0,
       type: CardType.building,
       color: CardColor.green,
-      buildingStats: const BuildingStats(
+      buildingStats: BuildingStats(
         health: 10,
         armor: 5,
         attack: null,
@@ -115,7 +116,7 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
             color: Colors.black54,
             child: _buildControlPanel(),
           ),
-          
+
           // Card Display Area
           Expanded(
             child: _buildCardDisplayArea(),
@@ -132,23 +133,18 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
         _buildSectionHeader('Card Selection'),
         _buildCardSelector(),
         const SizedBox(height: 24),
-        
         _buildSectionHeader('Variation'),
         _buildVariationSelector(),
         const SizedBox(height: 24),
-        
         _buildSectionHeader('Rarity'),
         _buildRaritySelector(),
         const SizedBox(height: 24),
-        
         _buildSectionHeader('Special Effects'),
         _buildEffectsControls(),
         const SizedBox(height: 24),
-        
         _buildSectionHeader('Display Options'),
         _buildDisplayControls(),
         const SizedBox(height: 24),
-        
         _buildSectionHeader('Card Info'),
         _buildCardInfo(),
       ],
@@ -431,7 +427,7 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
               ),
             ),
             const SizedBox(height: 40),
-            
+
             // Instructions
             Container(
               padding: const EdgeInsets.all(16),
@@ -441,7 +437,7 @@ class _CardShowcaseDemoState extends State<CardShowcaseDemo> {
               ),
               child: Column(
                 children: [
-                  Text(
+                  const Text(
                     'Interactive Controls',
                     style: TextStyle(
                       color: Colors.white,
