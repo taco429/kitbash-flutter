@@ -40,12 +40,20 @@ func (r *InMemoryDeckRepository) seedDefaultDecks() {
 			Name:        "Goblin Warband",
 			Description: "An aggressive red deck focused on overwhelming swarm tactics with goblin units.",
 			Color:       domain.CardColorRed,
-			HeroCardID:  "red_hero_warchief", // TODO: Create hero cards
+			HeroCardID:  "red_hero_korg",
+			HeroSignatureCardID: "red_order_rage",
 			PawnCards: []domain.DeckCardEntry{
 				{CardID: "red_pawn_goblin", Quantity: 10}, // 10 Goblin pawns
 			},
 			MainCards: []domain.DeckCardEntry{
-				{CardID: "red_unit_orc_warrior", Quantity: 20}, // 20 Orc Warriors for now
+				{CardID: "red_unit_orc", Quantity: 3},
+				{CardID: "red_unit_big_orc", Quantity: 3},
+				{CardID: "red_unit_fast_orc", Quantity: 3},
+				{CardID: "red_unit_suicide_goblin", Quantity: 3},
+				{CardID: "red_unit_goblin_buffer", Quantity: 3},
+				{CardID: "red_order_rush", Quantity: 3},
+				{CardID: "red_unit_goblin_character", Quantity: 1},
+				{CardID: "red_spell_bloodlust", Quantity: 1},
 			},
 			IsPrebuilt: true,
 			CreatedAt:  now,
@@ -56,12 +64,20 @@ func (r *InMemoryDeckRepository) seedDefaultDecks() {
 			Name:        "Undead Horde",
 			Description: "A purple deck that leverages necromancy and spell power to overwhelm enemies.",
 			Color:       domain.CardColorPurple,
-			HeroCardID:  "purple_hero_necromancer", // TODO: Create hero cards
+			HeroCardID:  "purple_hero_hazialim",
+			HeroSignatureCardID: "purple_spell_painful_memories",
 			PawnCards: []domain.DeckCardEntry{
 				{CardID: "purple_pawn_ghoul", Quantity: 10}, // 10 Ghoul pawns
 			},
 			MainCards: []domain.DeckCardEntry{
-				{CardID: "purple_spell_drain", Quantity: 20}, // 20 Drain Life spells for now
+				{CardID: "purple_unit_cultist", Quantity: 3},
+				{CardID: "purple_unit_shackled_spirit", Quantity: 3},
+				{CardID: "purple_unit_skeletal_archer", Quantity: 3},
+				{CardID: "purple_spell_putrid_miasma", Quantity: 3},
+				{CardID: "purple_unit_flesh_golem", Quantity: 3},
+				{CardID: "purple_spell_bone_spike", Quantity: 3},
+				{CardID: "purple_unit_human_wizard", Quantity: 1},
+				{CardID: "purple_unit_necromancer", Quantity: 1},
 			},
 			IsPrebuilt: true,
 			CreatedAt:  now,
