@@ -4,6 +4,7 @@ import 'services/game_service.dart';
 import 'services/deck_service.dart';
 import 'services/card_service.dart';
 import 'screens/menu_screen.dart';
+import 'screens/card_showcase_demo.dart';
 import 'services/logger_service.dart';
 
 void main() {
