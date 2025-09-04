@@ -7,6 +7,7 @@ import '../widgets/game_with_tooltip.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
 import '../widgets/advanced_card_display.dart';
+import '../widgets/deck_stack.dart';
 import '../models/card.dart';
 import 'game_over_screen.dart';
 
@@ -162,8 +163,11 @@ class _GameScreenState extends State<GameScreen> {
                     // Opponent deck area (left)
                     SizedBox(
                       width: 110,
-                      child: _DeckPanel(
-                          title: 'Opponent Deck', count: opponentDeckCount),
+                      child: DeckStack(
+                        label: 'Opponent',
+                        remainingCount: opponentDeckCount,
+                        accentColor: Colors.pink,
+                      ),
                     ),
                     // Game area with Flame GameWidget in the middle
                     Expanded(
@@ -181,8 +185,11 @@ class _GameScreenState extends State<GameScreen> {
                     // Player deck area (right)
                     SizedBox(
                       width: 110,
-                      child: _DeckPanel(
-                          title: 'Your Deck', count: playerDeckCount),
+                      child: DeckStack(
+                        label: 'You',
+                        remainingCount: playerDeckCount,
+                        accentColor: Colors.green,
+                      ),
                     ),
                   ],
                 ),
@@ -234,51 +241,6 @@ class _GameScreenState extends State<GameScreen> {
           ),
         );
       },
-    );
-  }
-}
-
-class _DeckPanel extends StatelessWidget {
-  final String title;
-  final int count;
-
-  const _DeckPanel({required this.title, required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.layers, size: 32),
-                  const SizedBox(height: 6),
-                  Text(
-                    '$count cards',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
