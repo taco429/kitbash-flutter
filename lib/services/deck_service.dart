@@ -11,7 +11,7 @@ class DeckService extends ChangeNotifier {
   String? _error;
 
   // Backend API base URL - should be configurable
-  static const String _baseUrl = 'http://localhost:8080/api';
+  static const String _baseUrl = 'http://192.168.4.156:8080/api';
 
   List<Deck> get availableDecks => List.unmodifiable(_availableDecks);
   Deck? get selectedDeck => _selectedDeck;

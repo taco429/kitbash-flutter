@@ -3,11 +3,11 @@
 echo "Testing Kitbash Backend API Endpoints"
 echo "======================================="
 
-BASE_URL="http://localhost:8080/api"
+BASE_URL="http://192.168.4.156:8080/api"
 
 echo
 echo "1. Testing Health Check..."
-curl -s http://localhost:8080/healthz
+curl -s http://192.168.4.156:8080/healthz
 echo
 
 echo
