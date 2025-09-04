@@ -3,11 +3,16 @@ import 'package:provider/provider.dart';
 import '../game/kitbash_game.dart';
 import '../services/game_service.dart';
 import '../services/card_service.dart';
+import '../services/deck_service.dart';
 import '../widgets/game_with_tooltip.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
 import '../widgets/advanced_card_display.dart';
 import '../widgets/deck_stack.dart';
+import '../widgets/discard_pile.dart';
+import '../widgets/hero_display.dart';
+import '../widgets/reset_button.dart';
+import '../widgets/player_deck_display.dart';
 import '../models/card.dart';
 import 'game_over_screen.dart';
 
@@ -194,48 +199,125 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
               ),
-              // Player control area with hand and lock-in button
-              Column(
-                children: [
-                  // Lock-in button and waiting indicator
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (gameService.gameState != null)
-                          LockInButton(
-                            isLocked: gameService.gameState!.isPlayerLocked(
-                              gameService.currentPlayerIndex,
-                            ),
-                            isOpponentLocked:
-                                gameService.gameState!.isPlayerLocked(
-                              1 - gameService.currentPlayerIndex,
-                            ),
-                            playerIndex: gameService.currentPlayerIndex,
-                            onLockIn: () {
-                              gameService.lockPlayerChoice(
-                                widget.gameId,
-                                gameService.currentPlayerIndex,
+              // Player control area - reorganized layout
+              Container(
+                height: 260,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  boxShadow: const [
+                    BoxShadow(
+                      blurRadius: 8,
+                      offset: Offset(0, -3),
+                      color: Colors.black26,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Top row with controls and displays
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          // Left side: Lock-in and Reset buttons
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (gameService.gameState != null)
+                                LockInButton(
+                                  isLocked: gameService.gameState!.isPlayerLocked(
+                                    gameService.currentPlayerIndex,
+                                  ),
+                                  isOpponentLocked:
+                                      gameService.gameState!.isPlayerLocked(
+                                    1 - gameService.currentPlayerIndex,
+                                  ),
+                                  playerIndex: gameService.currentPlayerIndex,
+                                  onLockIn: () {
+                                    gameService.lockPlayerChoice(
+                                      widget.gameId,
+                                      gameService.currentPlayerIndex,
+                                    );
+                                  },
+                                ),
+                              const SizedBox(height: 8),
+                              ResetButton(
+                                onReset: () {
+                                  // TODO: Implement reset functionality
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Reset functionality coming soon'),
+                                    ),
+                                  );
+                                },
+                                isEnabled: gameService.gameState != null &&
+                                    !gameService.gameState!.isPlayerLocked(
+                                      gameService.currentPlayerIndex,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 16),
+                          // Hero display
+                          Consumer<DeckService>(
+                            builder: (context, deckService, child) {
+                              // Get hero card from player's deck
+                              GameCard? heroCard;
+                              if (playerState?.deckId != null) {
+                                final deck = deckService.availableDecks.firstWhere(
+                                  (d) => d.id == playerState!.deckId,
+                                  orElse: () => deckService.selectedDeck ?? deckService.availableDecks.first,
+                                );
+                                if (deck.heroCardId != null) {
+                                  heroCard = cardService.getCardById(deck.heroCardId!);
+                                }
+                              }
+                              return HeroDisplay(
+                                heroCard: heroCard,
+                                playerName: 'Your Hero',
+                                accentColor: Colors.green,
                               );
                             },
                           ),
-                        const SizedBox(width: 16),
-                        if (gameService.gameState != null &&
-                            gameService.gameState!.isPlayerLocked(
-                              gameService.currentPlayerIndex,
-                            ) &&
-                            !gameService.gameState!.allPlayersLocked)
-                          const WaitingIndicator(
-                            isWaiting: true,
-                            waitingText: 'Waiting for opponent to lock in...',
+                          // Center: Player hand (expanded)
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 16),
+                              child: _CenteredHandDisplay(cards: playerHandCards),
+                            ),
                           ),
-                      ],
+                          // Right side: Discard pile and deck
+                          PlayerDeckDisplay(
+                            remainingCards: playerDeckCount,
+                            label: 'Deck',
+                            accentColor: Colors.green,
+                          ),
+                          const SizedBox(width: 12),
+                          DiscardPile(
+                            discardedCards: [], // TODO: Get discard pile from game state
+                            label: 'Discard',
+                            accentColor: Colors.green,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  // Player hand at the bottom
-                  _HandBar(cards: playerHandCards),
-                ],
+                    // Waiting indicator if needed
+                    if (gameService.gameState != null &&
+                        gameService.gameState!.isPlayerLocked(
+                          gameService.currentPlayerIndex,
+                        ) &&
+                        !gameService.gameState!.allPlayersLocked)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: WaitingIndicator(
+                          isWaiting: true,
+                          waitingText: 'Waiting for opponent to lock in...',
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -245,76 +327,106 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
-class _HandBar extends StatelessWidget {
+class _CenteredHandDisplay extends StatelessWidget {
   final List<GameCard> cards;
 
-  const _HandBar({required this.cards});
+  const _CenteredHandDisplay({required this.cards});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      height: 180,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 6,
-            offset: Offset(0, -2),
-            color: Colors.black26,
-          ),
-        ],
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.02),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          width: 1,
+        ),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          const double cardWidth = 96;
-          const double gapWidth = 12;
-          const double horizontalPadding = 12;
-
-          final int numCards = cards.length;
-          final double contentWidth = numCards > 0
-              ? (numCards * cardWidth) + ((numCards - 1) * gapWidth)
-              : 0;
-
-          final double viewportWidth =
-              constraints.maxWidth > (horizontalPadding * 2)
-                  ? (constraints.maxWidth - (horizontalPadding * 2))
-                  : 0;
-
-          final double sizedBoxWidth =
-              contentWidth > viewportWidth ? contentWidth : viewportWidth;
-
-          final List<Widget> children = [];
-          for (int i = 0; i < numCards; i++) {
-            children.add(SizedBox(
-              width: cardWidth,
-              child: AdvancedCardDisplay(
-                card: cards[i],
-                width: cardWidth,
-                height: 136,
-                enableParallax: false,
-                enableGlow: true,
-                enableShadow: true,
-              ),
-            ));
-            if (i < numCards - 1) {
-              children.add(const SizedBox(width: gapWidth));
-            }
-          }
-
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: SizedBox(
-              width: sizedBoxWidth,
-              child: Row(
+      child: cards.isEmpty
+          ? Center(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: children,
+                children: [
+                  Icon(
+                    Icons.pan_tool,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your hand is empty',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                        ),
+                  ),
+                ],
               ),
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                const double cardWidth = 110;
+                const double cardHeight = 160;
+                const double gapWidth = 8;
+                const double padding = 12;
+
+                final int numCards = cards.length;
+                final double totalWidth = numCards > 0
+                    ? (numCards * cardWidth) + ((numCards - 1) * gapWidth)
+                    : 0;
+
+                final bool needsScroll = totalWidth > (constraints.maxWidth - padding * 2);
+
+                Widget cardRow = Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: needsScroll ? MainAxisSize.max : MainAxisSize.min,
+                  children: [
+                    for (int i = 0; i < cards.length; i++) ...[
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: AdvancedCardDisplay(
+                            card: cards[i],
+                            width: cardWidth,
+                            height: cardHeight,
+                            enableParallax: true,
+                            enableGlow: true,
+                            enableShadow: true,
+                          ),
+                        ),
+                      ),
+                      if (i < cards.length - 1) const SizedBox(width: gapWidth),
+                    ],
+                  ],
+                );
+
+                if (needsScroll) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.all(padding),
+                    child: cardRow,
+                  );
+                } else {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(padding),
+                      child: cardRow,
+                    ),
+                  );
+                }
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }
