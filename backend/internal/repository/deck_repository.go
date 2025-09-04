@@ -36,32 +36,54 @@ func (r *InMemoryDeckRepository) seedDefaultDecks() {
 	
 	defaultDecks := []*domain.Deck{
 		{
-			ID:          "red_deck_001",
-			Name:        "Goblin Warband",
-			Description: "An aggressive red deck focused on overwhelming swarm tactics with goblin units.",
-			Color:       domain.CardColorRed,
-			HeroCardID:  "red_hero_warchief", // TODO: Create hero cards
+			ID:              "red_deck_001",
+			Name:            "Orc Warband",
+			Description:     "An aggressive red deck led by Korg, featuring orcs and goblins in overwhelming assault tactics.",
+			Color:           domain.CardColorRed,
+			HeroCardID:      "red_hero_korg",  // Korg, Orc Barbarian
+			SignatureCardID: "red_spell_rage", // Rage - Korg's signature spell
 			PawnCards: []domain.DeckCardEntry{
 				{CardID: "red_pawn_goblin", Quantity: 10}, // 10 Goblin pawns
 			},
 			MainCards: []domain.DeckCardEntry{
-				{CardID: "red_unit_orc_warrior", Quantity: 20}, // 20 Orc Warriors for now
+				// Units (16 cards)
+				{CardID: "red_unit_orc", Quantity: 3},
+				{CardID: "red_unit_big_orc", Quantity: 3},
+				{CardID: "red_unit_fast_orc", Quantity: 3},
+				{CardID: "red_unit_suicide_goblin", Quantity: 3},
+				{CardID: "red_unit_goblin_buffer", Quantity: 3},
+				{CardID: "red_unit_goblin_character", Quantity: 1}, // Goblin Warchief
+				// Spells (4 cards)
+				{CardID: "red_spell_rush", Quantity: 3},
+				{CardID: "red_spell_bloodlust", Quantity: 1},
+				// Total: 20 cards (as requested by user, signature card handled separately)
 			},
 			IsPrebuilt: true,
 			CreatedAt:  now,
 			UpdatedAt:  now,
 		},
 		{
-			ID:          "purple_deck_001",
-			Name:        "Undead Horde",
-			Description: "A purple deck that leverages necromancy and spell power to overwhelm enemies.",
-			Color:       domain.CardColorPurple,
-			HeroCardID:  "purple_hero_necromancer", // TODO: Create hero cards
+			ID:              "purple_deck_001",
+			Name:            "Tormented Spirits",
+			Description:     "A purple deck led by Hazialim, harnessing undeath and dark magic to control the battlefield.",
+			Color:           domain.CardColorPurple,
+			HeroCardID:      "purple_hero_hazialim",           // Hazialim, Tormented Spirit
+			SignatureCardID: "purple_spell_painful_memories", // Painful Memories - Hazialim's signature spell
 			PawnCards: []domain.DeckCardEntry{
 				{CardID: "purple_pawn_ghoul", Quantity: 10}, // 10 Ghoul pawns
 			},
 			MainCards: []domain.DeckCardEntry{
-				{CardID: "purple_spell_drain", Quantity: 20}, // 20 Drain Life spells for now
+				// Units (14 cards)
+				{CardID: "purple_unit_cultist", Quantity: 3},
+				{CardID: "purple_unit_shackled_spirit", Quantity: 3},
+				{CardID: "purple_unit_skeletal_archer", Quantity: 3},
+				{CardID: "purple_unit_flesh_golem", Quantity: 3},
+				{CardID: "purple_unit_human_wizard", Quantity: 1}, // Dark Wizard
+				{CardID: "purple_unit_necromancer", Quantity: 1},
+				// Spells (6 cards)
+				{CardID: "purple_spell_putrid_miasma", Quantity: 3},
+				{CardID: "purple_spell_bone_spike", Quantity: 3},
+				// Total: 20 cards (as requested by user, signature card handled separately)
 			},
 			IsPrebuilt: true,
 			CreatedAt:  now,
