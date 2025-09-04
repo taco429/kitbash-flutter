@@ -1,9 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/card_service.dart';
 import '../services/deck_service.dart';
 import '../models/card.dart';
+import '../models/card_variation.dart';
 import '../widgets/card_widget.dart';
+import '../widgets/advanced_card_display.dart';
 
 /// Screen for viewing the card collection and deck contents
 class CollectionScreen extends StatefulWidget {
@@ -156,9 +160,17 @@ class _CollectionScreenState extends State<CollectionScreen>
                   itemCount: allCards.length,
                   itemBuilder: (context, index) {
                     final card = allCards[index];
-                    return CardWidget(
+                    return AdvancedCardDisplay(
                       card: card,
+                      visualData: _getVisualDataForCard(card),
+                      width: double.infinity,
+                      height: double.infinity,
+                      enableInteraction: true,
+                      enableParallax: false, // Disable for grid view performance
+                      enableGlow: true,
                       onTap: () => _showCardDetails(context, card),
+                      borderRadius: 12,
+                      enableShadow: true,
                     );
                   },
                 ),
@@ -319,9 +331,17 @@ class _CollectionScreenState extends State<CollectionScreen>
                           child: ListTile(
                             leading: SizedBox(
                               width: 60,
-                              child: CardWidget(
+                              height: 80,
+                              child: AdvancedCardDisplay(
                                 card: deckCard.card,
-                                isCompact: true,
+                                visualData: _getVisualDataForCard(deckCard.card),
+                                width: 60,
+                                height: 80,
+                                enableInteraction: false,
+                                enableParallax: false,
+                                enableGlow: false,
+                                borderRadius: 8,
+                                enableShadow: false,
                               ),
                             ),
                             title: Text(deckCard.card.name),
@@ -368,7 +388,21 @@ class _CollectionScreenState extends State<CollectionScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CardWidget(card: card),
+            SizedBox(
+              width: 250,
+              height: 350,
+              child: AdvancedCardDisplay(
+                card: card,
+                visualData: _getVisualDataForCard(card),
+                width: 250,
+                height: 350,
+                enableInteraction: true,
+                enableParallax: true,
+                enableGlow: true,
+                borderRadius: 16,
+                enableShadow: true,
+              ),
+            ),
             const SizedBox(height: 16),
             Text('Gold Cost: ${card.goldCost}'),
             Text('Mana Cost: ${card.manaCost}'),
@@ -408,6 +442,58 @@ class _CollectionScreenState extends State<CollectionScreen>
           ),
         ],
       ),
+    );
+  }
+
+  /// Helper method to create visual data for cards based on their properties
+  CardVisualData _getVisualDataForCard(GameCard card) {
+    // Determine rarity based on card properties
+    CardRarity rarity;
+    if (card.type == CardType.hero) {
+      rarity = CardRarity.legendary;
+    } else if (card.goldCost >= 4 || card.manaCost >= 5) {
+      rarity = CardRarity.epic;
+    } else if (card.goldCost >= 3 || card.manaCost >= 3) {
+      rarity = CardRarity.rare;
+    } else if (card.goldCost >= 2 || card.manaCost >= 2) {
+      rarity = CardRarity.uncommon;
+    } else {
+      rarity = CardRarity.common;
+    }
+
+    // Check for special variations
+    CardVariation variation = CardVariation.standard;
+    bool isPremium = false;
+    bool isPromo = false;
+
+    // Heroes get special treatment
+    if (card.type == CardType.hero) {
+      variation = CardVariation.showcase;
+      isPremium = true;
+    } else if (card.abilities.length >= 3) {
+      // Cards with many abilities get extended art
+      variation = CardVariation.extendedArt;
+    } else if (card.type == CardType.spell && card.spellEffect != null) {
+      // Spells can have borderless art
+      variation = CardVariation.borderless;
+    } else if (card.type == CardType.building) {
+      // Buildings get full art treatment
+      variation = CardVariation.fullArt;
+    }
+
+    // Some rare cards are premium
+    if (rarity == CardRarity.epic || rarity == CardRarity.legendary) {
+      isPremium = math.Random(card.id.hashCode).nextBool();
+    }
+
+    return CardVisualData(
+      cardId: card.id,
+      variation: variation,
+      rarity: rarity,
+      isPremium: isPremium,
+      isPromo: isPromo,
+      flavorText: card.flavorText,
+      artistName: 'Unknown Artist', // Could be extended with actual artist data
     );
   }
 }
