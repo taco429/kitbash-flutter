@@ -92,9 +92,10 @@ class _TurnIndicatorState extends State<TurnIndicator>
                   children: [
                     Text(
                       'Turn ${widget.turnNumber}',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                     ),
                     const SizedBox(width: 16),
                     // Phase indicator

@@ -75,7 +75,7 @@ class _PhaseIndicatorState extends State<PhaseIndicator>
 
   void _updatePhase() {
     final phase = GamePhase.fromString(widget.currentPhase);
-    
+
     // Trigger phase change animation
     if (_lastPhase != null && _lastPhase != phase) {
       _animationController.forward().then((_) {
@@ -95,14 +95,15 @@ class _PhaseIndicatorState extends State<PhaseIndicator>
 
   void _startCountdown() {
     const planningDuration = 30; // seconds
-    
+
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
 
-      final elapsed = DateTime.now().difference(widget.phaseStartTime!).inSeconds;
+      final elapsed =
+          DateTime.now().difference(widget.phaseStartTime!).inSeconds;
       final remaining = planningDuration - elapsed;
 
       setState(() {
