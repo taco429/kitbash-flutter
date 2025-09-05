@@ -330,6 +330,23 @@ func (h *GameHub) handleLockChoice(ctx context.Context, client *GameClient, mess
 		return nil
 	}
 
+	// Handle discard cards if provided
+	if discardCards, ok := message["discardCards"].([]interface{}); ok && len(discardCards) > 0 {
+		var cardIDs []domain.CardID
+		for _, card := range discardCards {
+			if cardStr, ok := card.(string); ok {
+				cardIDs = append(cardIDs, domain.CardID(cardStr))
+			}
+		}
+		if len(cardIDs) > 0 {
+			gameState.DiscardCards(int(playerIndex), cardIDs)
+			h.log.WithContext(ctx).Info("Cards marked for discard",
+				"game_id", client.GameID,
+				"player_index", int(playerIndex),
+				"cards", cardIDs)
+		}
+	}
+
 	// Lock the player's choice
 	gameState.LockPlayerChoice(int(playerIndex))
 
