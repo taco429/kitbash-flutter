@@ -8,7 +8,6 @@ import '../widgets/game_with_tooltip.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
 import '../widgets/advanced_card_display.dart';
-import '../widgets/deck_stack.dart';
 import '../widgets/discard_pile.dart';
 import '../widgets/hero_display.dart';
 import '../widgets/reset_button.dart';
@@ -162,41 +161,16 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
               ),
+              // Game area taking full width (deck panels removed)
               Expanded(
-                child: Row(
-                  children: [
-                    // Opponent deck area (left)
-                    SizedBox(
-                      width: 110,
-                      child: DeckStack(
-                        label: 'Opponent',
-                        remainingCount: opponentDeckCount,
-                        accentColor: Colors.pink,
-                      ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(8)),
+                  child: GameWithTooltip(
+                    game: KitbashGame(
+                      gameId: widget.gameId,
+                      gameService: gameService,
                     ),
-                    // Game area with Flame GameWidget in the middle
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(8)),
-                        child: GameWithTooltip(
-                          game: KitbashGame(
-                            gameId: widget.gameId,
-                            gameService: gameService,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Player deck area (right)
-                    SizedBox(
-                      width: 110,
-                      child: DeckStack(
-                        label: 'You',
-                        remainingCount: playerDeckCount,
-                        accentColor: Colors.green,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               // Player control area - reorganized layout
