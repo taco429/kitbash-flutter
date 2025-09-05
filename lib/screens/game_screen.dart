@@ -43,18 +43,8 @@ class _GameScreenState extends State<GameScreen> {
             deckCount: 0,
           ),
         );
-        final opponentState = gameState?.playerStates.firstWhere(
-          (ps) => ps.playerIndex != myIndex,
-          orElse: () => PlayerBattleState(
-            playerIndex: 1 - myIndex,
-            deckId: '',
-            hand: const [],
-            deckCount: 0,
-          ),
-        );
 
         final int playerDeckCount = playerState?.deckCount ?? 0;
-        final int opponentDeckCount = opponentState?.deckCount ?? 0;
 
         final List<GameCard> playerHandCards = (playerState?.hand ?? [])
             .map((id) => cardService.getCardById(id))
