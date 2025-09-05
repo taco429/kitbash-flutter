@@ -27,7 +27,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   bool _hasNavigatedToGameOver = false;
   late KitbashGame _game;
-  
+
   @override
   void initState() {
     super.initState();
@@ -38,7 +38,7 @@ class _GameScreenState extends State<GameScreen> {
       gameService: gameService,
     );
   }
-  
+
   @override
   void dispose() {
     // Clean up the game instance
