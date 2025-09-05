@@ -26,6 +26,25 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   bool _hasNavigatedToGameOver = false;
+  late KitbashGame _game;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Create the game instance once
+    final gameService = context.read<GameService>();
+    _game = KitbashGame(
+      gameId: widget.gameId,
+      gameService: gameService,
+    );
+  }
+  
+  @override
+  void dispose() {
+    // Clean up the game instance
+    _game.onRemove();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,10 +177,7 @@ class _GameScreenState extends State<GameScreen> {
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(8)),
                   child: GameWithTooltip(
-                    game: KitbashGame(
-                      gameId: widget.gameId,
-                      gameService: gameService,
-                    ),
+                    game: _game,
                   ),
                 ),
               ),

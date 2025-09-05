@@ -359,19 +359,33 @@ class GameService extends ChangeNotifier {
       } else if (messageType == 'turn_advanced') {
         // Handle turn advancement when both players have locked
         final newTurn = data['newTurn'];
+        final gameStateData = data['gameState'];
         if (newTurn != null && _gameState != null) {
-          // Reset lock states for new turn
-          _gameState!.playerChoicesLocked[0] = false;
-          _gameState!.playerChoicesLocked[1] = false;
+          // If game state is included, use it (it should have reset lock states)
+          if (gameStateData != null) {
+            _gameState = GameState.fromJson(gameStateData);
+            debugPrint('Updated game state from turn advancement');
+          } else {
+            // Otherwise just reset lock states locally
+            _gameState!.playerChoicesLocked[0] = false;
+            _gameState!.playerChoicesLocked[1] = false;
+          }
           debugPrint('Turn advanced to $newTurn');
         }
       } else if (messageType == 'phase_changed') {
         // Handle phase change notification
         final newPhase = data['phase'];
+        final gameStateData = data['gameState'];
         if (newPhase != null) {
           debugPrint('Phase changed to $newPhase');
-          // Request updated game state to get phase timing info
-          requestGameState();
+          // If game state is included in the message, use it directly
+          if (gameStateData != null) {
+            _gameState = GameState.fromJson(gameStateData);
+            debugPrint('Updated game state from phase change');
+          } else {
+            // Only request game state if not included in the message
+            requestGameState();
+          }
         }
       } else if (messageType == 'player_joined') {
         // Set the current player index when joining
