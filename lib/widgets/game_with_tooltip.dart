@@ -103,6 +103,7 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
         children: [
           // The Flame game
           GameWidget(
+            key: ValueKey(widget.game),
             game: widget.game,
           ),
           // Tooltip overlay
