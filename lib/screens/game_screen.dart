@@ -227,7 +227,8 @@ class _GameScreenState extends State<GameScreen> {
                             children: [
                               if (gameService.gameState != null)
                                 LockInButton(
-                                  isLocked: gameService.gameState!.isPlayerLocked(
+                                  isLocked:
+                                      gameService.gameState!.isPlayerLocked(
                                     gameService.currentPlayerIndex,
                                   ),
                                   isOpponentLocked:
@@ -248,7 +249,8 @@ class _GameScreenState extends State<GameScreen> {
                                   // TODO: Implement reset functionality
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Reset functionality coming soon'),
+                                      content: Text(
+                                          'Reset functionality coming soon'),
                                     ),
                                   );
                                 },
@@ -266,12 +268,16 @@ class _GameScreenState extends State<GameScreen> {
                               // Get hero card from player's deck
                               GameCard? heroCard;
                               if (playerState?.deckId != null) {
-                                final deck = deckService.availableDecks.firstWhere(
+                                final deck =
+                                    deckService.availableDecks.firstWhere(
                                   (d) => d.id == playerState!.deckId,
-                                  orElse: () => deckService.selectedDeck ?? deckService.availableDecks.first,
+                                  orElse: () =>
+                                      deckService.selectedDeck ??
+                                      deckService.availableDecks.first,
                                 );
                                 if (deck.heroCardId != null) {
-                                  heroCard = cardService.getCardById(deck.heroCardId!);
+                                  heroCard =
+                                      cardService.getCardById(deck.heroCardId!);
                                 }
                               }
                               return HeroDisplay(
@@ -284,8 +290,10 @@ class _GameScreenState extends State<GameScreen> {
                           // Center: Player hand (expanded)
                           Expanded(
                             child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 16),
-                              child: _CenteredHandDisplay(cards: playerHandCards),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child:
+                                  _CenteredHandDisplay(cards: playerHandCards),
                             ),
                           ),
                           // Right side: Discard pile and deck
@@ -295,7 +303,7 @@ class _GameScreenState extends State<GameScreen> {
                             accentColor: Colors.green,
                           ),
                           const SizedBox(width: 12),
-                          DiscardPile(
+                          const DiscardPile(
                             discardedCards: [], // TODO: Get discard pile from game state
                             label: 'Discard',
                             accentColor: Colors.green,
@@ -339,15 +347,15 @@ class _CenteredHandDisplay extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).colorScheme.primary.withOpacity(0.05),
-            Theme.of(context).colorScheme.primary.withOpacity(0.02),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.02),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -359,13 +367,19 @@ class _CenteredHandDisplay extends StatelessWidget {
                   Icon(
                     Icons.pan_tool,
                     size: 48,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.2),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Your hand is empty',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.3),
                         ),
                   ),
                 ],
@@ -383,11 +397,13 @@ class _CenteredHandDisplay extends StatelessWidget {
                     ? (numCards * cardWidth) + ((numCards - 1) * gapWidth)
                     : 0;
 
-                final bool needsScroll = totalWidth > (constraints.maxWidth - padding * 2);
+                final bool needsScroll =
+                    totalWidth > (constraints.maxWidth - padding * 2);
 
-                Widget cardRow = Row(
+                final Widget cardRow = Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: needsScroll ? MainAxisSize.max : MainAxisSize.min,
+                  mainAxisSize:
+                      needsScroll ? MainAxisSize.max : MainAxisSize.min,
                   children: [
                     for (int i = 0; i < cards.length; i++) ...[
                       MouseRegion(

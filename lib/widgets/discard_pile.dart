@@ -34,7 +34,7 @@ class DiscardPile extends StatelessWidget {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: accentColor.withOpacity(0.3),
+              color: accentColor.withValues(alpha: 0.3),
               width: 2,
             ),
           ),
@@ -49,7 +49,7 @@ class DiscardPile extends StatelessWidget {
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.3),
+                            .withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -58,7 +58,7 @@ class DiscardPile extends StatelessWidget {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                             ),
                       ),
                     ],

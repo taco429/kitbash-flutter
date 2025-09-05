@@ -31,15 +31,15 @@ class PlayerDeckDisplay extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                accentColor.withOpacity(0.1),
-                accentColor.withOpacity(0.2),
+                accentColor.withValues(alpha: 0.1),
+                accentColor.withValues(alpha: 0.2),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: accentColor.withOpacity(0.3),
+              color: accentColor.withValues(alpha: 0.3),
               width: 2,
             ),
           ),
@@ -50,7 +50,7 @@ class PlayerDeckDisplay extends StatelessWidget {
               Icon(
                 Icons.style,
                 size: 40,
-                color: accentColor.withOpacity(0.3),
+                color: accentColor.withValues(alpha: 0.3),
               ),
               // Remaining cards count
               Column(
@@ -66,7 +66,7 @@ class PlayerDeckDisplay extends StatelessWidget {
                   Text(
                     'cards',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: accentColor.withOpacity(0.7),
+                          color: accentColor.withValues(alpha: 0.7),
                         ),
                   ),
                 ],

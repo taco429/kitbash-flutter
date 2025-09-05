@@ -34,12 +34,12 @@ class HeroDisplay extends StatelessWidget {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: accentColor.withOpacity(0.5),
+              color: accentColor.withValues(alpha: 0.5),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: accentColor.withOpacity(0.2),
+                color: accentColor.withValues(alpha: 0.2),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -53,7 +53,7 @@ class HeroDisplay extends StatelessWidget {
                       Icon(
                         Icons.person_outline,
                         size: 40,
-                        color: accentColor.withOpacity(0.5),
+                        color: accentColor.withValues(alpha: 0.5),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -62,7 +62,7 @@ class HeroDisplay extends StatelessWidget {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                             ),
                       ),
                     ],
@@ -123,10 +123,10 @@ class _StatBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
