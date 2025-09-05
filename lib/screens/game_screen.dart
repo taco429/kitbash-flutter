@@ -7,11 +7,11 @@ import '../services/deck_service.dart';
 import '../widgets/game_with_tooltip.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
-import '../widgets/advanced_card_display.dart';
 import '../widgets/discard_pile.dart';
 import '../widgets/hero_display.dart';
 import '../widgets/reset_button.dart';
 import '../widgets/player_deck_display.dart';
+import '../widgets/animated_hand_display.dart';
 import '../models/card.dart';
 import 'game_over_screen.dart';
 
@@ -274,8 +274,11 @@ class _GameScreenState extends State<GameScreen> {
                             child: Container(
                               margin:
                                   const EdgeInsets.symmetric(horizontal: 16),
-                              child:
-                                  _CenteredHandDisplay(cards: playerHandCards),
+                              child: AnimatedHandDisplay(
+                                cards: playerHandCards,
+                                isDrawPhase:
+                                    gameState?.currentPhase == 'draw_income',
+                              ),
                             ),
                           ),
                           // Right side: Discard pile and deck
@@ -313,118 +316,6 @@ class _GameScreenState extends State<GameScreen> {
           ),
         );
       },
-    );
-  }
-}
-
-class _CenteredHandDisplay extends StatelessWidget {
-  final List<GameCard> cards;
-
-  const _CenteredHandDisplay({required this.cards});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.02),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: cards.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.pan_tool,
-                    size: 48,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.2),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your hand is empty',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.3),
-                        ),
-                  ),
-                ],
-              ),
-            )
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                const double cardWidth = 110;
-                const double cardHeight = 160;
-                const double gapWidth = 8;
-                const double padding = 12;
-
-                final int numCards = cards.length;
-                final double totalWidth = numCards > 0
-                    ? (numCards * cardWidth) + ((numCards - 1) * gapWidth)
-                    : 0;
-
-                final bool needsScroll =
-                    totalWidth > (constraints.maxWidth - padding * 2);
-
-                final Widget cardRow = Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize:
-                      needsScroll ? MainAxisSize.max : MainAxisSize.min,
-                  children: [
-                    for (int i = 0; i < cards.length; i++) ...[
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: AdvancedCardDisplay(
-                            card: cards[i],
-                            width: cardWidth,
-                            height: cardHeight,
-                            enableParallax: true,
-                            enableGlow: true,
-                            enableShadow: true,
-                          ),
-                        ),
-                      ),
-                      if (i < cards.length - 1) const SizedBox(width: gapWidth),
-                    ],
-                  ],
-                );
-
-                if (needsScroll) {
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.all(padding),
-                    child: cardRow,
-                  );
-                } else {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(padding),
-                      child: cardRow,
-                    ),
-                  );
-                }
-              },
-            ),
     );
   }
 }
