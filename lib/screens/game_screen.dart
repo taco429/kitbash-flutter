@@ -261,7 +261,8 @@ class _GameScreenState extends State<GameScreen> {
                                   const EdgeInsets.symmetric(horizontal: 16),
                               child: AnimatedHandDisplay(
                                 cards: playerHandCards,
-                                isDrawPhase: gameState?.currentPhase == 'draw_income',
+                                isDrawPhase:
+                                    gameState?.currentPhase == 'draw_income',
                               ),
                             ),
                           ),
@@ -303,4 +304,3 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 }
-

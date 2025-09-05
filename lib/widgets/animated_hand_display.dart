@@ -90,10 +90,10 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
   @override
   void didUpdateWidget(AnimatedHandDisplay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     _previousCardIds = _currentCardIds;
     _currentCardIds = widget.cards.map((card) => card.id).toList();
-    
+
     // Check if we're in draw phase and have new cards
     if (widget.isDrawPhase && !_hasAnimatedDrawPhase) {
       _hasAnimatedDrawPhase = true;
@@ -127,7 +127,7 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
 
     // Reinitialize with new card count
     _initializeAnimations();
-    
+
     // Animate all cards if we have new ones
     if (_hasNewCards() || widget.isDrawPhase) {
       _animateNewCards();
@@ -144,7 +144,7 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
     for (int i = 0; i < _cardControllers.length; i++) {
       final cardId = _currentCardIds[i];
       final isNewCard = !_previousCardIds.contains(cardId);
-      
+
       if (isNewCard || widget.isDrawPhase) {
         // Reset and start animation with stagger
         _cardControllers[i].reset();
@@ -201,10 +201,8 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
           Icon(
             Icons.pan_tool,
             size: 48,
-            color: Theme.of(context)
-                .colorScheme
-                .onSurface
-                .withValues(alpha: 0.2),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
           ),
           const SizedBox(height: 8),
           Text(
