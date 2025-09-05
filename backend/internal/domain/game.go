@@ -246,6 +246,31 @@ func (gs *GameState) ShouldAutoAdvancePhase() bool {
 	return false
 }
 
+// DiscardCards moves specified cards from a player's hand to their discard pile.
+func (gs *GameState) DiscardCards(playerIndex int, cardIDs []CardID) {
+	if playerIndex < 0 || playerIndex >= len(gs.PlayerStates) {
+		return
+	}
+	
+	playerState := &gs.PlayerStates[playerIndex]
+	
+	// Remove cards from hand and add to discard pile
+	for _, cardID := range cardIDs {
+		// Find and remove from hand
+		for i, handCard := range playerState.Hand {
+			if handCard == cardID {
+				// Remove from hand
+				playerState.Hand = append(playerState.Hand[:i], playerState.Hand[i+1:]...)
+				// Add to discard pile
+				playerState.DiscardPile = append(playerState.DiscardPile, cardID)
+				break
+			}
+		}
+	}
+	
+	gs.UpdatedAt = time.Now()
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a

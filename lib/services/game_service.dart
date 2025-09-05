@@ -189,6 +189,27 @@ class GameService extends ChangeNotifier {
       0; // Default to player 0, should be set when joining game
   int get currentPlayerIndex => _currentPlayerIndex;
 
+  // Track cards marked for discard during planning phase
+  final Set<String> _cardsToDiscard = {};
+  Set<String> get cardsToDiscard => _cardsToDiscard;
+
+  bool isCardMarkedForDiscard(String cardId) =>
+      _cardsToDiscard.contains(cardId);
+
+  void toggleCardDiscard(String cardId) {
+    if (_cardsToDiscard.contains(cardId)) {
+      _cardsToDiscard.remove(cardId);
+    } else {
+      _cardsToDiscard.add(cardId);
+    }
+    notifyListeners();
+  }
+
+  void clearDiscardSelection() {
+    _cardsToDiscard.clear();
+    notifyListeners();
+  }
+
   // REST API methods
   Future<List<dynamic>> findGames() async {
     try {
@@ -378,6 +399,14 @@ class GameService extends ChangeNotifier {
         final gameStateData = data['gameState'];
         if (newPhase != null) {
           debugPrint('Phase changed to $newPhase');
+
+          // When entering reveal_resolve phase, process discards
+          if (newPhase == 'reveal_resolve' && _cardsToDiscard.isNotEmpty) {
+            // The backend will handle moving cards to discard pile
+            // Clear local discard selection
+            clearDiscardSelection();
+          }
+
           // If game state is included in the message, use it directly
           if (gameStateData != null) {
             _gameState = GameState.fromJson(gameStateData);
@@ -481,6 +510,9 @@ class GameService extends ChangeNotifier {
     try {
       _lastError = null;
 
+      // Send discard information along with lock choice if any cards are marked
+      final discardList = _cardsToDiscard.toList();
+
       // Update local state optimistically
       if (_gameState != null) {
         _gameState!.playerChoicesLocked[playerIndex] = true;
@@ -492,6 +524,7 @@ class GameService extends ChangeNotifier {
         'type': 'lock_choice',
         'playerIndex': playerIndex,
         'gameId': gameId,
+        'discardCards': discardList,
       });
 
       // Try to send to backend via REST as well (optional, may not be implemented yet)

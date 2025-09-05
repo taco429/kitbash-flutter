@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/card.dart';
+import '../services/game_service.dart';
 import 'advanced_card_display.dart';
 
 class AnimatedHandDisplay extends StatefulWidget {
@@ -220,79 +222,147 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
   }
 
   Widget _buildCardDisplay(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const double cardWidth = 110;
-        const double cardHeight = 160;
-        const double gapWidth = 8;
-        const double padding = 12;
+    return Consumer<GameService>(
+      builder: (context, gameService, child) {
+        final isPlanning = gameService.gameState?.currentPhase == 'planning';
+        final isLocked = gameService.gameState
+                ?.isPlayerLocked(gameService.currentPlayerIndex) ??
+            false;
 
-        final int numCards = widget.cards.length;
-        final double totalWidth = numCards > 0
-            ? (numCards * cardWidth) + ((numCards - 1) * gapWidth)
-            : 0;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            const double cardWidth = 110;
+            const double cardHeight = 160;
+            const double gapWidth = 8;
+            const double padding = 12;
 
-        final bool needsScroll =
-            totalWidth > (constraints.maxWidth - padding * 2);
+            final int numCards = widget.cards.length;
+            final double totalWidth = numCards > 0
+                ? (numCards * cardWidth) + ((numCards - 1) * gapWidth)
+                : 0;
 
-        final Widget cardRow = Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: needsScroll ? MainAxisSize.max : MainAxisSize.min,
-          children: [
-            for (int i = 0; i < widget.cards.length; i++) ...[
-              AnimatedBuilder(
-                animation: Listenable.merge([
-                  _slideAnimations[i],
-                  _fadeAnimations[i],
-                  _scaleAnimations[i],
-                ]),
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(_slideAnimations[i].value, 0),
-                    child: Transform.scale(
-                      scale: _scaleAnimations[i].value,
-                      child: Opacity(
-                        opacity: _fadeAnimations[i].value,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: cardWidth,
-                            height: cardHeight,
-                            child: AdvancedCardDisplay(
-                              card: widget.cards[i],
-                              width: cardWidth,
-                              height: cardHeight,
-                              enableParallax: true,
-                              enableGlow: true,
-                              enableShadow: true,
+            final bool needsScroll =
+                totalWidth > (constraints.maxWidth - padding * 2);
+
+            final Widget cardRow = Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: needsScroll ? MainAxisSize.max : MainAxisSize.min,
+              children: [
+                for (int i = 0; i < widget.cards.length; i++) ...[
+                  AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _slideAnimations[i],
+                      _fadeAnimations[i],
+                      _scaleAnimations[i],
+                    ]),
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(_slideAnimations[i].value, 0),
+                        child: Transform.scale(
+                          scale: _scaleAnimations[i].value,
+                          child: Opacity(
+                            opacity: _fadeAnimations[i].value,
+                            child: Stack(
+                              children: [
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: cardWidth,
+                                    height: cardHeight,
+                                    decoration:
+                                        gameService.isCardMarkedForDiscard(
+                                                widget.cards[i].id)
+                                            ? BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Colors.red
+                                                      .withValues(alpha: 0.6),
+                                                  width: 2,
+                                                ),
+                                              )
+                                            : null,
+                                    child: Opacity(
+                                      opacity:
+                                          gameService.isCardMarkedForDiscard(
+                                                  widget.cards[i].id)
+                                              ? 0.6
+                                              : 1.0,
+                                      child: AdvancedCardDisplay(
+                                        card: widget.cards[i],
+                                        width: cardWidth,
+                                        height: cardHeight,
+                                        enableParallax: true,
+                                        enableGlow: true,
+                                        enableShadow: true,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Show discard X button during planning phase when not locked
+                                if (isPlanning && !isLocked)
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        gameService.toggleCardDiscard(
+                                            widget.cards[i].id);
+                                      },
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: gameService
+                                                  .isCardMarkedForDiscard(
+                                                      widget.cards[i].id)
+                                              ? Colors.red
+                                              : Colors.black
+                                                  .withValues(alpha: 0.7),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              if (i < widget.cards.length - 1) const SizedBox(width: gapWidth),
-            ],
-          ],
-        );
+                      );
+                    },
+                  ),
+                  if (i < widget.cards.length - 1)
+                    const SizedBox(width: gapWidth),
+                ],
+              ],
+            );
 
-        if (needsScroll) {
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.all(padding),
-            child: cardRow,
-          );
-        } else {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(padding),
-              child: cardRow,
-            ),
-          );
-        }
+            if (needsScroll) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.all(padding),
+                child: cardRow,
+              );
+            } else {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(padding),
+                  child: cardRow,
+                ),
+              );
+            }
+          },
+        );
       },
     );
   }
