@@ -32,6 +32,7 @@ type GameHub struct {
 	upgrader   websocket.Upgrader
 	log        *logger.Logger
 	cfg        config.Config
+	phaseTimers map[domain.GameID]*time.Timer
 }
 
 // NewGameHub creates a new game hub with game state management.
@@ -47,6 +48,7 @@ func NewGameHub(gameRepo repository.GameRepository, log *logger.Logger, cfg conf
 		},
 		log: log,
 		cfg: cfg,
+		phaseTimers: make(map[domain.GameID]*time.Timer),
 	}
 }
 
@@ -178,9 +180,17 @@ func (h *GameHub) getOrCreateGameState(ctx context.Context, gameID string) (*dom
 
 	// Start the game immediately for testing
 	gameState.StartGame()
+	// Set initial phase to Draw & Income
+	gameState.SetPhase(domain.PhaseDrawIncome)
 	if err := h.gameRepo.Update(ctx, gameState); err != nil {
 		h.log.LogError(ctx, err, "Failed to update game state after starting")
 	}
+
+	// Start the phase progression
+	go func() {
+		time.Sleep(2 * time.Second)
+		h.advanceToPhase(context.Background(), gameState.ID, domain.PhasePlanning)
+	}()
 
 	return gameState, nil
 }
@@ -248,6 +258,8 @@ func (h *GameHub) handleGameMessage(ctx context.Context, client *GameClient, msg
 		return h.handleGetGameState(ctx, client)
 	case "lock_choice":
 		return h.handleLockChoice(ctx, client, message)
+	case "advance_phase":
+		return h.handleAdvancePhase(ctx, client)
 	default:
 		h.log.WithContext(ctx).Debug("Unknown message type", "type", msgType)
 	}
@@ -310,6 +322,14 @@ func (h *GameHub) handleLockChoice(ctx context.Context, client *GameClient, mess
 		return err
 	}
 
+	// Only allow locking during Planning phase
+	if gameState.CurrentPhase != domain.PhasePlanning {
+		h.log.WithContext(ctx).Warn("Lock choice attempted outside planning phase",
+			"game_id", client.GameID,
+			"current_phase", gameState.CurrentPhase)
+		return nil
+	}
+
 	// Lock the player's choice
 	gameState.LockPlayerChoice(int(playerIndex))
 
@@ -321,33 +341,26 @@ func (h *GameHub) handleLockChoice(ctx context.Context, client *GameClient, mess
 	h.log.WithContext(ctx).Info("Player locked choice",
 		"game_id", client.GameID,
 		"player_index", int(playerIndex),
-		"current_turn", gameState.CurrentTurn)
+		"current_turn", gameState.CurrentTurn,
+		"current_phase", gameState.CurrentPhase)
 
 	// Notify all clients that a player has locked
 	h.broadcastPlayerLocked(ctx, client.GameID, int(playerIndex))
 
 	// Check if all players have locked their choices
 	if gameState.AreAllPlayersLocked() {
-		h.log.WithContext(ctx).Info("All players locked - advancing turn",
+		h.log.WithContext(ctx).Info("All players locked - advancing to Reveal & Resolve",
 			"game_id", client.GameID,
 			"current_turn", gameState.CurrentTurn)
 
-		// Advance to the next turn
-		gameState.AdvanceTurn()
-		
-		// Save the updated game state
-		if err := h.gameRepo.Update(ctx, gameState); err != nil {
-			return err
-		}
+		// Cancel the planning phase timer if it exists
+		h.cancelPhaseTimer(client.GameID)
 
-		// Broadcast turn advancement
-		h.broadcastTurnAdvanced(ctx, client.GameID, gameState.CurrentTurn)
-		
-		// Broadcast updated game state
-		return h.broadcastGameState(ctx, client.GameID)
+		// Advance to Reveal & Resolve phase
+		return h.advanceToPhase(ctx, client.GameID, domain.PhaseRevealResolve)
 	}
 
-	return nil
+	return h.broadcastGameState(ctx, client.GameID)
 }
 
 // broadcastPlayerLocked notifies all clients that a player has locked their choice.
@@ -435,6 +448,160 @@ func (h *GameHub) assignTestDecksAndHands(ctx context.Context, gs *domain.GameSt
 	// Draw initial hands (7 cards)
 	drawCardsForPlayer(&gs.PlayerStates[0], 7)
 	drawCardsForPlayer(&gs.PlayerStates[1], 7)
+}
+
+// handleAdvancePhase manually advances to the next phase (for testing or timeout).
+func (h *GameHub) handleAdvancePhase(ctx context.Context, client *GameClient) error {
+	gameState, err := h.gameRepo.Get(ctx, client.GameID)
+	if err != nil {
+		return err
+	}
+
+	var nextPhase domain.GamePhase
+	switch gameState.CurrentPhase {
+	case domain.PhaseDrawIncome:
+		nextPhase = domain.PhasePlanning
+	case domain.PhasePlanning:
+		nextPhase = domain.PhaseRevealResolve
+	case domain.PhaseRevealResolve:
+		nextPhase = domain.PhaseCleanup
+	case domain.PhaseCleanup:
+		// Start new turn
+		gameState.AdvanceTurn()
+		if err := h.gameRepo.Update(ctx, gameState); err != nil {
+			return err
+		}
+		h.broadcastTurnAdvanced(ctx, client.GameID, gameState.CurrentTurn)
+		return h.advanceToPhase(ctx, client.GameID, domain.PhaseDrawIncome)
+	default:
+		nextPhase = domain.PhaseDrawIncome
+	}
+
+	return h.advanceToPhase(ctx, client.GameID, nextPhase)
+}
+
+// advanceToPhase transitions the game to the specified phase.
+func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phase domain.GamePhase) error {
+	gameState, err := h.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		return err
+	}
+
+	gameState.SetPhase(phase)
+
+	// Save the updated game state
+	if err := h.gameRepo.Update(ctx, gameState); err != nil {
+		return err
+	}
+
+	h.log.WithContext(ctx).Info("Phase advanced",
+		"game_id", gameID,
+		"new_phase", phase,
+		"turn", gameState.CurrentTurn)
+
+	// Broadcast phase change
+	h.broadcastPhaseChange(ctx, gameID, phase)
+
+	// Handle phase-specific logic
+	switch phase {
+	case domain.PhaseDrawIncome:
+		// TODO: Draw cards and collect resources
+		// For now, automatically advance to Planning
+		time.AfterFunc(2*time.Second, func() {
+			h.advanceToPhase(context.Background(), gameID, domain.PhasePlanning)
+		})
+
+	case domain.PhasePlanning:
+		// Start 30-second timer for Planning phase
+		h.startPlanningTimer(ctx, gameID)
+
+	case domain.PhaseRevealResolve:
+		// TODO: Resolve all actions
+		// For now, automatically advance to Cleanup after 3 seconds
+		time.AfterFunc(3*time.Second, func() {
+			h.advanceToPhase(context.Background(), gameID, domain.PhaseCleanup)
+		})
+
+	case domain.PhaseCleanup:
+		// TODO: Handle cleanup logic
+		// Automatically start next turn after 1 second
+		time.AfterFunc(1*time.Second, func() {
+			gs, _ := h.gameRepo.Get(context.Background(), gameID)
+			if gs != nil {
+				gs.AdvanceTurn()
+				h.gameRepo.Update(context.Background(), gs)
+				h.broadcastTurnAdvanced(context.Background(), gameID, gs.CurrentTurn)
+				h.advanceToPhase(context.Background(), gameID, domain.PhaseDrawIncome)
+			}
+		})
+	}
+
+	// Broadcast updated game state
+	return h.broadcastGameState(ctx, gameID)
+}
+
+// startPlanningTimer starts a 30-second timer for the Planning phase.
+func (h *GameHub) startPlanningTimer(ctx context.Context, gameID domain.GameID) {
+	h.mu.Lock()
+	// Cancel existing timer if any
+	if timer, exists := h.phaseTimers[gameID]; exists {
+		timer.Stop()
+	}
+
+	// Create new timer
+	timer := time.AfterFunc(30*time.Second, func() {
+		gameState, err := h.gameRepo.Get(context.Background(), gameID)
+		if err != nil {
+			return
+		}
+
+		// Only advance if still in Planning phase
+		if gameState.CurrentPhase == domain.PhasePlanning {
+			h.log.WithContext(context.Background()).Info("Planning phase timer expired",
+				"game_id", gameID)
+			h.advanceToPhase(context.Background(), gameID, domain.PhaseRevealResolve)
+		}
+	})
+
+	h.phaseTimers[gameID] = timer
+	h.mu.Unlock()
+}
+
+// cancelPhaseTimer cancels the phase timer for a game.
+func (h *GameHub) cancelPhaseTimer(gameID domain.GameID) {
+	h.mu.Lock()
+	if timer, exists := h.phaseTimers[gameID]; exists {
+		timer.Stop()
+		delete(h.phaseTimers, gameID)
+	}
+	h.mu.Unlock()
+}
+
+// broadcastPhaseChange notifies all clients about a phase change.
+func (h *GameHub) broadcastPhaseChange(ctx context.Context, gameID domain.GameID, phase domain.GamePhase) {
+	h.mu.RLock()
+	gameClients, exists := h.clients[gameID]
+	if !exists {
+		h.mu.RUnlock()
+		return
+	}
+
+	clients := make([]*GameClient, 0, len(gameClients))
+	for _, client := range gameClients {
+		clients = append(clients, client)
+	}
+	h.mu.RUnlock()
+
+	message := map[string]interface{}{
+		"type":  "phase_changed",
+		"phase": phase,
+	}
+
+	for _, client := range clients {
+		if err := client.Conn.WriteJSON(message); err != nil {
+			h.log.LogError(ctx, err, "Failed to send phase change notification")
+		}
+	}
 }
 
 // buildPlayerStateFromDeck expands deck entries into a shuffled draw pile and initializes state.

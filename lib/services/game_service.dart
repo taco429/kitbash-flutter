@@ -38,6 +38,8 @@ class GameState {
   final List<CommandCenter> commandCenters;
   final List<PlayerBattleState> playerStates;
   final int currentTurn;
+  final String currentPhase;
+  final DateTime? phaseStartTime;
   final int turnCount;
   final int? winnerPlayerIndex;
   final Map<int, bool> playerChoicesLocked;
@@ -48,6 +50,8 @@ class GameState {
     required this.commandCenters,
     required this.playerStates,
     required this.currentTurn,
+    required this.currentPhase,
+    this.phaseStartTime,
     required this.turnCount,
     this.winnerPlayerIndex,
     Map<int, bool>? playerChoicesLocked,
@@ -68,6 +72,16 @@ class GameState {
       }
     }
 
+    // Parse phase start time
+    DateTime? phaseStartTime;
+    if (json['phaseStartTime'] != null) {
+      try {
+        phaseStartTime = DateTime.parse(json['phaseStartTime']);
+      } catch (_) {
+        // Ignore parse errors
+      }
+    }
+
     return GameState(
       id: json['id'] ?? '',
       status: json['status'] ?? 'waiting',
@@ -80,6 +94,8 @@ class GameState {
               .toList() ??
           [],
       currentTurn: json['currentTurn'] ?? 0,
+      currentPhase: json['currentPhase'] ?? 'draw_income',
+      phaseStartTime: phaseStartTime,
       turnCount: json['turnCount'] ?? 0,
       winnerPlayerIndex: json['winnerPlayerIndex'],
       playerChoicesLocked: playerChoicesLocked,
@@ -348,6 +364,14 @@ class GameService extends ChangeNotifier {
           _gameState!.playerChoicesLocked[0] = false;
           _gameState!.playerChoicesLocked[1] = false;
           debugPrint('Turn advanced to $newTurn');
+        }
+      } else if (messageType == 'phase_changed') {
+        // Handle phase change notification
+        final newPhase = data['phase'];
+        if (newPhase != null) {
+          debugPrint('Phase changed to $newPhase');
+          // Request updated game state to get phase timing info
+          requestGameState();
         }
       } else if (messageType == 'player_joined') {
         // Set the current player index when joining

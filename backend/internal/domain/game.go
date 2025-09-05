@@ -16,6 +16,16 @@ const (
 	GameStatusFinished   GameStatus = "finished"
 )
 
+// GamePhase represents the current phase within a round.
+type GamePhase string
+
+const (
+	PhaseDrawIncome   GamePhase = "draw_income"    // Draw & Income phase
+	PhasePlanning     GamePhase = "planning"       // Planning phase (30s)
+	PhaseRevealResolve GamePhase = "reveal_resolve" // Reveal & Resolve phase
+	PhaseCleanup      GamePhase = "cleanup"        // Cleanup phase
+)
+
 // PlayerBattleState represents per-player runtime state such as deck/hand.
 type PlayerBattleState struct {
     PlayerIndex int        `json:"playerIndex"`
@@ -72,6 +82,8 @@ type GameState struct {
 	CommandCenters      []*CommandCenter `json:"commandCenters"`
 	PlayerStates        []PlayerBattleState `json:"playerStates"`
 	CurrentTurn         int              `json:"currentTurn"`
+	CurrentPhase        GamePhase        `json:"currentPhase"`
+	PhaseStartTime      time.Time        `json:"phaseStartTime"`
 	TurnCount           int              `json:"turnCount"`
 	BoardRows           int              `json:"boardRows"`
 	BoardCols           int              `json:"boardCols"`
@@ -91,6 +103,8 @@ func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *Ga
 		CommandCenters:      commandCenters,
 		PlayerStates:        []PlayerBattleState{},
 		CurrentTurn:         0,
+		CurrentPhase:        PhaseDrawIncome,
+		PhaseStartTime:      time.Now(),
 		TurnCount:           0,
 		BoardRows:           boardRows,
 		BoardCols:           boardCols,
@@ -197,6 +211,9 @@ func (gs *GameState) AreAllPlayersLocked() bool {
 func (gs *GameState) AdvanceTurn() {
 	gs.CurrentTurn++
 	gs.TurnCount++
+	// Reset phase to Draw & Income for new turn
+	gs.CurrentPhase = PhaseDrawIncome
+	gs.PhaseStartTime = time.Now()
 	// Reset all player locks for the new turn
 	if gs.PlayerChoicesLocked == nil {
 		gs.PlayerChoicesLocked = map[int]bool{0: false, 1: false}
@@ -206,6 +223,27 @@ func (gs *GameState) AdvanceTurn() {
 		}
 	}
 	gs.UpdatedAt = time.Now()
+}
+
+// SetPhase sets the current phase of the game.
+func (gs *GameState) SetPhase(phase GamePhase) {
+	gs.CurrentPhase = phase
+	gs.PhaseStartTime = time.Now()
+	gs.UpdatedAt = time.Now()
+}
+
+// GetPhaseDuration returns how long the current phase has been active.
+func (gs *GameState) GetPhaseDuration() time.Duration {
+	return time.Since(gs.PhaseStartTime)
+}
+
+// ShouldAutoAdvancePhase checks if the current phase should auto-advance based on timing.
+func (gs *GameState) ShouldAutoAdvancePhase() bool {
+	// Only Planning phase has a timer (30 seconds)
+	if gs.CurrentPhase == PhasePlanning {
+		return gs.GetPhaseDuration() >= 30*time.Second
+	}
+	return false
 }
 
 func max(a, b int) int {
