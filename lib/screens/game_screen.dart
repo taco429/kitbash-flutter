@@ -7,7 +7,6 @@ import '../services/deck_service.dart';
 import '../widgets/game_with_tooltip.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
-import '../widgets/advanced_card_display.dart';
 import '../widgets/discard_pile.dart';
 import '../widgets/hero_display.dart';
 import '../widgets/reset_button.dart';
