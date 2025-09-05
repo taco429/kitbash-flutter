@@ -106,12 +106,14 @@ class _GameScreenState extends State<GameScreen> {
                       'Status: ${gameService.gameState?.status ?? 'Loading...'}',
                     ),
                     const Spacer(),
-                    // Turn indicator
+                    // Turn indicator with phase display
                     if (gameService.gameState != null)
                       TurnIndicator(
                         turnNumber: gameService.gameState!.currentTurn,
                         player1Locked: gameService.gameState!.isPlayerLocked(0),
                         player2Locked: gameService.gameState!.isPlayerLocked(1),
+                        currentPhase: gameService.gameState!.currentPhase,
+                        phaseStartTime: gameService.gameState!.phaseStartTime,
                       ),
                     const Spacer(),
                     if (gameService.gameState != null)

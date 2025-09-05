@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'phase_indicator.dart';
 
 class TurnIndicator extends StatefulWidget {
   final int turnNumber;
   final bool player1Locked;
   final bool player2Locked;
+  final String currentPhase;
+  final DateTime? phaseStartTime;
 
   const TurnIndicator({
     super.key,
     required this.turnNumber,
     required this.player1Locked,
     required this.player2Locked,
+    required this.currentPhase,
+    this.phaseStartTime,
   });
 
   @override
@@ -82,11 +87,23 @@ class _TurnIndicatorState extends State<TurnIndicator>
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Turn number display
-                Text(
-                  'Turn ${widget.turnNumber}',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Turn ${widget.turnNumber}',
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Phase indicator
+                    PhaseIndicator(
+                      currentPhase: widget.currentPhase,
+                      phaseStartTime: widget.phaseStartTime,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 // Player lock status indicators
