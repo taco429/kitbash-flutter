@@ -25,14 +25,16 @@ type GameClient struct {
 
 // GameHub manages WebSocket connections for game instances.
 type GameHub struct {
-	mu         sync.RWMutex
-	gameRepo   repository.GameRepository
-	deckRepo   domain.DeckRepository
-	clients    map[domain.GameID]map[*websocket.Conn]*GameClient
-	upgrader   websocket.Upgrader
-	log        *logger.Logger
-	cfg        config.Config
-	phaseTimers map[domain.GameID]*time.Timer
+	mu           sync.RWMutex
+	gameRepo     repository.GameRepository
+	deckRepo     domain.DeckRepository
+	cardRepo     domain.CardRepository
+	roundManager *domain.RoundManager
+	clients      map[domain.GameID]map[*websocket.Conn]*GameClient
+	upgrader     websocket.Upgrader
+	log          *logger.Logger
+	cfg          config.Config
+	phaseTimers  map[domain.GameID]*time.Timer
 }
 
 // NewGameHub creates a new game hub with game state management.
@@ -56,6 +58,15 @@ func NewGameHub(gameRepo repository.GameRepository, log *logger.Logger, cfg conf
 func NewGameHubWithRepos(gameRepo repository.GameRepository, deckRepo domain.DeckRepository, log *logger.Logger, cfg config.Config) *GameHub {
 	hub := NewGameHub(gameRepo, log, cfg)
 	hub.deckRepo = deckRepo
+	return hub
+}
+
+// NewGameHubWithAllRepos creates a new game hub with all repositories.
+func NewGameHubWithAllRepos(gameRepo repository.GameRepository, deckRepo domain.DeckRepository, cardRepo domain.CardRepository, log *logger.Logger, cfg config.Config) *GameHub {
+	hub := NewGameHub(gameRepo, log, cfg)
+	hub.deckRepo = deckRepo
+	hub.cardRepo = cardRepo
+	hub.roundManager = domain.NewRoundManager(cardRepo)
 	return hub
 }
 
@@ -180,16 +191,16 @@ func (h *GameHub) getOrCreateGameState(ctx context.Context, gameID string) (*dom
 
 	// Start the game immediately for testing
 	gameState.StartGame()
-	// Set initial phase to Draw & Income
-	gameState.SetPhase(domain.PhaseDrawIncome)
+	// Set initial phase to Upkeep
+	gameState.SetPhase(domain.PhaseUpkeep)
 	if err := h.gameRepo.Update(ctx, gameState); err != nil {
 		h.log.LogError(ctx, err, "Failed to update game state after starting")
 	}
 
-	// Start the phase progression
+	// Start the first round with Upkeep phase
 	go func() {
 		time.Sleep(2 * time.Second)
-		h.advanceToPhase(context.Background(), gameState.ID, domain.PhasePlanning)
+		h.executeUpkeepPhase(context.Background(), gameState.ID)
 	}()
 
 	return gameState, nil
@@ -258,6 +269,8 @@ func (h *GameHub) handleGameMessage(ctx context.Context, client *GameClient, msg
 		return h.handleGetGameState(ctx, client)
 	case "lock_choice":
 		return h.handleLockChoice(ctx, client, message)
+	case "submit_actions":
+		return h.handleSubmitActions(ctx, client, message)
 	case "advance_phase":
 		return h.handleAdvancePhase(ctx, client)
 	default:
@@ -308,6 +321,117 @@ func (h *GameHub) handleGetGameState(ctx context.Context, client *GameClient) er
 	}
 
 	return h.sendGameState(client, gameState)
+}
+
+// handleSubmitActions processes player action submission for the new round system.
+func (h *GameHub) handleSubmitActions(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+	playerIndex, ok := message["playerIndex"].(float64)
+	if !ok {
+		return nil
+	}
+
+	gameState, err := h.gameRepo.Get(ctx, client.GameID)
+	if err != nil {
+		return err
+	}
+
+	// Only allow action submission during Decision phase
+	if gameState.CurrentPhase != domain.PhaseDecision {
+		h.log.WithContext(ctx).Warn("Actions submitted outside decision phase",
+			"game_id", client.GameID,
+			"current_phase", gameState.CurrentPhase)
+		return nil
+	}
+
+	// Parse actions from message
+	actionsData, ok := message["actions"].([]interface{})
+	if !ok {
+		h.log.WithContext(ctx).Warn("No actions provided in submit_actions message")
+		return nil
+	}
+
+	actions := domain.ActionQueue{}
+	for _, actionData := range actionsData {
+		actionMap, ok := actionData.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		action := domain.Action{
+			PlayerIndex: int(playerIndex),
+		}
+
+		if typeStr, ok := actionMap["type"].(string); ok {
+			action.Type = domain.ActionType(typeStr)
+		}
+		if sourceID, ok := actionMap["sourceId"].(string); ok {
+			action.SourceID = sourceID
+		}
+		if targetID, ok := actionMap["targetId"].(string); ok {
+			action.TargetID = targetID
+		}
+		if cardID, ok := actionMap["cardInHandId"].(string); ok {
+			action.CardInHandID = domain.CardID(cardID)
+		}
+		if speed, ok := actionMap["speed"].(string); ok {
+			action.Speed = domain.SpeedType(speed)
+		}
+		
+		// Parse position if provided
+		if posData, ok := actionMap["position"].(map[string]interface{}); ok {
+			pos := &domain.Point{}
+			if row, ok := posData["row"].(float64); ok {
+				pos.Row = int(row)
+			}
+			if col, ok := posData["col"].(float64); ok {
+				pos.Col = int(col)
+			}
+			action.Position = pos
+		}
+
+		// Determine speed if not set
+		if action.Speed == "" && h.cardRepo != nil {
+			if action.CardInHandID != "" {
+				card, _ := h.cardRepo.GetCard(ctx, action.CardInHandID)
+				action.Speed = domain.DetermineActionSpeed(action, card)
+			} else {
+				action.Speed = domain.DetermineActionSpeed(action, nil)
+			}
+		}
+
+		actions = append(actions, action)
+	}
+
+	// Store the player's actions
+	gameState.SubmitPlayerActions(int(playerIndex), actions)
+
+	// Save the updated game state
+	if err := h.gameRepo.Update(ctx, gameState); err != nil {
+		return err
+	}
+
+	h.log.WithContext(ctx).Info("Player submitted actions",
+		"game_id", client.GameID,
+		"player_index", int(playerIndex),
+		"action_count", len(actions))
+
+	// Notify all clients that a player has submitted actions
+	h.broadcastPlayerLocked(ctx, client.GameID, int(playerIndex))
+
+	// Check if all players have submitted their actions
+	if gameState.AreAllPlayersLocked() {
+		h.log.WithContext(ctx).Info("All players have submitted actions - starting resolution",
+			"game_id", client.GameID,
+			"current_turn", gameState.CurrentTurn)
+
+		// Cancel the decision phase timer if it exists
+		h.cancelPhaseTimer(client.GameID)
+
+		// Execute the resolution phase
+		return h.executeResolutionPhase(ctx, client.GameID)
+	}
+
+	return h.broadcastGameState(ctx, client.GameID)
 }
 
 // handleLockChoice processes player choice locking for simultaneous turns.
@@ -497,6 +621,130 @@ func (h *GameHub) handleAdvancePhase(ctx context.Context, client *GameClient) er
 	return h.advanceToPhase(ctx, client.GameID, nextPhase)
 }
 
+// executeUpkeepPhase runs the automatic upkeep phase
+func (h *GameHub) executeUpkeepPhase(ctx context.Context, gameID domain.GameID) error {
+	gameState, err := h.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		return err
+	}
+
+	// Execute upkeep phase using the round manager
+	if h.roundManager != nil {
+		eventLog := domain.NewEventLog()
+		if err := h.roundManager.ExecuteUpkeepPhase(ctx, gameState, eventLog); err != nil {
+			h.log.LogError(ctx, err, "Failed to execute upkeep phase")
+			return err
+		}
+		gameState.LastEventLog = eventLog
+	}
+
+	// Save the updated game state
+	if err := h.gameRepo.Update(ctx, gameState); err != nil {
+		return err
+	}
+
+	// Broadcast the event log to all clients
+	h.broadcastEventLog(ctx, gameID, gameState.LastEventLog)
+
+	// Automatically advance to Decision phase
+	return h.advanceToPhase(ctx, gameID, domain.PhaseDecision)
+}
+
+// executeResolutionPhase runs the automatic resolution phase
+func (h *GameHub) executeResolutionPhase(ctx context.Context, gameID domain.GameID) error {
+	gameState, err := h.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		return err
+	}
+
+	// Execute resolution phase using the round manager
+	if h.roundManager != nil {
+		eventLog, err := h.roundManager.ExecuteResolutionPhase(ctx, gameState)
+		if err != nil {
+			h.log.LogError(ctx, err, "Failed to execute resolution phase")
+			return err
+		}
+		gameState.LastEventLog = eventLog
+
+		// The round manager already advances the turn, so we just need to save
+		if err := h.gameRepo.Update(ctx, gameState); err != nil {
+			return err
+		}
+
+		// Broadcast the event log to all clients
+		h.broadcastEventLog(ctx, gameID, eventLog)
+
+		// Check if game is over
+		if gameState.Status == domain.GameStatusFinished {
+			h.broadcastGameOver(ctx, gameID, gameState.GetWinner())
+			return nil
+		}
+
+		// Start the next round with Upkeep phase
+		return h.executeUpkeepPhase(ctx, gameID)
+	}
+
+	return nil
+}
+
+// broadcastEventLog sends the event log to all clients
+func (h *GameHub) broadcastEventLog(ctx context.Context, gameID domain.GameID, eventLog *domain.EventLog) {
+	if eventLog == nil {
+		return
+	}
+
+	h.mu.RLock()
+	gameClients, exists := h.clients[gameID]
+	if !exists {
+		h.mu.RUnlock()
+		return
+	}
+
+	clients := make([]*GameClient, 0, len(gameClients))
+	for _, client := range gameClients {
+		clients = append(clients, client)
+	}
+	h.mu.RUnlock()
+
+	message := map[string]interface{}{
+		"type":     "event_log",
+		"eventLog": eventLog,
+	}
+
+	for _, client := range clients {
+		if err := client.Conn.WriteJSON(message); err != nil {
+			h.log.LogError(ctx, err, "Failed to send event log")
+		}
+	}
+}
+
+// broadcastGameOver notifies all clients that the game is over
+func (h *GameHub) broadcastGameOver(ctx context.Context, gameID domain.GameID, winner int) {
+	h.mu.RLock()
+	gameClients, exists := h.clients[gameID]
+	if !exists {
+		h.mu.RUnlock()
+		return
+	}
+
+	clients := make([]*GameClient, 0, len(gameClients))
+	for _, client := range gameClients {
+		clients = append(clients, client)
+	}
+	h.mu.RUnlock()
+
+	message := map[string]interface{}{
+		"type":   "game_over",
+		"winner": winner,
+	}
+
+	for _, client := range clients {
+		if err := client.Conn.WriteJSON(message); err != nil {
+			h.log.LogError(ctx, err, "Failed to send game over notification")
+		}
+	}
+}
+
 // advanceToPhase transitions the game to the specified phase.
 func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phase domain.GamePhase) error {
 	gameState, err := h.gameRepo.Get(ctx, gameID)
@@ -521,44 +769,50 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 
 	// Handle phase-specific logic
 	switch phase {
+	case domain.PhaseUpkeep:
+		// Upkeep is automatic - execute it immediately
+		go func() {
+			if err := h.executeUpkeepPhase(context.Background(), gameID); err != nil {
+				h.log.LogError(context.Background(), err, "Failed to execute upkeep phase")
+			}
+		}()
+
+	case domain.PhaseDecision:
+		// Start 30-second timer for Decision phase
+		h.startDecisionTimer(ctx, gameID)
+
+	case domain.PhaseResolution:
+		// Resolution is automatic - execute it immediately
+		go func() {
+			if err := h.executeResolutionPhase(context.Background(), gameID); err != nil {
+				h.log.LogError(context.Background(), err, "Failed to execute resolution phase")
+			}
+		}()
+
+	// Legacy phase handling for compatibility
 	case domain.PhaseDrawIncome:
-		// TODO: Draw cards and collect resources
-		// For now, automatically advance to Planning
-		time.AfterFunc(2*time.Second, func() {
-			h.advanceToPhase(context.Background(), gameID, domain.PhasePlanning)
-		})
+		// Map to new Upkeep phase
+		return h.advanceToPhase(ctx, gameID, domain.PhaseUpkeep)
 
 	case domain.PhasePlanning:
-		// Start 30-second timer for Planning phase
-		h.startPlanningTimer(ctx, gameID)
+		// Map to new Decision phase
+		return h.advanceToPhase(ctx, gameID, domain.PhaseDecision)
 
 	case domain.PhaseRevealResolve:
-		// TODO: Resolve all actions
-		// For now, automatically advance to Cleanup after 3 seconds
-		time.AfterFunc(3*time.Second, func() {
-			h.advanceToPhase(context.Background(), gameID, domain.PhaseCleanup)
-		})
+		// Map to new Resolution phase
+		return h.advanceToPhase(ctx, gameID, domain.PhaseResolution)
 
 	case domain.PhaseCleanup:
-		// TODO: Handle cleanup logic
-		// Automatically start next turn after 1 second
-		time.AfterFunc(1*time.Second, func() {
-			gs, _ := h.gameRepo.Get(context.Background(), gameID)
-			if gs != nil {
-				gs.AdvanceTurn()
-				h.gameRepo.Update(context.Background(), gs)
-				h.broadcastTurnAdvanced(context.Background(), gameID, gs.CurrentTurn)
-				h.advanceToPhase(context.Background(), gameID, domain.PhaseDrawIncome)
-			}
-		})
+		// Cleanup is now part of Resolution phase
+		return h.advanceToPhase(ctx, gameID, domain.PhaseResolution)
 	}
 
 	// Broadcast updated game state
 	return h.broadcastGameState(ctx, gameID)
 }
 
-// startPlanningTimer starts a 30-second timer for the Planning phase.
-func (h *GameHub) startPlanningTimer(ctx context.Context, gameID domain.GameID) {
+// startDecisionTimer starts a 30-second timer for the Decision phase.
+func (h *GameHub) startDecisionTimer(ctx context.Context, gameID domain.GameID) {
 	h.mu.Lock()
 	// Cancel existing timer if any
 	if timer, exists := h.phaseTimers[gameID]; exists {
@@ -572,16 +826,33 @@ func (h *GameHub) startPlanningTimer(ctx context.Context, gameID domain.GameID) 
 			return
 		}
 
-		// Only advance if still in Planning phase
-		if gameState.CurrentPhase == domain.PhasePlanning {
-			h.log.WithContext(context.Background()).Info("Planning phase timer expired",
+		// Only advance if still in Decision phase
+		if gameState.CurrentPhase == domain.PhaseDecision {
+			h.log.WithContext(context.Background()).Info("Decision phase timer expired",
 				"game_id", gameID)
-			h.advanceToPhase(context.Background(), gameID, domain.PhaseRevealResolve)
+			
+			// Add timer expired event
+			if gameState.LastEventLog == nil {
+				gameState.LastEventLog = domain.NewEventLog()
+			}
+			gameState.LastEventLog.AddEvent(domain.GameEvent{
+				Type:    domain.EventTimerExpired,
+				Message: "Decision phase timer expired - proceeding with submitted actions",
+			})
+			
+			// Execute resolution with whatever actions were submitted
+			h.executeResolutionPhase(context.Background(), gameID)
 		}
 	})
 
 	h.phaseTimers[gameID] = timer
 	h.mu.Unlock()
+}
+
+// startPlanningTimer starts a 30-second timer for the Planning phase (legacy compatibility).
+func (h *GameHub) startPlanningTimer(ctx context.Context, gameID domain.GameID) {
+	// Redirect to Decision timer for compatibility
+	h.startDecisionTimer(ctx, gameID)
 }
 
 // cancelPhaseTimer cancels the phase timer for a game.
@@ -643,6 +914,13 @@ func buildPlayerStateFromDeck(playerIndex int, deck *domain.Deck) domain.PlayerB
 		DeckCount:   len(drawPile),
 		DrawPile:    drawPile,
 		DiscardPile: []domain.CardID{},
+		Gold:        3,      // Starting gold
+		MaxGold:     10,     // Max gold storage
+		GoldIncome:  2,      // Gold per turn
+		Mana:        0,      // Mana resets each turn
+		MaxMana:     5,      // Starting max mana
+		HandLimit:   7,      // Max cards in hand
+		DrawPerTurn: 1,      // Cards drawn per turn
 	}
 }
 
