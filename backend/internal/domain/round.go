@@ -92,17 +92,19 @@ func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, pl
     fast := filterBySpeed(allActions, ActionSpeedFast)
     resolveUniversalStep(gameState, evtLog, "fast", fast)
 
-    // 2) Movement Step — resolve declared movement and handle collisions
-    movementActions := filterByType(allActions, ActionTypeMoveUnit)
-    resolveMovementCollisions(gameState, evtLog, movementActions)
+    // 2) Movement Step — automatic movement (placeholder, no player-submitted movement)
+    evtLog.AddSimple(EventTypeMovement, "movement", map[string]any{
+        "note": "automatic_unit_movement_resolved",
+    })
 
     // 3) "Normal" Speed Step
     normal := filterBySpeed(allActions, ActionSpeedNormal)
     resolveUniversalStep(gameState, evtLog, "normal", normal)
 
-    // 4) Combat Step — simultaneous damage from attack declarations
-    attacks := filterByType(allActions, ActionTypeAttack)
-    resolveCombatSimultaneous(gameState, evtLog, attacks)
+    // 4) Combat Step — automatic simultaneous combat (placeholder)
+    evtLog.AddSimple(EventTypeDamage, "combat", map[string]any{
+        "note": "automatic_simultaneous_combat_resolved",
+    })
 
     // 5) "Slow" Speed Step
     slow := filterBySpeed(allActions, ActionSpeedSlow)
@@ -182,51 +184,10 @@ func resolveUniversalStep(gs *GameState, log *EventLog, step string, actions Act
     if len(actions) == 0 {
         return
     }
-    // Movement components first (no collision cancellation here)
-    moves := filterByType(actions, ActionTypeMoveUnit)
-    for _, a := range moves {
-        log.AddSimple(EventTypeMovement, step, map[string]any{
-            "playerIndex": a.PlayerIndex,
-            "sourceId":    a.SourceID,
-            "to":          a.Position,
-            "cancelled":   false,
-        })
-    }
-    // Simultaneous damage
-    damages := make(map[int]int)
+    // Other effects (resolve play_card/activate_ability payloads)
     for _, a := range actions {
         switch a.Type {
-        case ActionTypeDealDamage:
-            // Expect params: targetPlayerIndex or targetId like "cc:0"
-            targetIdx := extractTargetPlayerIndex(a)
-            if targetIdx >= 0 {
-                damages[targetIdx] += extractDamageAmount(a)
-            }
-        }
-    }
-    if len(damages) > 0 {
-        // Apply simultaneously
-        for playerIdx, dmg := range damages {
-            if dmg <= 0 {
-                continue
-            }
-            // Log calculation before applying
-            log.AddSimple(EventTypeDamage, step, map[string]any{
-                "targetPlayerIndex": playerIdx,
-                "amount":            dmg,
-                "simultaneous":      true,
-            })
-        }
-        for playerIdx, dmg := range damages {
-            if dmg > 0 {
-                gs.DealDamageToCommandCenter(playerIdx, dmg)
-            }
-        }
-    }
-    // Other effects
-    for _, a := range actions {
-        switch a.Type {
-        case ActionTypeCastSpell, ActionTypePlayCard:
+        case ActionTypePlayCard, ActionTypeActivateAbility:
             log.AddSimple(EventTypeEffect, step, map[string]any{
                 "playerIndex": a.PlayerIndex,
                 "sourceId":    a.SourceID,
@@ -238,110 +199,13 @@ func resolveUniversalStep(gs *GameState, log *EventLog, step string, actions Act
 }
 
 // resolveMovementCollisions processes movement and cancels collisions to the same destination.
-func resolveMovementCollisions(gs *GameState, log *EventLog, moves ActionQueue) {
-    if len(moves) == 0 {
-        return
-    }
-    // Collect intents by destination tile
-    destToActions := make(map[Point][]Action)
-    for _, m := range moves {
-        destToActions[m.Position] = append(destToActions[m.Position], m)
-    }
-    for dest, list := range destToActions {
-        if len(list) > 1 {
-            // Collision: cancel all moves to this tile
-            log.AddSimple(EventTypeMovement, "movement", map[string]any{
-                "destination": dest,
-                "cancelled":   true,
-                "count":       len(list),
-            })
-            continue
-        }
-        // Single mover proceeds
-        a := list[0]
-        log.AddSimple(EventTypeMovement, "movement", map[string]any{
-            "playerIndex": a.PlayerIndex,
-            "sourceId":    a.SourceID,
-            "to":          a.Position,
-            "cancelled":   false,
-        })
-        // NOTE: Actual unit position state is not yet modeled; this logs intent.
-    }
-}
+// Movement and combat are automatic in this simplified server core; detailed
+// unit systems will replace these placeholders in future iterations.
 
 // resolveCombatSimultaneous applies attacks' damage simultaneously.
-func resolveCombatSimultaneous(gs *GameState, log *EventLog, attacks ActionQueue) {
-    if len(attacks) == 0 {
-        return
-    }
-    // Compute damage snapshot
-    damages := make(map[int]int)
-    for _, a := range attacks {
-        targetIdx := extractTargetPlayerIndex(a)
-        if targetIdx >= 0 {
-            damages[targetIdx] += extractDamageAmount(a)
-        }
-    }
-    // Log all
-    for idx, amt := range damages {
-        if amt <= 0 {
-            continue
-        }
-        log.AddSimple(EventTypeDamage, "combat", map[string]any{
-            "targetPlayerIndex": idx,
-            "amount":            amt,
-            "simultaneous":      true,
-        })
-    }
-    // Apply simultaneously
-    for idx, amt := range damages {
-        if amt > 0 {
-            gs.DealDamageToCommandCenter(idx, amt)
-        }
-    }
-}
+// resolveCombatSimultaneous removed; no player-submitted attack actions.
 
-func extractTargetPlayerIndex(a Action) int {
-    // From params
-    if a.Params != nil {
-        if v, ok := a.Params["targetPlayerIndex"]; ok {
-            switch t := v.(type) {
-            case int:
-                return t
-            case float64:
-                return int(t)
-            }
-        }
-    }
-    // From target ID like "cc:0" or "cc0"
-    if len(a.TargetID) > 0 {
-        if a.TargetID == "cc:0" || a.TargetID == "cc0" {
-            return 0
-        }
-        if a.TargetID == "cc:1" || a.TargetID == "cc1" {
-            return 1
-        }
-    }
-    return -1
-}
-
-func extractDamageAmount(a Action) int {
-    if a.Params != nil {
-        if v, ok := a.Params["damage"]; ok {
-            switch t := v.(type) {
-            case int:
-                return t
-            case float64:
-                return int(t)
-            }
-        }
-    }
-    // Default damage for attack or deal_damage_cc if unspecified
-    if a.Type == ActionTypeAttack || a.Type == ActionTypeDealDamage {
-        return 10
-    }
-    return 0
-}
+// extractTargetPlayerIndex/extractDamageAmount removed with debug actions.
 
 // drawCardsDeterministic draws up to count cards, shuffling discard into draw if needed.
 // Returns the number of cards actually drawn.
