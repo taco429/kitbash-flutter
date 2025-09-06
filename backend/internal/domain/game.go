@@ -20,6 +20,12 @@ const (
 type GamePhase string
 
 const (
+	// New three-phase system
+	PhaseUpkeep     GamePhase = "upkeep"      // Upkeep phase (automatic)
+	PhaseDecision   GamePhase = "decision"    // Decision phase (player input)
+	PhaseResolution GamePhase = "resolution"  // Resolution phase (automatic)
+	
+	// Legacy phases (for compatibility)
 	PhaseDrawIncome   GamePhase = "draw_income"    // Draw & Income phase
 	PhasePlanning     GamePhase = "planning"       // Planning phase (30s)
 	PhaseRevealResolve GamePhase = "reveal_resolve" // Reveal & Resolve phase
@@ -37,6 +43,15 @@ type PlayerBattleState struct {
     // DrawPile and DiscardPile are server-internal and not serialized to clients.
     DrawPile    []CardID   `json:"-"`
     DiscardPile []CardID   `json:"-"`
+    // Resources
+    Gold        int        `json:"gold"`
+    MaxGold     int        `json:"maxGold"`
+    GoldIncome  int        `json:"goldIncome"`
+    Mana        int        `json:"mana"`
+    MaxMana     int        `json:"maxMana"`
+    // Hand management
+    HandLimit   int        `json:"handLimit"`
+    DrawPerTurn int        `json:"drawPerTurn"`
 }
 
 // CommandCenter represents a player's command center with health.
@@ -87,7 +102,10 @@ type GameState struct {
 	TurnCount           int              `json:"turnCount"`
 	BoardRows           int              `json:"boardRows"`
 	BoardCols           int              `json:"boardCols"`
+	BoardState          *BoardState      `json:"boardState"`
 	PlayerChoicesLocked map[int]bool     `json:"playerChoicesLocked"`
+	PlayerActions       map[int]*PlayerActions `json:"-"` // Server-side only, stores submitted actions
+	LastEventLog        *EventLog        `json:"lastEventLog,omitempty"` // Log from last resolution
 	CreatedAt           time.Time        `json:"createdAt"`
 	UpdatedAt           time.Time        `json:"updatedAt"`
 }
@@ -96,19 +114,39 @@ type GameState struct {
 func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *GameState {
 	commandCenters := computeDefaultCommandCenters(boardRows, boardCols)
 	
+	// Initialize player states with default resources
+	playerStates := make([]PlayerBattleState, len(players))
+	for i := range players {
+		playerStates[i] = PlayerBattleState{
+			PlayerIndex: i,
+			Hand:        []CardID{},
+			DrawPile:    []CardID{},
+			DiscardPile: []CardID{},
+			Gold:        3,      // Starting gold
+			MaxGold:     10,     // Max gold storage
+			GoldIncome:  2,      // Gold per turn
+			Mana:        0,      // Mana resets each turn
+			MaxMana:     5,      // Starting max mana
+			HandLimit:   7,      // Max cards in hand
+			DrawPerTurn: 1,      // Cards drawn per turn
+		}
+	}
+	
 	return &GameState{
 		ID:                  gameID,
 		Status:              GameStatusWaiting,
 		Players:             players,
 		CommandCenters:      commandCenters,
-		PlayerStates:        []PlayerBattleState{},
+		PlayerStates:        playerStates,
 		CurrentTurn:         0,
-		CurrentPhase:        PhaseDrawIncome,
+		CurrentPhase:        PhaseUpkeep,
 		PhaseStartTime:      time.Now(),
 		TurnCount:           0,
 		BoardRows:           boardRows,
 		BoardCols:           boardCols,
+		BoardState:          NewBoardState(boardRows, boardCols),
 		PlayerChoicesLocked: map[int]bool{0: false, 1: false},
+		PlayerActions:       make(map[int]*PlayerActions),
 		CreatedAt:           time.Now(),
 		UpdatedAt:           time.Now(),
 	}
@@ -269,6 +307,80 @@ func (gs *GameState) DiscardCards(playerIndex int, cardIDs []CardID) {
 	}
 	
 	gs.UpdatedAt = time.Now()
+}
+
+// SubmitPlayerActions stores a player's actions for the current round
+func (gs *GameState) SubmitPlayerActions(playerIndex int, actions ActionQueue) {
+	if gs.PlayerActions == nil {
+		gs.PlayerActions = make(map[int]*PlayerActions)
+	}
+	
+	gs.PlayerActions[playerIndex] = &PlayerActions{
+		PlayerIndex: playerIndex,
+		Actions:     actions,
+		LockedAt:    time.Now(),
+	}
+	
+	gs.LockPlayerChoice(playerIndex)
+}
+
+// GetPlayerActions retrieves a player's submitted actions
+func (gs *GameState) GetPlayerActions(playerIndex int) *PlayerActions {
+	if gs.PlayerActions == nil {
+		return nil
+	}
+	return gs.PlayerActions[playerIndex]
+}
+
+// ClearPlayerActions clears all submitted actions (after resolution)
+func (gs *GameState) ClearPlayerActions() {
+	gs.PlayerActions = make(map[int]*PlayerActions)
+	// Also reset player locks
+	if gs.PlayerChoicesLocked == nil {
+		gs.PlayerChoicesLocked = map[int]bool{0: false, 1: false}
+	} else {
+		for key := range gs.PlayerChoicesLocked {
+			gs.PlayerChoicesLocked[key] = false
+		}
+	}
+}
+
+// DrawCards draws cards from a player's draw pile to their hand
+func (gs *GameState) DrawCards(playerIndex int, count int) []CardID {
+	if playerIndex < 0 || playerIndex >= len(gs.PlayerStates) {
+		return nil
+	}
+	
+	playerState := &gs.PlayerStates[playerIndex]
+	drawnCards := []CardID{}
+	
+	for i := 0; i < count && len(playerState.DrawPile) > 0; i++ {
+		// Draw from top of deck (end of slice)
+		cardID := playerState.DrawPile[len(playerState.DrawPile)-1]
+		playerState.DrawPile = playerState.DrawPile[:len(playerState.DrawPile)-1]
+		playerState.Hand = append(playerState.Hand, cardID)
+		playerState.DeckCount = len(playerState.DrawPile)
+		drawnCards = append(drawnCards, cardID)
+	}
+	
+	gs.UpdatedAt = time.Now()
+	return drawnCards
+}
+
+// RefillHand draws cards until the player reaches their hand limit
+func (gs *GameState) RefillHand(playerIndex int) []CardID {
+	if playerIndex < 0 || playerIndex >= len(gs.PlayerStates) {
+		return nil
+	}
+	
+	playerState := &gs.PlayerStates[playerIndex]
+	cardsToDraw := playerState.HandLimit - len(playerState.Hand)
+	
+	if cardsToDraw <= 0 {
+		return nil
+	}
+	
+	return gs.DrawCards(playerIndex, cardsToDraw)
 }
 
 func max(a, b int) int {
