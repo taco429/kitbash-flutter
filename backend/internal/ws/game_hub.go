@@ -258,6 +258,8 @@ func (h *GameHub) handleGameMessage(ctx context.Context, client *GameClient, msg
 		return h.handleGetGameState(ctx, client)
 	case "lock_choice":
 		return h.handleLockChoice(ctx, client, message)
+	case "submit_actions":
+		return h.handleSubmitActions(ctx, client, message)
 	case "advance_phase":
 		return h.handleAdvancePhase(ctx, client)
 	default:
@@ -330,7 +332,7 @@ func (h *GameHub) handleLockChoice(ctx context.Context, client *GameClient, mess
 		return nil
 	}
 
-	// Handle discard cards if provided
+	// Queue discard cards if provided (processed at end of round)
 	if discardCards, ok := message["discardCards"].([]interface{}); ok && len(discardCards) > 0 {
 		var cardIDs []domain.CardID
 		for _, card := range discardCards {
@@ -339,11 +341,14 @@ func (h *GameHub) handleLockChoice(ctx context.Context, client *GameClient, mess
 			}
 		}
 		if len(cardIDs) > 0 {
-			gameState.DiscardCards(int(playerIndex), cardIDs)
-			h.log.WithContext(ctx).Info("Cards marked for discard",
-				"game_id", client.GameID,
-				"player_index", int(playerIndex),
-				"cards", cardIDs)
+			if int(playerIndex) >= 0 && int(playerIndex) < len(gameState.PlayerStates) {
+				ps := &gameState.PlayerStates[int(playerIndex)]
+				ps.PendingDiscards = append(ps.PendingDiscards, cardIDs...)
+				h.log.WithContext(ctx).Info("Cards queued for discard",
+					"game_id", client.GameID,
+					"player_index", int(playerIndex),
+					"cards", cardIDs)
+			}
 		}
 	}
 
@@ -376,6 +381,49 @@ func (h *GameHub) handleLockChoice(ctx context.Context, client *GameClient, mess
 		// Advance to Reveal & Resolve phase
 		return h.advanceToPhase(ctx, client.GameID, domain.PhaseRevealResolve)
 	}
+
+	return h.broadcastGameState(ctx, client.GameID)
+}
+
+// handleSubmitActions receives a player's action queue for the current round.
+func (h *GameHub) handleSubmitActions(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+	playerIndexF, ok := message["playerIndex"].(float64)
+	if !ok {
+		return nil
+	}
+	actionsRaw, ok := message["actions"].([]interface{})
+	if !ok {
+		return nil
+	}
+
+	gameState, err := h.gameRepo.Get(ctx, client.GameID)
+	if err != nil {
+		return err
+	}
+
+	queue := make(domain.ActionQueue, 0, len(actionsRaw))
+	for _, a := range actionsRaw {
+		b, _ := json.Marshal(a)
+		var act domain.Action
+		if err := json.Unmarshal(b, &act); err == nil {
+			act.PlayerIndex = int(playerIndexF)
+			queue = append(queue, act)
+		}
+	}
+
+	if gameState.PendingActions == nil {
+		gameState.PendingActions = map[int]domain.ActionQueue{0: {}, 1: {}}
+	}
+	gameState.PendingActions[int(playerIndexF)] = queue
+
+	if err := h.gameRepo.Update(ctx, gameState); err != nil {
+		return err
+	}
+
+	h.log.WithContext(ctx).Info("Player submitted actions",
+		"game_id", client.GameID,
+		"player_index", int(playerIndexF),
+		"count", len(queue))
 
 	return h.broadcastGameState(ctx, client.GameID)
 }
@@ -522,9 +570,15 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 	// Handle phase-specific logic
 	switch phase {
 	case domain.PhaseDrawIncome:
-		// TODO: Draw cards and collect resources
-		// For now, automatically advance to Planning
-		time.AfterFunc(2*time.Second, func() {
+		// Execute Upkeep and then advance to Planning
+		upkeepLog := domain.ExecuteUpkeepPhase(gameState)
+		if err := h.gameRepo.Update(ctx, gameState); err != nil {
+			return err
+		}
+		// Broadcast timeline for upkeep
+		h.broadcastResolutionTimeline(ctx, gameID, upkeepLog)
+		// Advance to Planning after brief delay
+		time.AfterFunc(1*time.Second, func() {
 			h.advanceToPhase(context.Background(), gameID, domain.PhasePlanning)
 		})
 
@@ -533,16 +587,26 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 		h.startPlanningTimer(ctx, gameID)
 
 	case domain.PhaseRevealResolve:
-		// TODO: Resolve all actions
-		// For now, automatically advance to Cleanup after 3 seconds
-		time.AfterFunc(3*time.Second, func() {
+		// Resolve actions deterministically
+		p1 := gameState.PendingActions[0]
+		p2 := gameState.PendingActions[1]
+		resolutionLog := domain.ExecuteResolutionPhase(gameState, p1, p2)
+		// Clear pending actions after resolution
+		gameState.PendingActions[0] = domain.ActionQueue{}
+		gameState.PendingActions[1] = domain.ActionQueue{}
+		if err := h.gameRepo.Update(ctx, gameState); err != nil {
+			return err
+		}
+		// Broadcast timeline for resolution
+		h.broadcastResolutionTimeline(ctx, gameID, resolutionLog)
+		// Automatically advance to Cleanup shortly
+		time.AfterFunc(500*time.Millisecond, func() {
 			h.advanceToPhase(context.Background(), gameID, domain.PhaseCleanup)
 		})
 
 	case domain.PhaseCleanup:
-		// TODO: Handle cleanup logic
-		// Automatically start next turn after 1 second
-		time.AfterFunc(1*time.Second, func() {
+		// Next round starts immediately after minimal delay
+		time.AfterFunc(500*time.Millisecond, func() {
 			gs, _ := h.gameRepo.Get(context.Background(), gameID)
 			if gs != nil {
 				gs.AdvanceTurn()
@@ -582,6 +646,33 @@ func (h *GameHub) startPlanningTimer(ctx context.Context, gameID domain.GameID) 
 
 	h.phaseTimers[gameID] = timer
 	h.mu.Unlock()
+}
+
+// broadcastResolutionTimeline sends the event log for the round to all clients.
+func (h *GameHub) broadcastResolutionTimeline(ctx context.Context, gameID domain.GameID, log *domain.EventLog) {
+	h.mu.RLock()
+	gameClients, exists := h.clients[gameID]
+	if !exists {
+		h.mu.RUnlock()
+		return
+	}
+	clients := make([]*GameClient, 0, len(gameClients))
+	for _, client := range gameClients {
+		clients = append(clients, client)
+	}
+	h.mu.RUnlock()
+
+	message := map[string]interface{}{
+		"type":  "resolution_timeline",
+		"round": log.RoundNumber,
+		"events": log.Events,
+	}
+
+	for _, client := range clients {
+		if err := client.Conn.WriteJSON(message); err != nil {
+			h.log.LogError(ctx, err, "Failed to send resolution timeline to client")
+		}
+	}
 }
 
 // cancelPhaseTimer cancels the phase timer for a game.
@@ -643,6 +734,11 @@ func buildPlayerStateFromDeck(playerIndex int, deck *domain.Deck) domain.PlayerB
 		DeckCount:   len(drawPile),
 		DrawPile:    drawPile,
 		DiscardPile: []domain.CardID{},
+		Gold:        0,
+		Mana:        0,
+		ManaMax:     3,
+		GoldIncome:  1,
+		HandLimit:   7,
 	}
 }
 

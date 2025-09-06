@@ -416,6 +416,11 @@ class GameService extends ChangeNotifier {
             requestGameState();
           }
         }
+      } else if (messageType == 'resolution_timeline') {
+        final round = data['round'];
+        debugPrint('Resolution timeline received for round $round');
+        // After resolution, fetch the latest authoritative state
+        requestGameState();
       } else if (messageType == 'player_joined') {
         // Set the current player index when joining
         final playerIndex = data['playerIndex'];
