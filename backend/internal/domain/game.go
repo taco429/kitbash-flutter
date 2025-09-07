@@ -28,15 +28,23 @@ const (
 
 // PlayerBattleState represents per-player runtime state such as deck/hand.
 type PlayerBattleState struct {
-    PlayerIndex int        `json:"playerIndex"`
-    DeckID      DeckID     `json:"deckId"`
-    // Hand contains the visible cards in the player's hand (by CardID).
-    Hand        []CardID   `json:"hand"`
-    // DeckCount is the remaining number of cards in the player's deck/draw pile.
-    DeckCount   int        `json:"deckCount"`
-    // DrawPile and DiscardPile are server-internal and not serialized to clients.
-    DrawPile    []CardID   `json:"-"`
-    DiscardPile []CardID   `json:"-"`
+	PlayerIndex int        `json:"playerIndex"`
+	DeckID      DeckID     `json:"deckId"`
+	// Hand contains the visible cards in the player's hand (by CardID).
+	Hand        []CardID   `json:"hand"`
+	// DeckCount is the remaining number of cards in the player's deck/draw pile.
+	DeckCount   int        `json:"deckCount"`
+	// DrawPile and DiscardPile are server-internal and not serialized to clients.
+	DrawPile    []CardID   `json:"-"`
+	DiscardPile []CardID   `json:"-"`
+	// Resources and limits
+	Gold        int        `json:"gold"`
+	Mana        int        `json:"mana"`
+	ManaMax     int        `json:"manaMax"`
+	GoldIncome  int        `json:"goldIncome"`
+	HandLimit   int        `json:"handLimit"`
+	// Queues
+	PendingDiscards []CardID   `json:"-"`
 }
 
 // CommandCenter represents a player's command center with health.
@@ -88,6 +96,7 @@ type GameState struct {
 	BoardRows           int              `json:"boardRows"`
 	BoardCols           int              `json:"boardCols"`
 	PlayerChoicesLocked map[int]bool     `json:"playerChoicesLocked"`
+	PendingActions      map[int]ActionQueue `json:"-"`
 	CreatedAt           time.Time        `json:"createdAt"`
 	UpdatedAt           time.Time        `json:"updatedAt"`
 }
@@ -109,6 +118,7 @@ func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *Ga
 		BoardRows:           boardRows,
 		BoardCols:           boardCols,
 		PlayerChoicesLocked: map[int]bool{0: false, 1: false},
+		PendingActions:      map[int]ActionQueue{0: {}, 1: {}},
 		CreatedAt:           time.Now(),
 		UpdatedAt:           time.Now(),
 	}
@@ -221,6 +231,13 @@ func (gs *GameState) AdvanceTurn() {
 		for key := range gs.PlayerChoicesLocked {
 			gs.PlayerChoicesLocked[key] = false
 		}
+	}
+	// Clear pending actions for new turn
+	if gs.PendingActions == nil {
+		gs.PendingActions = map[int]ActionQueue{0: {}, 1: {}}
+	} else {
+		gs.PendingActions[0] = ActionQueue{}
+		gs.PendingActions[1] = ActionQueue{}
 	}
 	gs.UpdatedAt = time.Now()
 }
