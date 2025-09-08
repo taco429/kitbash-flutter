@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kitbash/models/card_instance.dart';
+import 'package:kitbash_flutter/models/card_instance.dart';
 
 void main() {
   group('CardInstance Tests', () {
