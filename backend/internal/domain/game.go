@@ -30,21 +30,21 @@ const (
 type PlayerBattleState struct {
 	PlayerIndex int        `json:"playerIndex"`
 	DeckID      DeckID     `json:"deckId"`
-	// Hand contains the visible cards in the player's hand (by CardID).
-	Hand        []CardID   `json:"hand"`
+	// Hand contains the visible cards in the player's hand (as CardInstances).
+	Hand        []CardInstance   `json:"hand"`
 	// DeckCount is the remaining number of cards in the player's deck/draw pile.
 	DeckCount   int        `json:"deckCount"`
 	// DrawPile and DiscardPile are server-internal and not serialized to clients.
-	DrawPile    []CardID   `json:"-"`
-	DiscardPile []CardID   `json:"-"`
+	DrawPile    []CardInstance   `json:"-"`
+	DiscardPile []CardInstance   `json:"-"`
 	// Resources and limits
 	Gold        int        `json:"gold"`
 	Mana        int        `json:"mana"`
 	ManaMax     int        `json:"manaMax"`
 	GoldIncome  int        `json:"goldIncome"`
 	HandLimit   int        `json:"handLimit"`
-	// Queues
-	PendingDiscards []CardID   `json:"-"`
+	// Queues - using instance IDs for discards
+	PendingDiscards []CardInstanceID   `json:"-"`
 }
 
 // CommandCenter represents a player's command center with health.
@@ -264,7 +264,7 @@ func (gs *GameState) ShouldAutoAdvancePhase() bool {
 }
 
 // DiscardCards moves specified cards from a player's hand to their discard pile.
-func (gs *GameState) DiscardCards(playerIndex int, cardIDs []CardID) {
+func (gs *GameState) DiscardCards(playerIndex int, instanceIDs []CardInstanceID) {
 	if playerIndex < 0 || playerIndex >= len(gs.PlayerStates) {
 		return
 	}
@@ -272,14 +272,14 @@ func (gs *GameState) DiscardCards(playerIndex int, cardIDs []CardID) {
 	playerState := &gs.PlayerStates[playerIndex]
 	
 	// Remove cards from hand and add to discard pile
-	for _, cardID := range cardIDs {
+	for _, instanceID := range instanceIDs {
 		// Find and remove from hand
 		for i, handCard := range playerState.Hand {
-			if handCard == cardID {
+			if handCard.InstanceID == instanceID {
 				// Remove from hand
 				playerState.Hand = append(playerState.Hand[:i], playerState.Hand[i+1:]...)
 				// Add to discard pile
-				playerState.DiscardPile = append(playerState.DiscardPile, cardID)
+				playerState.DiscardPile = append(playerState.DiscardPile, handCard)
 				break
 			}
 		}

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
+import '../models/card_instance.dart';
 
 class CommandCenter {
   final int playerIndex;
@@ -145,7 +146,7 @@ class GameState {
 class PlayerBattleState {
   final int playerIndex;
   final String deckId;
-  final List<String> hand; // List of CardIDs
+  final List<CardInstance> hand; // List of CardInstances
   final int deckCount;
 
   const PlayerBattleState({
@@ -157,14 +158,22 @@ class PlayerBattleState {
 
   factory PlayerBattleState.fromJson(Map<String, dynamic> json) {
     final rawHand = json['hand'];
-    List<String> handIds = [];
+    List<CardInstance> handInstances = [];
     if (rawHand is List) {
-      handIds = rawHand.map((e) => e.toString()).toList();
+      handInstances = rawHand.map((e) {
+        if (e is Map<String, dynamic>) {
+          return CardInstance.fromJson(e);
+        } else if (e is String) {
+          // Backwards compatibility: if we get just a string, treat it as cardId with no instanceId
+          return CardInstance(instanceId: e, cardId: e);
+        }
+        return CardInstance(instanceId: '', cardId: e.toString());
+      }).toList();
     }
     return PlayerBattleState(
       playerIndex: json['playerIndex'] ?? 0,
       deckId: json['deckId']?.toString() ?? '',
-      hand: handIds,
+      hand: handInstances,
       deckCount: json['deckCount'] ?? 0,
     );
   }
@@ -189,18 +198,18 @@ class GameService extends ChangeNotifier {
       0; // Default to player 0, should be set when joining game
   int get currentPlayerIndex => _currentPlayerIndex;
 
-  // Track cards marked for discard during planning phase
+  // Track cards marked for discard during planning phase (using instance IDs)
   final Set<String> _cardsToDiscard = {};
   Set<String> get cardsToDiscard => _cardsToDiscard;
 
-  bool isCardMarkedForDiscard(String cardId) =>
-      _cardsToDiscard.contains(cardId);
+  bool isCardMarkedForDiscard(String instanceId) =>
+      _cardsToDiscard.contains(instanceId);
 
-  void toggleCardDiscard(String cardId) {
-    if (_cardsToDiscard.contains(cardId)) {
-      _cardsToDiscard.remove(cardId);
+  void toggleCardDiscard(String instanceId) {
+    if (_cardsToDiscard.contains(instanceId)) {
+      _cardsToDiscard.remove(instanceId);
     } else {
-      _cardsToDiscard.add(cardId);
+      _cardsToDiscard.add(instanceId);
     }
     notifyListeners();
   }
