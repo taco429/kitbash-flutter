@@ -461,30 +461,366 @@ class _DraggableHandCard extends StatelessWidget {
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.all(16),
-          child: Stack(
-            children: [
-              Center(
-                child: AdvancedCardDisplay(
-                  card: card,
-                  width: previewWidth,
-                  height: previewHeight,
-                  enableParallax: true,
-                  enableGlow: true,
-                  enableShadow: true,
-                ),
-              ),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.of(ctx).pop(),
-                ),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWide = constraints.maxWidth > 720;
+              final double cardW = isWide
+                  ? (constraints.maxWidth * 0.42).clamp(280.0, 540.0)
+                  : previewWidth;
+              final double cardH = cardW * aspectRatio;
+
+              final content = isWide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: Center(
+                            child: AdvancedCardDisplay(
+                              card: card,
+                              width: cardW,
+                              height: cardH,
+                              enableParallax: true,
+                              enableGlow: true,
+                              enableShadow: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          flex: 4,
+                          child: _CardDetailsPanel(card: card),
+                        ),
+                      ],
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Center(
+                            child: AdvancedCardDisplay(
+                              card: card,
+                              width: cardW,
+                              height: cardH,
+                              enableParallax: true,
+                              enableGlow: true,
+                              enableShadow: true,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _CardDetailsPanel(card: card),
+                        ],
+                      ),
+                    );
+
+              return Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.8),
+                          Colors.black.withValues(alpha: 0.6),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 20,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                    child: content,
+                  ),
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         );
       },
     );
+  }
+}
+
+class _CardDetailsPanel extends StatelessWidget {
+  final GameCard card;
+
+  const _CardDetailsPanel({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            card.name,
+            style: textTheme.titleLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _pill(
+                icon: Icons.category,
+                label: card.type.displayName,
+                color: Colors.blueAccent,
+              ),
+              _pill(
+                icon: Icons.palette,
+                label: card.color.displayName,
+                color: _colorForCardColor(card.color),
+              ),
+              if (card.goldCost > 0)
+                _pill(
+                  icon: Icons.monetization_on,
+                  label: '${card.goldCost} Gold',
+                  color: Colors.amber.shade700,
+                ),
+              if (card.manaCost > 0)
+                _pill(
+                  icon: Icons.auto_awesome,
+                  label: '${card.manaCost} Mana',
+                  color: Colors.lightBlueAccent,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (card.description.isNotEmpty) ...[
+            Text(
+              card.description,
+              style: textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.9),
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (card.isUnit && card.unitStats != null)
+            _statsSection(
+              title: 'Unit Stats',
+              items: [
+                _statItem(Icons.flash_on, 'Attack', '${card.unitStats!.attack}', Colors.redAccent),
+                _statItem(Icons.favorite, 'Health', '${card.unitStats!.health}', Colors.greenAccent),
+                _statItem(Icons.shield, 'Armor', '${card.unitStats!.armor}', Colors.blueAccent),
+                _statItem(Icons.speed, 'Speed', '${card.unitStats!.speed}', Colors.yellowAccent),
+                _statItem(Icons.straighten, 'Range', '${card.unitStats!.range}', Colors.purpleAccent),
+              ],
+            ),
+          if (card.isBuilding && card.buildingStats != null)
+            _statsSection(
+              title: 'Building Stats',
+              items: [
+                _statItem(Icons.favorite, 'Health', '${card.buildingStats!.health}', Colors.greenAccent),
+                _statItem(Icons.shield, 'Armor', '${card.buildingStats!.armor}', Colors.blueAccent),
+                if (card.buildingStats!.attack != null)
+                  _statItem(Icons.flash_on, 'Attack', '${card.buildingStats!.attack}', Colors.redAccent),
+                if (card.buildingStats!.range != null)
+                  _statItem(Icons.straighten, 'Range', '${card.buildingStats!.range}', Colors.purpleAccent),
+              ],
+            ),
+          if (card.isHero && card.heroStats != null)
+            _statsSection(
+              title: 'Hero Stats',
+              items: [
+                _statItem(Icons.flash_on, 'Attack', '${card.heroStats!.attack}', Colors.redAccent),
+                _statItem(Icons.favorite, 'Health', '${card.heroStats!.health}', Colors.greenAccent),
+                _statItem(Icons.shield, 'Armor', '${card.heroStats!.armor}', Colors.blueAccent),
+                _statItem(Icons.speed, 'Speed', '${card.heroStats!.speed}', Colors.yellowAccent),
+                _statItem(Icons.straighten, 'Range', '${card.heroStats!.range}', Colors.purpleAccent),
+                _statItem(Icons.timer, 'Cooldown', '${card.heroStats!.cooldown}', Colors.orangeAccent),
+              ],
+            ),
+          if (card.abilities.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Abilities',
+              style: textTheme.titleSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: card.abilities
+                  .map((a) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          a,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: onSurface.withValues(alpha: 0.95),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ],
+          if (card.flavorText != null && card.flavorText!.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              '“${card.flavorText}”',
+              style: textTheme.bodySmall?.copyWith(
+                color: Colors.white70,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _statsSection({required String title, required List<Widget> items}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: items,
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+
+  Widget _statItem(IconData icon, String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill({required IconData icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _colorForCardColor(CardColor color) {
+    switch (color) {
+      case CardColor.red:
+        return Colors.redAccent;
+      case CardColor.orange:
+        return Colors.orangeAccent;
+      case CardColor.yellow:
+        return Colors.amberAccent;
+      case CardColor.green:
+        return Colors.lightGreenAccent;
+      case CardColor.blue:
+        return Colors.lightBlueAccent;
+      case CardColor.purple:
+        return Colors.purpleAccent;
+    }
   }
 }
