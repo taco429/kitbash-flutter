@@ -4,6 +4,7 @@ import '../models/card.dart';
 import '../models/card_instance.dart';
 import '../services/game_service.dart';
 import 'advanced_card_display.dart';
+import 'draggable_card.dart';
 
 class AnimatedHandDisplay extends StatefulWidget {
   final List<GameCard> cards;
@@ -267,44 +268,43 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
                             opacity: _fadeAnimations[i].value,
                             child: Stack(
                               children: [
-                                MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    width: cardWidth,
-                                    height: cardHeight,
-                                    decoration: i <
-                                                widget.cardInstances.length &&
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: cardWidth,
+                                  height: cardHeight,
+                                  decoration: i < widget.cardInstances.length &&
+                                          gameService.isCardMarkedForDiscard(
+                                              widget.cardInstances[i].instanceId)
+                                      ? BoxDecoration(
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: Colors.red.withValues(alpha: 0.6),
+                                            width: 2,
+                                          ),
+                                        )
+                                      : null,
+                                  child: Opacity(
+                                    opacity: i < widget.cardInstances.length &&
                                             gameService.isCardMarkedForDiscard(
-                                                widget.cardInstances[i]
-                                                    .instanceId)
-                                        ? BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: Colors.red
-                                                  .withValues(alpha: 0.6),
-                                              width: 2,
-                                            ),
-                                          )
-                                        : null,
-                                    child: Opacity(
-                                      opacity: i <
-                                                  widget.cardInstances.length &&
-                                              gameService
-                                                  .isCardMarkedForDiscard(widget
-                                                      .cardInstances[i]
-                                                      .instanceId)
-                                          ? 0.6
-                                          : 1.0,
-                                      child: AdvancedCardDisplay(
-                                        card: widget.cards[i],
-                                        width: cardWidth,
-                                        height: cardHeight,
-                                        enableParallax: true,
-                                        enableGlow: true,
-                                        enableShadow: true,
-                                      ),
+                                                widget.cardInstances[i].instanceId)
+                                        ? 0.6
+                                        : 1.0,
+                                    child: DraggableCard(
+                                      card: widget.cards[i],
+                                      cardInstance: i < widget.cardInstances.length
+                                          ? widget.cardInstances[i]
+                                          : null,
+                                      width: cardWidth,
+                                      height: cardHeight,
+                                      isDraggable: isPlanning && !isLocked,
+                                      onDragStarted: () {
+                                        // Haptic feedback
+                                        // HapticFeedback.lightImpact();
+                                      },
+                                      onDragCompleted: (card, instance) {
+                                        // Card was successfully placed
+                                        debugPrint('Card ${card.name} was placed on the grid');
+                                      },
                                     ),
                                   ),
                                 ),

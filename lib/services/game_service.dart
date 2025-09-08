@@ -587,6 +587,25 @@ class GameService extends ChangeNotifier {
     }
   }
 
+  // Play a card at a specific position on the grid
+  void playCardAtPosition(int row, int col, dynamic card) {
+    if (_gameState == null) return;
+    
+    // Send the play card action via WebSocket
+    sendAction({
+      'type': 'play_card',
+      'row': row,
+      'col': col,
+      'cardId': card.id,
+      'playerIndex': _currentPlayerIndex,
+    });
+    
+    debugPrint('Playing card ${card.name} at position ($row, $col)');
+    
+    // TODO: Remove card from hand after successful placement
+    // This will be handled when we receive confirmation from the server
+  }
+
   void disconnect() {
     _channel?.sink.close();
     _channel = null;

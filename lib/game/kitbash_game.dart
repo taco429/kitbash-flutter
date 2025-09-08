@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
+import '../models/card.dart';
 
 class KitbashGame extends FlameGame with TapCallbacks {
   final String gameId;
@@ -100,6 +101,13 @@ class IsometricGridComponent extends PositionComponent {
   // Hover state
   int? hoveredRow;
   int? hoveredCol;
+  
+  // Drag and drop state
+  bool isDragHovering = false;
+  int? dragHoverRow;
+  int? dragHoverCol;
+  GameCard? draggedCard;
+  bool isValidDropZone = false;
 
   // Debug overlay state
   bool debugHoverOverlay = false;
@@ -177,6 +185,9 @@ class IsometricGridComponent extends PositionComponent {
       ..strokeWidth = 1;
     final ui.Paint highlightPaint = ui.Paint()..color = const Color(0x8854C7EC);
     final ui.Paint hoverPaint = ui.Paint()..color = const Color(0x66FFFFFF);
+    final ui.Paint dragValidPaint = ui.Paint()..color = const Color(0x6634C759);
+    final ui.Paint dragInvalidPaint = ui.Paint()..color = const Color(0x66FF3B30);
+    final ui.Paint dragHoverPaint = ui.Paint()..color = const Color(0x99FFD700);
     final ui.Paint ccPaintP0 = ui.Paint()..color = const Color(0xCC8BC34A);
     final ui.Paint ccPaintP1 = ui.Paint()..color = const Color(0xCCE91E63);
     final ui.Paint healthBarBg = ui.Paint()..color = const Color(0xAA000000);
@@ -201,8 +212,24 @@ class IsometricGridComponent extends PositionComponent {
         // Stroke
         canvas.drawPath(diamond, gridLinePaint);
 
+        // Apply drag hover highlight
+        if (isDragHovering && dragHoverRow == r && dragHoverCol == c) {
+          final ui.Paint dragPaint = isValidDropZone ? dragValidPaint : dragInvalidPaint;
+          canvas.drawPath(diamond, dragPaint);
+          
+          // Draw pulsing effect for valid drop zones
+          if (isValidDropZone) {
+            final double pulse = (DateTime.now().millisecondsSinceEpoch % 1000) / 1000.0;
+            final ui.Paint pulsePaint = ui.Paint()
+              ..color = const Color(0x34C759).withValues(alpha: 0.2 + pulse * 0.3)
+              ..style = ui.PaintingStyle.stroke
+              ..strokeWidth = 2.0;
+            canvas.drawPath(diamond, pulsePaint);
+          }
+        }
+        
         // Apply hover highlight
-        if (hoveredRow == r && hoveredCol == c) {
+        if (!isDragHovering && hoveredRow == r && hoveredCol == c) {
           canvas.drawPath(diamond, hoverPaint);
         }
 
@@ -533,5 +560,97 @@ extension on IsometricGridComponent {
   void clearHover() {
     hoveredRow = null;
     hoveredCol = null;
+  }
+  
+  /// Handles drag hover over the grid
+  void handleDragHover(Offset localOffset, GameCard? card) {
+    final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
+    final Vector2 gridLocal = parentToLocal(parentLocal);
+    final Vector2? picked = _pickTileAt(gridLocal);
+    
+    if (picked != null) {
+      final int row = picked.y.toInt();
+      final int col = picked.x.toInt();
+      
+      dragHoverRow = row;
+      dragHoverCol = col;
+      draggedCard = card;
+      isDragHovering = true;
+      
+      // Validate if this is a valid drop zone
+      isValidDropZone = _isValidDropZone(row, col, card);
+    } else {
+      clearDragHover();
+    }
+  }
+  
+  /// Clears drag hover state
+  void clearDragHover() {
+    isDragHovering = false;
+    dragHoverRow = null;
+    dragHoverCol = null;
+    draggedCard = null;
+    isValidDropZone = false;
+  }
+  
+  /// Validates if a tile is a valid drop zone for the given card
+  bool _isValidDropZone(int row, int col, GameCard? card) {
+    if (card == null) return false;
+    
+    // Check if tile is within bounds
+    if (row < 0 || row >= rows || col < 0 || col >= cols) {
+      return false;
+    }
+    
+    // Check if tile is not occupied by a command center
+    for (final CommandCenter cc in _commandCenters) {
+      if (_isTileInCommandCenter(row, col, cc)) {
+        return false;
+      }
+    }
+    
+    // Additional validation based on card type
+    final TileData tile = _tileData[row][col];
+    
+    // Units can be placed on most terrain types except water and mountains
+    if (card.isUnit) {
+      return tile.terrain != TerrainType.water && 
+             tile.terrain != TerrainType.mountain;
+    }
+    
+    // Buildings need flat terrain (grass or desert)
+    if (card.isBuilding) {
+      return tile.terrain == TerrainType.grass || 
+             tile.terrain == TerrainType.desert;
+    }
+    
+    // Spells can target any tile
+    if (card.isSpell) {
+      return true;
+    }
+    
+    return true;
+  }
+  
+  /// Handles card drop on the grid
+  bool handleCardDrop(Offset localOffset, GameCard card) {
+    final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
+    final Vector2 gridLocal = parentToLocal(parentLocal);
+    final Vector2? picked = _pickTileAt(gridLocal);
+    
+    if (picked != null) {
+      final int row = picked.y.toInt();
+      final int col = picked.x.toInt();
+      
+      if (_isValidDropZone(row, col, card)) {
+        // Play card at this position
+        gameService.playCardAtPosition(row, col, card);
+        clearDragHover();
+        return true;
+      }
+    }
+    
+    clearDragHover();
+    return false;
   }
 }

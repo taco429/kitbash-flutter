@@ -5,6 +5,7 @@ import '../services/game_service.dart';
 import '../services/card_service.dart';
 import '../services/deck_service.dart';
 import '../widgets/game_with_tooltip.dart';
+import '../widgets/game_with_drag_drop.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
 import '../widgets/discard_pile.dart';
@@ -175,11 +176,11 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
               ),
-              // Game area taking full width (deck panels removed)
+              // Game area taking full width with drag-and-drop support
               Expanded(
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(8)),
-                  child: GameWithTooltip(
+                  child: GameWithDragDrop(
                     game: _game,
                   ),
                 ),
