@@ -433,12 +433,58 @@ class _DraggableHandCard extends StatelessWidget {
         opacity: 0.3,
         child: IgnorePointer(child: cardWidget),
       ),
-      child: Stack(
-        children: [
-          cardWidget,
-          if (discardButton is! SizedBox) discardButton,
-        ],
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _showCardPreview(context),
+        child: Stack(
+          children: [
+            cardWidget,
+            if (discardButton is! SizedBox) discardButton,
+          ],
+        ),
       ),
+    );
+  }
+
+  void _showCardPreview(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final double maxWidth = size.width * 0.9;
+    final double baseWidth = size.width < 600 ? size.width * 0.8 : 420;
+    final double previewWidth = baseWidth.clamp(260.0, maxWidth);
+    final double aspectRatio = height > 0 ? (height / width) : (160.0 / 110.0);
+    final double previewHeight = previewWidth * aspectRatio;
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Stack(
+            children: [
+              Center(
+                child: AdvancedCardDisplay(
+                  card: card,
+                  width: previewWidth,
+                  height: previewHeight,
+                  enableParallax: true,
+                  enableGlow: true,
+                  enableShadow: true,
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
