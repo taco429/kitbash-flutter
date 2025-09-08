@@ -550,6 +550,27 @@ class GameService extends ChangeNotifier {
     sendAction({'type': 'get_game_state'});
   }
 
+  /// Stage a play-card action locally and notify the backend (placeholder)
+  void stagePlayCard(
+    String gameId,
+    int playerIndex,
+    String cardInstanceId,
+    int row,
+    int col,
+  ) {
+    debugPrint(
+        'Stage play card instance=$cardInstanceId at ($row,$col) by player $playerIndex');
+    sendAction({
+      'type': 'stage_play_card',
+      'gameId': gameId,
+      'playerIndex': playerIndex,
+      'cardInstanceId': cardInstanceId,
+      'row': row,
+      'col': col,
+    });
+    // Future: Update local optimistic UI, e.g. mark tile as targeted
+  }
+
   // Lock in player's choices for the current turn
   Future<bool> lockPlayerChoice(String gameId, int playerIndex) async {
     try {

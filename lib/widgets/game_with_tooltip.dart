@@ -5,6 +5,7 @@ import 'package:flame/game.dart';
 import '../game/kitbash_game.dart';
 import '../models/tile_data.dart';
 import 'game_tooltip.dart';
+import '../models/card_drag_payload.dart';
 
 /// A widget that wraps the KitbashGame with tooltip functionality
 class GameWithTooltip extends StatefulWidget {
@@ -24,6 +25,9 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   Offset? _hoverPosition;
   Timer? _tooltipTimer;
   bool _showTooltip = false;
+  bool _isDragActive = false;
+
+  final GlobalKey _dropOverlayKey = GlobalKey();
 
   static const Duration _tooltipDelay = Duration(milliseconds: 500);
 
@@ -106,11 +110,70 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             key: ValueKey(widget.game),
             game: widget.game,
           ),
+          // Drag-and-drop overlay for playing cards onto the board
+          Positioned.fill(
+            child: DragTarget<CardDragPayload>(
+              builder: (context, candidateData, rejectedData) {
+                // Provide an invisible hit area for drag events
+                return Container(key: _dropOverlayKey, color: Colors.transparent);
+              },
+              onWillAcceptWithDetails: (details) {
+                _isDragActive = true;
+                _tooltipTimer?.cancel();
+                _showTooltip = false;
+
+                // Convert global pointer to local coordinates
+                final box = _dropOverlayKey.currentContext?.findRenderObject() as RenderBox?;
+                if (box == null) return true;
+                final local = box.globalToLocal(details.offset);
+                final tile = widget.game.resolveHoverAt(local);
+                _onTileHover(tile, local);
+                return true;
+              },
+              onMove: (details) {
+                final box = _dropOverlayKey.currentContext?.findRenderObject() as RenderBox?;
+                if (box == null) return;
+                final local = box.globalToLocal(details.offset);
+                final tile = widget.game.resolveHoverAt(local);
+                _onTileHover(tile, local);
+              },
+              onLeave: (data) {
+                _isDragActive = false;
+                widget.game.clearHover();
+                _onTileHover(null, null);
+              },
+              onAcceptWithDetails: (details) {
+                _isDragActive = false;
+                final box = _dropOverlayKey.currentContext?.findRenderObject() as RenderBox?;
+                if (box == null) return;
+                final local = box.globalToLocal(details.offset);
+
+                // Select the tile in the Flame game
+                widget.game.selectAt(local);
+
+                // Optionally stage the play action
+                final payload = details.data;
+                final tile = widget.game.resolveHoverAt(local);
+                if (tile != null && payload.instance != null) {
+                  widget.game.gameService.stagePlayCard(
+                    widget.game.gameId,
+                    widget.game.gameService.currentPlayerIndex,
+                    payload.instance!.instanceId,
+                    tile.row,
+                    tile.col,
+                  );
+                }
+
+                // Ensure tooltip is hidden right after drop
+                _onTileHover(null, null);
+              },
+            ),
+          ),
           // Tooltip overlay
           GameTooltip(
             tileData: _hoveredTile,
             position: _hoverPosition,
-            isVisible: _showTooltip,
+            isVisible: _showTooltip && !_isDragActive,
           ),
         ],
       ),

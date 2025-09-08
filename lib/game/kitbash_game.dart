@@ -83,6 +83,16 @@ class KitbashGame extends FlameGame with TapCallbacks {
   void clearHover() {
     _grid?.clearHover();
   }
+
+  /// Selects the tile at the given UI-local offset (relative to GameWidget)
+  void selectAt(Offset localOffset) {
+    final IsometricGridComponent? grid = _grid;
+    if (grid == null) return;
+
+    final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
+    final Vector2 gridLocal = grid.parentToLocal(parentLocal);
+    grid.handleTap(gridLocal);
+  }
 }
 
 // Remove the old CommandCenter class since we now use the one from game_service.dart
