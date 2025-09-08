@@ -1,19 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/models/card_instance.dart';
+import 'package:kitbash/models/card_instance.dart';
 
 void main() {
   group('CardInstance Tests', () {
     test('should create unique instance IDs for same card type', () {
       // Create multiple instances of the same card
-      final instance1 = CardInstance(
+      const instance1 = CardInstance(
         instanceId: 'instance-1',
         cardId: 'lightning-bolt',
       );
-      final instance2 = CardInstance(
+      const instance2 = CardInstance(
         instanceId: 'instance-2',
         cardId: 'lightning-bolt',
       );
-      final instance3 = CardInstance(
+      const instance3 = CardInstance(
         instanceId: 'instance-3',
         cardId: 'lightning-bolt',
       );
@@ -30,15 +30,15 @@ void main() {
     });
 
     test('should compare instances by instanceId not cardId', () {
-      final instance1 = CardInstance(
+      const instance1 = CardInstance(
         instanceId: 'instance-1',
         cardId: 'lightning-bolt',
       );
-      final instance2 = CardInstance(
+      const instance2 = CardInstance(
         instanceId: 'instance-2',
         cardId: 'lightning-bolt',
       );
-      final instance1Copy = CardInstance(
+      const instance1Copy = CardInstance(
         instanceId: 'instance-1',
         cardId: 'lightning-bolt',
       );
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('should serialize and deserialize correctly', () {
-      final instance = CardInstance(
+      const instance = CardInstance(
         instanceId: 'test-instance-123',
         cardId: 'fireball',
       );
@@ -67,7 +67,7 @@ void main() {
 
     test('should handle a hand with duplicate cards', () {
       // Simulate a hand with 3 Lightning Bolts and 2 Fireballs
-      final hand = [
+      const hand = [
         CardInstance(instanceId: 'inst-1', cardId: 'lightning-bolt'),
         CardInstance(instanceId: 'inst-2', cardId: 'fireball'),
         CardInstance(instanceId: 'inst-3', cardId: 'lightning-bolt'),
@@ -90,7 +90,7 @@ void main() {
     });
 
     test('should allow selecting specific duplicates for discard', () {
-      final hand = [
+      const hand = [
         CardInstance(instanceId: 'inst-1', cardId: 'lightning-bolt'),
         CardInstance(instanceId: 'inst-2', cardId: 'lightning-bolt'),
         CardInstance(instanceId: 'inst-3', cardId: 'lightning-bolt'),
