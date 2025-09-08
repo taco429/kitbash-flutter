@@ -489,7 +489,24 @@ class _DraggableHandCard extends StatelessWidget {
                         const SizedBox(width: 20),
                         Expanded(
                           flex: 4,
-                          child: _CardDetailsPanel(card: card),
+                          child: _CardDetailsPanel(
+                            card: card,
+                            onPlay: () {
+                              Navigator.of(ctx).pop();
+                              final gameService = Provider.of<GameService>(context, listen: false);
+                              gameService.beginCardPlacement(CardDragPayload(
+                                card: card,
+                                handIndex: handIndex,
+                                instance: instance,
+                              ));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Select a tile on the board to play this card'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     )
@@ -508,7 +525,24 @@ class _DraggableHandCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _CardDetailsPanel(card: card),
+                          _CardDetailsPanel(
+                            card: card,
+                            onPlay: () {
+                              Navigator.of(ctx).pop();
+                              final gameService = Provider.of<GameService>(context, listen: false);
+                              gameService.beginCardPlacement(CardDragPayload(
+                                card: card,
+                                handIndex: handIndex,
+                                instance: instance,
+                              ));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Select a tile on the board to play this card'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     );
@@ -557,8 +591,9 @@ class _DraggableHandCard extends StatelessWidget {
 
 class _CardDetailsPanel extends StatelessWidget {
   final GameCard card;
+  final VoidCallback? onPlay;
 
-  const _CardDetailsPanel({required this.card});
+  const _CardDetailsPanel({required this.card, this.onPlay});
 
   @override
   Widget build(BuildContext context) {
@@ -710,6 +745,31 @@ class _CardDetailsPanel extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 16),
+          if (onPlay != null)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.greenAccent.shade400,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 3,
+                ),
+                onPressed: onPlay,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text(
+                  'Play This Card',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

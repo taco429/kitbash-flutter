@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 import '../models/card_instance.dart';
+import '../models/card_drag_payload.dart';
 
 class CommandCenter {
   final int playerIndex;
@@ -247,6 +248,20 @@ class GameService extends ChangeNotifier {
 
   void clearDiscardSelection() {
     _cardsToDiscard.clear();
+    notifyListeners();
+  }
+
+  // Pending placement flow (tap-to-place after preview)
+  CardDragPayload? _pendingPlacement;
+  CardDragPayload? get pendingPlacement => _pendingPlacement;
+
+  void beginCardPlacement(CardDragPayload payload) {
+    _pendingPlacement = payload;
+    notifyListeners();
+  }
+
+  void clearCardPlacement() {
+    _pendingPlacement = null;
     notifyListeners();
   }
 

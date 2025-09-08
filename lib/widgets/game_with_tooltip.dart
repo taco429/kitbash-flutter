@@ -6,6 +6,8 @@ import '../game/kitbash_game.dart';
 import '../models/tile_data.dart';
 import 'game_tooltip.dart';
 import '../models/card_drag_payload.dart';
+import 'package:provider/provider.dart';
+import '../services/game_service.dart';
 
 /// A widget that wraps the KitbashGame with tooltip functionality
 class GameWithTooltip extends StatefulWidget {
@@ -109,6 +111,56 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
           GameWidget(
             key: ValueKey(widget.game),
             game: widget.game,
+          ),
+          // Tap-to-place overlay when a card is staged via preview
+          Positioned.fill(
+            child: Consumer<GameService>(
+              builder: (context, gameService, child) {
+                final pending = gameService.pendingPlacement;
+                if (pending == null) return const SizedBox.shrink();
+                return MouseRegion(
+                  onHover: (event) {
+                    final tile = widget.game.resolveHoverAt(event.localPosition);
+                    _onTileHover(tile, event.localPosition);
+                  },
+                  onExit: (_) {
+                    widget.game.clearHover();
+                    _onTileHover(null, null);
+                  },
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTapDown: (details) {
+                      final local = details.localPosition;
+                      final tile = widget.game.resolveHoverAt(local);
+                      if (tile != null && pending.instance != null) {
+                        widget.game.selectAt(local);
+                        widget.game.gameService.stagePlayCard(
+                          widget.game.gameId,
+                          widget.game.gameService.currentPlayerIndex,
+                          pending.instance!.instanceId,
+                          tile.row,
+                          tile.col,
+                        );
+                        gameService.clearCardPlacement();
+                        _onTileHover(null, null);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    child: IgnorePointer(
+                      ignoring: false,
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.02),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
           // Drag-and-drop overlay for playing cards onto the board
           Positioned.fill(
