@@ -115,7 +115,8 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             child: DragTarget<CardDragPayload>(
               builder: (context, candidateData, rejectedData) {
                 // Provide an invisible hit area for drag events
-                return Container(key: _dropOverlayKey, color: Colors.transparent);
+                return Container(
+                    key: _dropOverlayKey, color: Colors.transparent);
               },
               onWillAcceptWithDetails: (details) {
                 _isDragActive = true;
@@ -123,7 +124,8 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                 _showTooltip = false;
 
                 // Convert global pointer to local coordinates
-                final box = _dropOverlayKey.currentContext?.findRenderObject() as RenderBox?;
+                final box = _dropOverlayKey.currentContext?.findRenderObject()
+                    as RenderBox?;
                 if (box == null) return true;
                 final local = box.globalToLocal(details.offset);
                 final tile = widget.game.resolveHoverAt(local);
@@ -131,7 +133,8 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                 return true;
               },
               onMove: (details) {
-                final box = _dropOverlayKey.currentContext?.findRenderObject() as RenderBox?;
+                final box = _dropOverlayKey.currentContext?.findRenderObject()
+                    as RenderBox?;
                 if (box == null) return;
                 final local = box.globalToLocal(details.offset);
                 final tile = widget.game.resolveHoverAt(local);
@@ -144,7 +147,8 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
               },
               onAcceptWithDetails: (details) {
                 _isDragActive = false;
-                final box = _dropOverlayKey.currentContext?.findRenderObject() as RenderBox?;
+                final box = _dropOverlayKey.currentContext?.findRenderObject()
+                    as RenderBox?;
                 if (box == null) return;
                 final local = box.globalToLocal(details.offset);
 

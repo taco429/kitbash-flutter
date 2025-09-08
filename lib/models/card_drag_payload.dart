@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 import 'card.dart';
 import 'card_instance.dart';
 
@@ -25,4 +23,3 @@ class CardDragPayload {
     return 'CardDragPayload(cardId=${card.id}, instanceId=${instance?.instanceId}, handIndex=$handIndex)';
   }
 }
-

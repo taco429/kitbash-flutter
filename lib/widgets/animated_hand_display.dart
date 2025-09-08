@@ -270,10 +270,10 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
                               width: cardWidth,
                               height: cardHeight,
                               card: widget.cards[i],
-                              isMarkedForDiscard: i <
-                                      widget.cardInstances.length &&
-                                  gameService.isCardMarkedForDiscard(
-                                      widget.cardInstances[i].instanceId),
+                              isMarkedForDiscard:
+                                  i < widget.cardInstances.length &&
+                                      gameService.isCardMarkedForDiscard(
+                                          widget.cardInstances[i].instanceId),
                               instance: i < widget.cardInstances.length
                                   ? widget.cardInstances[i]
                                   : null,
