@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flame/game.dart';
 import '../game/kitbash_game.dart';
 import '../models/tile_data.dart';
@@ -144,7 +143,8 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                 });
                 return MouseRegion(
                   onHover: (event) {
-                    final tile = widget.game.resolveHoverAt(event.localPosition);
+                    final tile =
+                        widget.game.resolveHoverAt(event.localPosition);
                     _onTileHover(tile, event.localPosition);
                   },
                   onExit: (_) {
@@ -198,7 +198,8 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                           _onTileHover(null, null);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
+                              content: Text(
+                                  'Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
                               duration: const Duration(seconds: 2),
                             ),
                           );

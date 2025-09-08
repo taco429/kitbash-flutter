@@ -20,15 +20,18 @@ class CardPreviewPanel extends StatelessWidget {
         final double width = constraints.maxWidth;
         final double cardWidth = (width - 24).clamp(180.0, 280.0);
         // Maintain the same aspect ratio as hand cards (approx 160/110)
-        final double aspectRatio = 160.0 / 110.0;
+        const double aspectRatio = 160.0 / 110.0;
         final double cardHeight = cardWidth * aspectRatio;
 
         return Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            border: Border(left: BorderSide(color: Colors.black.withValues(alpha: 0.2), width: 1)),
+            border: Border(
+                left: BorderSide(
+                    color: Colors.black.withValues(alpha: 0.2), width: 1)),
             boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(-2, 0)),
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 8, offset: Offset(-2, 0)),
             ],
           ),
           child: Column(
@@ -36,10 +39,14 @@ class CardPreviewPanel extends StatelessWidget {
             children: [
               // Header with title and close
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  border: Border(bottom: BorderSide(color: Colors.black.withValues(alpha: 0.12), width: 1)),
+                  border: Border(
+                      bottom: BorderSide(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          width: 1)),
                 ),
                 child: Row(
                   children: [
@@ -98,7 +105,8 @@ class CardPreviewPanel extends StatelessWidget {
                       gs.clearCardPreview();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Select a tile on the board to play this card'),
+                          content: Text(
+                              'Select a tile on the board to play this card'),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -109,7 +117,8 @@ class CardPreviewPanel extends StatelessWidget {
                       backgroundColor: Colors.greenAccent.shade400,
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ),
@@ -138,7 +147,8 @@ class _DetailsSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,61 +166,94 @@ class _DetailsSection extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _pill(icon: Icons.category, label: card.type.displayName, color: Colors.blueAccent),
-              _pill(icon: Icons.palette, label: card.color.displayName, color: _colorForCardColor(card.color)),
+              _pill(
+                  icon: Icons.category,
+                  label: card.type.displayName,
+                  color: Colors.blueAccent),
+              _pill(
+                  icon: Icons.palette,
+                  label: card.color.displayName,
+                  color: _colorForCardColor(card.color)),
               if (card.goldCost > 0)
-                _pill(icon: Icons.monetization_on, label: '${card.goldCost} Gold', color: Colors.amber.shade700),
+                _pill(
+                    icon: Icons.monetization_on,
+                    label: '${card.goldCost} Gold',
+                    color: Colors.amber.shade700),
               if (card.manaCost > 0)
-                _pill(icon: Icons.auto_awesome, label: '${card.manaCost} Mana', color: Colors.lightBlueAccent),
+                _pill(
+                    icon: Icons.auto_awesome,
+                    label: '${card.manaCost} Mana',
+                    color: Colors.lightBlueAccent),
             ],
           ),
           const SizedBox(height: 10),
           if (card.description.isNotEmpty)
             Text(
               card.description,
-              style: textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9), height: 1.3),
+              style: textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.9), height: 1.3),
             ),
           if (card.description.isNotEmpty) const SizedBox(height: 10),
           if (card.isUnit && card.unitStats != null)
             _statsSection(title: 'Unit Stats', items: [
-              _statItem(Icons.flash_on, 'Attack', '${card.unitStats!.attack}', Colors.redAccent),
-              _statItem(Icons.favorite, 'Health', '${card.unitStats!.health}', Colors.greenAccent),
-              _statItem(Icons.shield, 'Armor', '${card.unitStats!.armor}', Colors.blueAccent),
-              _statItem(Icons.speed, 'Speed', '${card.unitStats!.speed}', Colors.yellowAccent),
-              _statItem(Icons.straighten, 'Range', '${card.unitStats!.range}', Colors.purpleAccent),
+              _statItem(Icons.flash_on, 'Attack', '${card.unitStats!.attack}',
+                  Colors.redAccent),
+              _statItem(Icons.favorite, 'Health', '${card.unitStats!.health}',
+                  Colors.greenAccent),
+              _statItem(Icons.shield, 'Armor', '${card.unitStats!.armor}',
+                  Colors.blueAccent),
+              _statItem(Icons.speed, 'Speed', '${card.unitStats!.speed}',
+                  Colors.yellowAccent),
+              _statItem(Icons.straighten, 'Range', '${card.unitStats!.range}',
+                  Colors.purpleAccent),
             ]),
           if (card.isBuilding && card.buildingStats != null)
             _statsSection(title: 'Building Stats', items: [
-              _statItem(Icons.favorite, 'Health', '${card.buildingStats!.health}', Colors.greenAccent),
-              _statItem(Icons.shield, 'Armor', '${card.buildingStats!.armor}', Colors.blueAccent),
+              _statItem(Icons.favorite, 'Health',
+                  '${card.buildingStats!.health}', Colors.greenAccent),
+              _statItem(Icons.shield, 'Armor', '${card.buildingStats!.armor}',
+                  Colors.blueAccent),
               if (card.buildingStats!.attack != null)
-                _statItem(Icons.flash_on, 'Attack', '${card.buildingStats!.attack}', Colors.redAccent),
+                _statItem(Icons.flash_on, 'Attack',
+                    '${card.buildingStats!.attack}', Colors.redAccent),
               if (card.buildingStats!.range != null)
-                _statItem(Icons.straighten, 'Range', '${card.buildingStats!.range}', Colors.purpleAccent),
+                _statItem(Icons.straighten, 'Range',
+                    '${card.buildingStats!.range}', Colors.purpleAccent),
             ]),
           if (card.isHero && card.heroStats != null)
             _statsSection(title: 'Hero Stats', items: [
-              _statItem(Icons.flash_on, 'Attack', '${card.heroStats!.attack}', Colors.redAccent),
-              _statItem(Icons.favorite, 'Health', '${card.heroStats!.health}', Colors.greenAccent),
-              _statItem(Icons.shield, 'Armor', '${card.heroStats!.armor}', Colors.blueAccent),
-              _statItem(Icons.speed, 'Speed', '${card.heroStats!.speed}', Colors.yellowAccent),
-              _statItem(Icons.straighten, 'Range', '${card.heroStats!.range}', Colors.purpleAccent),
-              _statItem(Icons.timer, 'Cooldown', '${card.heroStats!.cooldown}', Colors.orangeAccent),
+              _statItem(Icons.flash_on, 'Attack', '${card.heroStats!.attack}',
+                  Colors.redAccent),
+              _statItem(Icons.favorite, 'Health', '${card.heroStats!.health}',
+                  Colors.greenAccent),
+              _statItem(Icons.shield, 'Armor', '${card.heroStats!.armor}',
+                  Colors.blueAccent),
+              _statItem(Icons.speed, 'Speed', '${card.heroStats!.speed}',
+                  Colors.yellowAccent),
+              _statItem(Icons.straighten, 'Range', '${card.heroStats!.range}',
+                  Colors.purpleAccent),
+              _statItem(Icons.timer, 'Cooldown', '${card.heroStats!.cooldown}',
+                  Colors.orangeAccent),
             ]),
           if (card.abilities.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('Abilities', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('Abilities',
+                style: textTheme.titleSmall?.copyWith(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: card.abilities
                   .map((a) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.06),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              width: 1),
                         ),
                         child: Text(
                           a,
@@ -227,7 +270,8 @@ class _DetailsSection extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               '“${card.flavorText}”',
-              style: textTheme.bodySmall?.copyWith(color: Colors.white70, fontStyle: FontStyle.italic),
+              style: textTheme.bodySmall?.copyWith(
+                  color: Colors.white70, fontStyle: FontStyle.italic),
             ),
           ],
         ],
@@ -239,7 +283,9 @@ class _DetailsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        Text(title,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         Wrap(spacing: 10, runSpacing: 10, children: items),
       ],
@@ -252,26 +298,35 @@ class _DetailsSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(label,
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
           const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(6)),
-            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(6)),
+            child: Text(value,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12)),
           ),
         ],
       ),
     );
   }
 
-  Widget _pill({required IconData icon, required String label, required Color color}) {
+  Widget _pill(
+      {required IconData icon, required String label, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -286,7 +341,8 @@ class _DetailsSection extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
           ),
         ],
       ),
@@ -310,4 +366,3 @@ class _DetailsSection extends StatelessWidget {
     }
   }
 }
-
