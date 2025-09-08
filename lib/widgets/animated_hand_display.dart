@@ -273,31 +273,30 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
                                     duration: const Duration(milliseconds: 200),
                                     width: cardWidth,
                                     height: cardHeight,
-                                    decoration:
-                                        i < widget.cardInstances.length &&
-                                                gameService.isCardMarkedForDiscard(
-                                                        widget.cardInstances[i]
-                                                            .instanceId)
-                                            ? BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: Colors.red
-                                                      .withValues(alpha: 0.6),
-                                                  width: 2,
-                                                ),
-                                              )
-                                            : null,
+                                    decoration: i <
+                                                widget.cardInstances.length &&
+                                            gameService.isCardMarkedForDiscard(
+                                                widget.cardInstances[i]
+                                                    .instanceId)
+                                        ? BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: Colors.red
+                                                  .withValues(alpha: 0.6),
+                                              width: 2,
+                                            ),
+                                          )
+                                        : null,
                                     child: Opacity(
-                                      opacity:
-                                          i < widget.cardInstances.length &&
-                                                  gameService
-                                                      .isCardMarkedForDiscard(
-                                                          widget
-                                                              .cardInstances[i]
-                                                              .instanceId)
-                                              ? 0.6
-                                              : 1.0,
+                                      opacity: i <
+                                                  widget.cardInstances.length &&
+                                              gameService
+                                                  .isCardMarkedForDiscard(widget
+                                                      .cardInstances[i]
+                                                      .instanceId)
+                                          ? 0.6
+                                          : 1.0,
                                       child: AdvancedCardDisplay(
                                         card: widget.cards[i],
                                         width: cardWidth,
@@ -317,15 +316,17 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
                                     child: GestureDetector(
                                       onTap: () {
                                         if (i < widget.cardInstances.length) {
-                                          gameService.toggleCardDiscard(
-                                              widget.cardInstances[i].instanceId);
+                                          gameService.toggleCardDiscard(widget
+                                              .cardInstances[i].instanceId);
                                         }
                                       },
                                       child: Container(
                                         width: 24,
                                         height: 24,
                                         decoration: BoxDecoration(
-                                          color: i < widget.cardInstances.length &&
+                                          color: i <
+                                                      widget.cardInstances
+                                                          .length &&
                                                   gameService
                                                       .isCardMarkedForDiscard(
                                                           widget

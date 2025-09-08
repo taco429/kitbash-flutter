@@ -69,7 +69,7 @@ class _GameScreenState extends State<GameScreen> {
             .map((instance) => cardService.getCardById(instance.cardId))
             .whereType<GameCard>()
             .toList();
-        
+
         // Map card instances to their cards for display
         final handInstances = playerState?.hand ?? [];
         // Check if game is over and navigate to game over screen
