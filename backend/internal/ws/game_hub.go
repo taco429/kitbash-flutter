@@ -334,20 +334,20 @@ func (h *GameHub) handleLockChoice(ctx context.Context, client *GameClient, mess
 
 	// Queue discard cards if provided (processed at end of round)
 	if discardCards, ok := message["discardCards"].([]interface{}); ok && len(discardCards) > 0 {
-		var cardIDs []domain.CardID
+		var instanceIDs []domain.CardInstanceID
 		for _, card := range discardCards {
 			if cardStr, ok := card.(string); ok {
-				cardIDs = append(cardIDs, domain.CardID(cardStr))
+				instanceIDs = append(instanceIDs, domain.CardInstanceID(cardStr))
 			}
 		}
-		if len(cardIDs) > 0 {
+		if len(instanceIDs) > 0 {
 			if int(playerIndex) >= 0 && int(playerIndex) < len(gameState.PlayerStates) {
 				ps := &gameState.PlayerStates[int(playerIndex)]
-				ps.PendingDiscards = append(ps.PendingDiscards, cardIDs...)
+				ps.PendingDiscards = append(ps.PendingDiscards, instanceIDs...)
 				h.log.WithContext(ctx).Info("Cards queued for discard",
 					"game_id", client.GameID,
 					"player_index", int(playerIndex),
-					"cards", cardIDs)
+					"cards", instanceIDs)
 			}
 		}
 	}
@@ -714,11 +714,13 @@ func (h *GameHub) broadcastPhaseChange(ctx context.Context, gameID domain.GameID
 
 // buildPlayerStateFromDeck expands deck entries into a shuffled draw pile and initializes state.
 func buildPlayerStateFromDeck(playerIndex int, deck *domain.Deck) domain.PlayerBattleState {
-	// Expand deck entries to card IDs by quantity
-	var drawPile []domain.CardID
+	// Expand deck entries to card instances by quantity
+	var drawPile []domain.CardInstance
 	for _, entry := range deck.GetAllCards() {
 		for i := 0; i < entry.Quantity; i++ {
-			drawPile = append(drawPile, entry.CardID)
+			// Create a unique instance for each card
+			instance := domain.NewCardInstance(entry.CardID)
+			drawPile = append(drawPile, instance)
 		}
 	}
 	// Shuffle drawPile
@@ -730,10 +732,10 @@ func buildPlayerStateFromDeck(playerIndex int, deck *domain.Deck) domain.PlayerB
 	return domain.PlayerBattleState{
 		PlayerIndex: playerIndex,
 		DeckID:      deck.ID,
-		Hand:        []domain.CardID{},
+		Hand:        []domain.CardInstance{},
 		DeckCount:   len(drawPile),
 		DrawPile:    drawPile,
-		DiscardPile: []domain.CardID{},
+		DiscardPile: []domain.CardInstance{},
 		Gold:        0,
 		Mana:        0,
 		ManaMax:     3,

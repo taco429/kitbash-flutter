@@ -116,11 +116,13 @@ func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, pl
         ps := &gameState.PlayerStates[i]
         if len(ps.PendingDiscards) > 0 {
             // Move from hand to discard if still present
-            for _, cid := range ps.PendingDiscards {
+            for _, instanceID := range ps.PendingDiscards {
                 for h := 0; h < len(ps.Hand); h++ {
-                    if ps.Hand[h] == cid {
+                    if ps.Hand[h].InstanceID == instanceID {
+                        // Store the card before removing
+                        card := ps.Hand[h]
                         ps.Hand = append(ps.Hand[:h], ps.Hand[h+1:]...)
-                        ps.DiscardPile = append(ps.DiscardPile, cid)
+                        ps.DiscardPile = append(ps.DiscardPile, card)
                         h--
                     }
                 }

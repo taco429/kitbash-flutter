@@ -66,9 +66,12 @@ class _GameScreenState extends State<GameScreen> {
         final int playerDeckCount = playerState?.deckCount ?? 0;
 
         final List<GameCard> playerHandCards = (playerState?.hand ?? [])
-            .map((id) => cardService.getCardById(id))
+            .map((instance) => cardService.getCardById(instance.cardId))
             .whereType<GameCard>()
             .toList();
+        
+        // Map card instances to their cards for display
+        final handInstances = playerState?.hand ?? [];
         // Check if game is over and navigate to game over screen
         if (gameState != null &&
             !_hasNavigatedToGameOver &&
@@ -276,6 +279,7 @@ class _GameScreenState extends State<GameScreen> {
                                   const EdgeInsets.symmetric(horizontal: 16),
                               child: AnimatedHandDisplay(
                                 cards: playerHandCards,
+                                cardInstances: handInstances,
                                 isDrawPhase:
                                     gameState?.currentPhase == 'draw_income',
                               ),

@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/card.dart';
+import '../models/card_instance.dart';
 import '../services/game_service.dart';
 import 'advanced_card_display.dart';
 
 class AnimatedHandDisplay extends StatefulWidget {
   final List<GameCard> cards;
+  final List<CardInstance> cardInstances;
   final bool isDrawPhase;
 
   const AnimatedHandDisplay({
     super.key,
     required this.cards,
+    required this.cardInstances,
     this.isDrawPhase = false,
   });
 
@@ -271,8 +274,10 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
                                     width: cardWidth,
                                     height: cardHeight,
                                     decoration:
-                                        gameService.isCardMarkedForDiscard(
-                                                widget.cards[i].id)
+                                        i < widget.cardInstances.length &&
+                                                gameService.isCardMarkedForDiscard(
+                                                        widget.cardInstances[i]
+                                                            .instanceId)
                                             ? BoxDecoration(
                                                 borderRadius:
                                                     BorderRadius.circular(8),
@@ -285,8 +290,12 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
                                             : null,
                                     child: Opacity(
                                       opacity:
-                                          gameService.isCardMarkedForDiscard(
-                                                  widget.cards[i].id)
+                                          i < widget.cardInstances.length &&
+                                                  gameService
+                                                      .isCardMarkedForDiscard(
+                                                          widget
+                                                              .cardInstances[i]
+                                                              .instanceId)
                                               ? 0.6
                                               : 1.0,
                                       child: AdvancedCardDisplay(
@@ -307,16 +316,21 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
                                     right: 4,
                                     child: GestureDetector(
                                       onTap: () {
-                                        gameService.toggleCardDiscard(
-                                            widget.cards[i].id);
+                                        if (i < widget.cardInstances.length) {
+                                          gameService.toggleCardDiscard(
+                                              widget.cardInstances[i].instanceId);
+                                        }
                                       },
                                       child: Container(
                                         width: 24,
                                         height: 24,
                                         decoration: BoxDecoration(
-                                          color: gameService
-                                                  .isCardMarkedForDiscard(
-                                                      widget.cards[i].id)
+                                          color: i < widget.cardInstances.length &&
+                                                  gameService
+                                                      .isCardMarkedForDiscard(
+                                                          widget
+                                                              .cardInstances[i]
+                                                              .instanceId)
                                               ? Colors.red
                                               : Colors.black
                                                   .withValues(alpha: 0.7),
