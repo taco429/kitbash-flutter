@@ -424,7 +424,7 @@ class _DraggableHandCard extends StatelessWidget {
       ),
     );
 
-    return LongPressDraggable<CardDragPayload>(
+    return Draggable<CardDragPayload>(
       data: payload,
       feedback: feedback,
       dragAnchorStrategy: pointerDragAnchorStrategy,
