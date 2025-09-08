@@ -8,6 +8,7 @@ import 'game_tooltip.dart';
 import '../models/card_drag_payload.dart';
 import 'package:provider/provider.dart';
 import '../services/game_service.dart';
+import 'package:flutter/services.dart';
 
 /// A widget that wraps the KitbashGame with tooltip functionality
 class GameWithTooltip extends StatefulWidget {
@@ -30,6 +31,7 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   bool _isDragActive = false;
 
   final GlobalKey _dropOverlayKey = GlobalKey();
+  final FocusNode _placeFocusNode = FocusNode();
 
   static const Duration _tooltipDelay = Duration(milliseconds: 500);
 
@@ -41,6 +43,7 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   @override
   void dispose() {
     _tooltipTimer?.cancel();
+    _placeFocusNode.dispose();
     super.dispose();
   }
 
@@ -118,6 +121,12 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
               builder: (context, gameService, child) {
                 final pending = gameService.pendingPlacement;
                 if (pending == null) return const SizedBox.shrink();
+                // Ensure we can catch ESC
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    _placeFocusNode.requestFocus();
+                  }
+                });
                 return MouseRegion(
                   onHover: (event) {
                     final tile = widget.game.resolveHoverAt(event.localPosition);
@@ -127,34 +136,64 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                     widget.game.clearHover();
                     _onTileHover(null, null);
                   },
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTapDown: (details) {
-                      final local = details.localPosition;
-                      final tile = widget.game.resolveHoverAt(local);
-                      if (tile != null && pending.instance != null) {
-                        widget.game.selectAt(local);
-                        widget.game.gameService.stagePlayCard(
-                          widget.game.gameId,
-                          widget.game.gameService.currentPlayerIndex,
-                          pending.instance!.instanceId,
-                          tile.row,
-                          tile.col,
-                        );
+                  child: Focus(
+                    focusNode: _placeFocusNode,
+                    onKeyEvent: (node, event) {
+                      if (event is KeyDownEvent &&
+                          event.logicalKey == LogicalKeyboardKey.escape) {
                         gameService.clearCardPlacement();
+                        widget.game.clearHover();
                         _onTileHover(null, null);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
-                            duration: const Duration(seconds: 2),
+                          const SnackBar(
+                            content: Text('Placement canceled'),
+                            duration: Duration(milliseconds: 800),
                           ),
                         );
+                        return KeyEventResult.handled;
                       }
+                      return KeyEventResult.ignored;
                     },
-                    child: IgnorePointer(
-                      ignoring: false,
-                      child: Container(
-                        color: Colors.black.withValues(alpha: 0.02),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onSecondaryTap: () {
+                        gameService.clearCardPlacement();
+                        widget.game.clearHover();
+                        _onTileHover(null, null);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Placement canceled'),
+                            duration: Duration(milliseconds: 800),
+                          ),
+                        );
+                      },
+                      onTapDown: (details) {
+                        final local = details.localPosition;
+                        final tile = widget.game.resolveHoverAt(local);
+                        if (tile != null && pending.instance != null) {
+                          widget.game.selectAt(local);
+                          widget.game.gameService.stagePlayCard(
+                            widget.game.gameId,
+                            widget.game.gameService.currentPlayerIndex,
+                            pending.instance!.instanceId,
+                            tile.row,
+                            tile.col,
+                          );
+                          gameService.clearCardPlacement();
+                          _onTileHover(null, null);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      child: IgnorePointer(
+                        ignoring: false,
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.02),
+                        ),
                       ),
                     ),
                   ),
