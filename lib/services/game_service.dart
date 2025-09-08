@@ -148,12 +148,16 @@ class PlayerBattleState {
   final String deckId;
   final List<CardInstance> hand; // List of CardInstances
   final int deckCount;
+  final List<CardInstance> drawPile; // Cards remaining in deck
+  final List<CardInstance> discardPile; // Cards in discard pile
 
   const PlayerBattleState({
     required this.playerIndex,
     required this.deckId,
     required this.hand,
     required this.deckCount,
+    this.drawPile = const [],
+    this.discardPile = const [],
   });
 
   factory PlayerBattleState.fromJson(Map<String, dynamic> json) {
@@ -170,11 +174,38 @@ class PlayerBattleState {
         return CardInstance(instanceId: '', cardId: e.toString());
       }).toList();
     }
+    
+    // Parse draw pile
+    List<CardInstance> drawPileInstances = [];
+    final rawDrawPile = json['drawPile'];
+    if (rawDrawPile is List) {
+      drawPileInstances = rawDrawPile.map((e) {
+        if (e is Map<String, dynamic>) {
+          return CardInstance.fromJson(e);
+        }
+        return CardInstance(instanceId: '', cardId: e.toString());
+      }).toList();
+    }
+    
+    // Parse discard pile
+    List<CardInstance> discardPileInstances = [];
+    final rawDiscardPile = json['discardPile'];
+    if (rawDiscardPile is List) {
+      discardPileInstances = rawDiscardPile.map((e) {
+        if (e is Map<String, dynamic>) {
+          return CardInstance.fromJson(e);
+        }
+        return CardInstance(instanceId: '', cardId: e.toString());
+      }).toList();
+    }
+    
     return PlayerBattleState(
       playerIndex: json['playerIndex'] ?? 0,
       deckId: json['deckId']?.toString() ?? '',
       hand: handInstances,
       deckCount: json['deckCount'] ?? 0,
+      drawPile: drawPileInstances,
+      discardPile: discardPileInstances,
     );
   }
 }

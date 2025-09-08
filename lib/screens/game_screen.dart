@@ -290,10 +290,19 @@ class _GameScreenState extends State<GameScreen> {
                             remainingCards: playerDeckCount,
                             label: 'Deck',
                             accentColor: Colors.green,
+                            deckCards: playerState?.drawPile
+                                .map((instance) => cardService.getCardById(instance.cardId))
+                                .whereType<GameCard>()
+                                .toList() ?? [],
+                            deckInstances: playerState?.drawPile,
                           ),
                           const SizedBox(width: 12),
-                          const DiscardPile(
-                            discardedCards: [], // TODO: Get discard pile from game state
+                          DiscardPile(
+                            discardedCards: playerState?.discardPile
+                                .map((instance) => cardService.getCardById(instance.cardId))
+                                .whereType<GameCard>()
+                                .toList() ?? [],
+                            discardInstances: playerState?.discardPile,
                             label: 'Discard',
                             accentColor: Colors.green,
                           ),
