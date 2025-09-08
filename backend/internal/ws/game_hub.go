@@ -552,6 +552,21 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 		return err
 	}
 
+	// Log current pending discards when advancing phase
+	var p0Discards, p1Discards []domain.CardInstanceID
+	if len(gameState.PlayerStates) > 0 {
+		p0Discards = gameState.PlayerStates[0].PendingDiscards
+	}
+	if len(gameState.PlayerStates) > 1 {
+		p1Discards = gameState.PlayerStates[1].PendingDiscards
+	}
+	h.log.WithContext(ctx).Info("Advancing to phase",
+		"game_id", gameID,
+		"from_phase", gameState.CurrentPhase,
+		"to_phase", phase,
+		"player0_pending_discards", p0Discards,
+		"player1_pending_discards", p1Discards)
+
 	gameState.SetPhase(phase)
 
 	// Save the updated game state
@@ -587,10 +602,31 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 		h.startPlanningTimer(ctx, gameID)
 
 	case domain.PhaseRevealResolve:
+		// Log pending discards before resolution
+		for i, ps := range gameState.PlayerStates {
+			if len(ps.PendingDiscards) > 0 {
+				h.log.WithContext(ctx).Info("Player has pending discards before resolution",
+					"game_id", gameID,
+					"player_index", i,
+					"pending_discards", ps.PendingDiscards)
+			}
+		}
+		
 		// Resolve actions deterministically
 		p1 := gameState.PendingActions[0]
 		p2 := gameState.PendingActions[1]
 		resolutionLog := domain.ExecuteResolutionPhase(gameState, p1, p2)
+		
+		// Log discards after resolution
+		for i, ps := range gameState.PlayerStates {
+			h.log.WithContext(ctx).Info("Player state after resolution",
+				"game_id", gameID,
+				"player_index", i,
+				"hand_count", len(ps.Hand),
+				"discard_count", len(ps.DiscardPile),
+				"pending_discards", ps.PendingDiscards)
+		}
+		
 		// Clear pending actions after resolution
 		gameState.PendingActions[0] = domain.ActionQueue{}
 		gameState.PendingActions[1] = domain.ActionQueue{}

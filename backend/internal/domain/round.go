@@ -115,6 +115,8 @@ func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, pl
     for i := range gameState.PlayerStates {
         ps := &gameState.PlayerStates[i]
         if len(ps.PendingDiscards) > 0 {
+            discardedCount := 0
+            initialHandSize := len(ps.Hand)
             // Move from hand to discard if still present
             for _, instanceID := range ps.PendingDiscards {
                 for h := 0; h < len(ps.Hand); h++ {
@@ -123,13 +125,18 @@ func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, pl
                         card := ps.Hand[h]
                         ps.Hand = append(ps.Hand[:h], ps.Hand[h+1:]...)
                         ps.DiscardPile = append(ps.DiscardPile, card)
+                        discardedCount++
                         h--
                     }
                 }
             }
             evtLog.AddSimple(EventTypeDiscard, "end_of_round", map[string]any{
                 "playerIndex": ps.PlayerIndex,
-                "count":       len(ps.PendingDiscards),
+                "count":       discardedCount,
+                "requested":   len(ps.PendingDiscards),
+                "handBefore":  initialHandSize,
+                "handAfter":   len(ps.Hand),
+                "discardPile": len(ps.DiscardPile),
             })
             ps.PendingDiscards = nil
         }

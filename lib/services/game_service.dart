@@ -240,9 +240,12 @@ class GameService extends ChangeNotifier {
   void toggleCardDiscard(String instanceId) {
     if (_cardsToDiscard.contains(instanceId)) {
       _cardsToDiscard.remove(instanceId);
+      debugPrint('Unmarked card for discard: $instanceId');
     } else {
       _cardsToDiscard.add(instanceId);
+      debugPrint('Marked card for discard: $instanceId');
     }
+    debugPrint('Total cards marked for discard: ${_cardsToDiscard.length}');
     notifyListeners();
   }
 
@@ -607,6 +610,12 @@ class GameService extends ChangeNotifier {
 
       // Send discard information along with lock choice if any cards are marked
       final discardList = _cardsToDiscard.toList();
+      
+      // Debug: Log what we're sending
+      debugPrint('Locking player $playerIndex with ${discardList.length} cards to discard');
+      if (discardList.isNotEmpty) {
+        debugPrint('Cards to discard: $discardList');
+      }
 
       // Update local state optimistically
       if (_gameState != null) {
@@ -615,12 +624,14 @@ class GameService extends ChangeNotifier {
       }
 
       // Send lock choice via WebSocket for real-time updates
-      sendAction({
+      final lockMessage = {
         'type': 'lock_choice',
         'playerIndex': playerIndex,
         'gameId': gameId,
         'discardCards': discardList,
-      });
+      };
+      debugPrint('Sending lock message: ${json.encode(lockMessage)}');
+      sendAction(lockMessage);
 
       // Try to send to backend via REST as well (optional, may not be implemented yet)
       try {
