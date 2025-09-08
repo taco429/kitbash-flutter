@@ -260,6 +260,20 @@ class GameService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Lightweight preview state for right-side panel
+  CardDragPayload? _previewPayload;
+  CardDragPayload? get previewPayload => _previewPayload;
+
+  void showCardPreview(CardDragPayload payload) {
+    _previewPayload = payload;
+    notifyListeners();
+  }
+
+  void clearCardPreview() {
+    _previewPayload = null;
+    notifyListeners();
+  }
+
   void clearCardPlacement() {
     _pendingPlacement = null;
     notifyListeners();

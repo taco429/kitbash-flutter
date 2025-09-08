@@ -9,6 +9,7 @@ import '../models/card_drag_payload.dart';
 import 'package:provider/provider.dart';
 import '../services/game_service.dart';
 import 'package:flutter/services.dart';
+import 'card_preview_panel.dart';
 
 /// A widget that wraps the KitbashGame with tooltip functionality
 class GameWithTooltip extends StatefulWidget {
@@ -114,6 +115,20 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
           GameWidget(
             key: ValueKey(widget.game),
             game: widget.game,
+          ),
+          // Right-side card preview panel that doesn't cover the game canvas
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 320,
+            child: Consumer<GameService>(
+              builder: (context, gs, _) {
+                final preview = gs.previewPayload;
+                if (preview == null) return const SizedBox.shrink();
+                return CardPreviewPanel(payload: preview);
+              },
+            ),
           ),
           // Tap-to-place overlay when a card is staged via preview
           Positioned.fill(
