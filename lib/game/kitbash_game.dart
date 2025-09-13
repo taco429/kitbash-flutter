@@ -474,6 +474,8 @@ class IsometricGridComponent extends PositionComponent {
       _drawRockNoise(canvas, topDiamond, baseColor, intensity: 0.08);
     } else if (terrain == TerrainType.forest) {
       _drawLeafSpeckles(canvas, topDiamond, baseColor, intensity: 0.06);
+    } else if (terrain == TerrainType.grass) {
+      _drawGrassTexture(canvas, topDiamond, baseColor, density: 1.0);
     }
 
     // Grid stroke on top face
@@ -620,6 +622,73 @@ class IsometricGridComponent extends PositionComponent {
         canvas.drawCircle(ui.Offset(x, y), 0.6, speck);
       }
     }
+  }
+
+  void _drawGrassTexture(
+    ui.Canvas canvas,
+    ui.Path topDiamond,
+    ui.Color baseColor, {
+    required double density,
+  }) {
+    final ui.Rect bounds = topDiamond.getBounds();
+    canvas.save();
+    canvas.clipPath(topDiamond);
+
+    // Two tones of blades for richness
+    final ui.Paint bladeDark = ui.Paint()
+      ..color = _shadeColor(baseColor, 0.85).withOpacity(0.45)
+      ..strokeWidth = 1.0
+      ..style = ui.PaintingStyle.stroke
+      ..strokeCap = ui.StrokeCap.round;
+    final ui.Paint bladeLight = ui.Paint()
+      ..color = _shadeColor(baseColor, 1.20).withOpacity(0.38)
+      ..strokeWidth = 0.8
+      ..style = ui.PaintingStyle.stroke
+      ..strokeCap = ui.StrokeCap.round;
+
+    // Deterministic pseudo-random pattern based on tile bounds
+    int seed = bounds.left.toInt() * 73856093 ^ bounds.top.toInt() * 19349663;
+    double rand() {
+      seed = 1103515245 * seed + 12345;
+      return ((seed >> 16) & 0x7FFF) / 0x7FFF;
+    }
+
+    // Blade count scales with area and density
+    final int blades = (density * (bounds.width * bounds.height) / 140).clamp(18, 60).toInt();
+    for (int i = 0; i < blades; i++) {
+      final double px = bounds.left + rand() * bounds.width;
+      final double py = bounds.top + rand() * bounds.height;
+      final double len = 3.0 + rand() * 6.0; // blade length
+      final double lean = (rand() - 0.5) * 0.8; // left/right lean
+
+      final ui.Offset base = ui.Offset(px, py);
+      final ui.Offset tip = ui.Offset(px + lean * 4.0, py - len);
+
+      // Choose paint
+      final ui.Paint p = (i % 2 == 0) ? bladeDark : bladeLight;
+      canvas.drawLine(base, tip, p);
+
+      // Occasional split tip
+      if (rand() > 0.7) {
+        final ui.Offset tip2 = ui.Offset(px + (lean + 0.25) * 3.0, py - len * 0.8);
+        canvas.drawLine(ui.Offset(px + 0.2, py - len * 0.4), tip2, p);
+      }
+    }
+
+    // Subtle cross-hatching to suggest turf direction
+    final ui.Paint hatch = ui.Paint()
+      ..color = _shadeColor(baseColor, 0.75).withOpacity(0.12)
+      ..strokeWidth = 0.6
+      ..style = ui.PaintingStyle.stroke;
+    for (double y = bounds.top; y < bounds.bottom; y += 5) {
+      canvas.drawLine(
+        ui.Offset(bounds.left - 6, y + 1.5),
+        ui.Offset(bounds.right + 6, y + 3.5),
+        hatch,
+      );
+    }
+
+    canvas.restore();
   }
 
   double _extrusionHeightForTerrain(TerrainType terrain) {
