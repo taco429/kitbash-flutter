@@ -601,6 +601,10 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 		// Start 30-second timer for Planning phase
 		h.startPlanningTimer(ctx, gameID)
 
+		// If this is a CPU game, have the CPU immediately discard a random card and lock in
+		// This provides a simple opponent for testing "Play vs CPU"
+		go h.maybeAutoLockCPU(ctx, gameID)
+
 	case domain.PhaseRevealResolve:
 		// Log pending discards before resolution
 		for i, ps := range gameState.PlayerStates {
@@ -746,6 +750,79 @@ func (h *GameHub) broadcastPhaseChange(ctx context.Context, gameID domain.GameID
 			h.log.LogError(ctx, err, "Failed to send phase change notification")
 		}
 	}
+}
+
+// maybeAutoLockCPU performs a trivial CPU action during Planning: discard one random
+// card (if available) and immediately lock in. This is intended purely for testing.
+func (h *GameHub) maybeAutoLockCPU(ctx context.Context, gameID domain.GameID) {
+	gs, err := h.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		return
+	}
+
+	// Only act during the Planning phase
+	if gs.CurrentPhase != domain.PhasePlanning {
+		return
+	}
+
+	// Identify CPU player index. Only proceed if a CPU player exists.
+	foundCPU := false
+	cpuIndex := 1
+	if len(gs.Players) > 0 {
+		for i, p := range gs.Players {
+			if string(p.ID) == "cpu" || p.Name == "CPU" {
+				cpuIndex = i
+				foundCPU = true
+				break
+			}
+		}
+	}
+	if !foundCPU {
+		return
+	}
+
+	// If already locked, nothing to do
+	if gs.PlayerChoicesLocked != nil && gs.PlayerChoicesLocked[cpuIndex] {
+		return
+	}
+
+	// Choose a random card from CPU hand to discard (if any)
+	if cpuIndex >= 0 && cpuIndex < len(gs.PlayerStates) {
+		ps := &gs.PlayerStates[cpuIndex]
+		if len(ps.Hand) > 0 {
+			rand.Seed(time.Now().UnixNano())
+			idx := rand.Intn(len(ps.Hand))
+			discardID := ps.Hand[idx].InstanceID
+			ps.PendingDiscards = append(ps.PendingDiscards, discardID)
+			h.log.WithContext(ctx).Info("CPU queued discard",
+				"game_id", gameID,
+				"player_index", cpuIndex,
+				"card", discardID)
+		}
+	}
+
+	// Lock CPU choice
+	gs.LockPlayerChoice(cpuIndex)
+	if err := h.gameRepo.Update(ctx, gs); err != nil {
+		return
+	}
+
+	h.log.WithContext(ctx).Info("CPU locked choice",
+		"game_id", gameID,
+		"player_index", cpuIndex)
+
+	// Notify all clients that CPU locked
+	h.broadcastPlayerLocked(ctx, gameID, cpuIndex)
+
+	// If everyone locked, move to Reveal & Resolve immediately
+	if gs.AreAllPlayersLocked() {
+		h.cancelPhaseTimer(gameID)
+		_ = h.advanceToPhase(ctx, gameID, domain.PhaseRevealResolve)
+		return
+	}
+
+	// Otherwise, broadcast updated state
+	_ = h.broadcastGameState(ctx, gameID)
 }
 
 // buildPlayerStateFromDeck expands deck entries into a shuffled draw pile and initializes state.
