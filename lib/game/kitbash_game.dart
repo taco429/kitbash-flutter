@@ -189,27 +189,8 @@ class IsometricGridComponent extends PositionComponent {
 
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
-        final Vector2 center = isoToScreen(r, c, originX, originY);
-        final ui.Path diamond = _tileDiamond(center);
-
-        // Get terrain-based color
-        final terrainColor = getTerrainColor(_tileData[r][c].terrain);
-        final terrainPaint = ui.Paint()..color = terrainColor;
-
-        // Fill with terrain color
-        canvas.drawPath(diamond, terrainPaint);
-        // Stroke
-        canvas.drawPath(diamond, gridLinePaint);
-
-        // Apply hover highlight
-        if (hoveredRow == r && hoveredCol == c) {
-          canvas.drawPath(diamond, hoverPaint);
-        }
-
-        // Apply selection highlight (higher priority than hover)
-        if (highlightedRow == r && highlightedCol == c) {
-          canvas.drawPath(diamond, highlightPaint);
-        }
+        _render3DTile(canvas, r, c, originX, originY,
+            gridLinePaint: gridLinePaint, hoverPaint: hoverPaint, highlightPaint: highlightPaint);
       }
     }
 
@@ -234,11 +215,9 @@ class IsometricGridComponent extends PositionComponent {
         paint = cc.playerIndex == 0 ? ccPaintP0 : ccPaintP1;
       }
 
-      // Draw command center tiles
+      // Draw command center tiles with beveled plates
       for (final Vector2 center in centers) {
-        final ui.Path diamond = _tileDiamond(center);
-        canvas.drawPath(diamond, paint);
-        canvas.drawPath(diamond, gridLinePaint);
+        _drawBeveledPlate(canvas, center, paint.color, gridLinePaint.color);
       }
 
       // Draw health bar above the command center
@@ -401,6 +380,271 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x, center.y + halfH)
       ..lineTo(center.x - halfW, center.y)
       ..close();
+  }
+
+  void _render3DTile(
+    ui.Canvas canvas,
+    int row,
+    int col,
+    double originX,
+    double originY, {
+    required ui.Paint gridLinePaint,
+    required ui.Paint hoverPaint,
+    required ui.Paint highlightPaint,
+  }) {
+    final Vector2 center = isoToScreen(row, col, originX, originY);
+    final double halfW = tileSize.x / 2;
+    final double halfH = tileSize.y / 2;
+
+    final ui.Offset top = ui.Offset(center.x, center.y - halfH);
+    final ui.Offset right = ui.Offset(center.x + halfW, center.y);
+    final ui.Offset bottom = ui.Offset(center.x, center.y + halfH);
+    final ui.Offset left = ui.Offset(center.x - halfW, center.y);
+
+    final TerrainType terrain = _tileData[row][col].terrain;
+    final ui.Color baseColor = getTerrainColor(terrain);
+
+    final double extrude = _extrusionHeightForTerrain(terrain);
+    final ui.Offset e = ui.Offset(0, extrude);
+
+    // Side faces (draw first so they appear behind the top)
+    final ui.Paint leftSidePaint = ui.Paint()
+      ..color = _shadeColor(baseColor, 0.7)
+      ..style = ui.PaintingStyle.fill;
+    final ui.Paint rightSidePaint = ui.Paint()
+      ..color = _shadeColor(baseColor, 0.8)
+      ..style = ui.PaintingStyle.fill;
+
+    // Left side face: quad (left -> bottom -> bottom+e -> left+e)
+    final ui.Path leftSide = ui.Path()
+      ..moveTo(left.dx, left.dy)
+      ..lineTo(bottom.dx, bottom.dy)
+      ..lineTo((bottom + e).dx, (bottom + e).dy)
+      ..lineTo((left + e).dx, (left + e).dy)
+      ..close();
+    canvas.drawPath(leftSide, leftSidePaint);
+
+    // Right side face: quad (right -> bottom -> bottom+e -> right+e)
+    final ui.Path rightSide = ui.Path()
+      ..moveTo(right.dx, right.dy)
+      ..lineTo(bottom.dx, bottom.dy)
+      ..lineTo((bottom + e).dx, (bottom + e).dy)
+      ..lineTo((right + e).dx, (right + e).dy)
+      ..close();
+    canvas.drawPath(rightSide, rightSidePaint);
+
+    // Soft shadow beneath tile (simple darkened trapezoid under bottom edge)
+    final ui.Paint shadowPaint = ui.Paint()
+      ..color = const ui.Color(0x22000000)
+      ..style = ui.PaintingStyle.fill;
+    final double shadowDepth = extrude * 0.6;
+    final ui.Path shadow = ui.Path()
+      ..moveTo(left.dx, left.dy + extrude)
+      ..lineTo(right.dx, right.dy + extrude)
+      ..lineTo(right.dx, right.dy + extrude + shadowDepth)
+      ..lineTo(left.dx, left.dy + extrude + shadowDepth)
+      ..close();
+    canvas.drawPath(shadow, shadowPaint);
+
+    // Top face with gradient
+    final ui.Path topDiamond = _tileDiamond(center);
+    final ui.Paint topPaint = ui.Paint()
+      ..shader = ui.Gradient.linear(
+        ui.Offset(center.x - halfW * 0.5, center.y - halfH * 0.7),
+        ui.Offset(center.x + halfW * 0.5, center.y + halfH * 0.7),
+        <ui.Color>[
+          _shadeColor(baseColor, 1.12),
+          _shadeColor(baseColor, 0.90),
+        ],
+      );
+    canvas.drawPath(topDiamond, topPaint);
+
+    // Ambient occlusion on bottom edges
+    final ui.Paint aoPaint = ui.Paint()
+      ..color = const ui.Color(0x55000000)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawLine(left, bottom, aoPaint);
+    canvas.drawLine(bottom, right, aoPaint);
+
+    // Terrain-specific details
+    if (terrain == TerrainType.water) {
+      _drawWaterGloss(canvas, top: top, left: left, center: center, halfW: halfW, halfH: halfH);
+    } else if (terrain == TerrainType.stone || terrain == TerrainType.mountain) {
+      _drawRockNoise(canvas, topDiamond, baseColor, intensity: 0.08);
+    } else if (terrain == TerrainType.forest) {
+      _drawLeafSpeckles(canvas, topDiamond, baseColor, intensity: 0.06);
+    }
+
+    // Grid stroke on top face
+    canvas.drawPath(topDiamond, gridLinePaint);
+
+    // Hover/Selection effects
+    final bool isHovered = hoveredRow == row && hoveredCol == col;
+    final bool isSelected = highlightedRow == row && highlightedCol == col;
+    if (isHovered) {
+      // Soft outer glow
+      final ui.Paint glow = ui.Paint()
+        ..color = const ui.Color(0x66FFFFFF)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2.0);
+      canvas.drawPath(topDiamond, glow);
+      canvas.drawPath(topDiamond, hoverPaint);
+    }
+    if (isSelected) {
+      final ui.Paint rim = ui.Paint()
+        ..color = const ui.Color(0xFF54C7EC)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+      canvas.drawPath(topDiamond, rim);
+      canvas.drawPath(topDiamond, highlightPaint);
+    }
+  }
+
+  void _drawBeveledPlate(
+    ui.Canvas canvas,
+    Vector2 center,
+    ui.Color fillColor,
+    ui.Color outlineColor,
+  ) {
+    final double halfW = tileSize.x / 2 * 0.9;
+    final double halfH = tileSize.y / 2 * 0.9;
+
+    final ui.Offset top = ui.Offset(center.x, center.y - halfH);
+    final ui.Offset right = ui.Offset(center.x + halfW, center.y);
+    final ui.Offset bottom = ui.Offset(center.x, center.y + halfH);
+    final ui.Offset left = ui.Offset(center.x - halfW, center.y);
+
+    final ui.Path plate = ui.Path()
+      ..moveTo(top.dx, top.dy)
+      ..lineTo(right.dx, right.dy)
+      ..lineTo(bottom.dx, bottom.dy)
+      ..lineTo(left.dx, left.dy)
+      ..close();
+
+    final ui.Paint platePaint = ui.Paint()
+      ..shader = ui.Gradient.linear(
+        ui.Offset(center.x - halfW * 0.4, center.y - halfH * 0.6),
+        ui.Offset(center.x + halfW * 0.4, center.y + halfH * 0.6),
+        <ui.Color>[
+          _shadeColor(fillColor, 1.10),
+          _shadeColor(fillColor, 0.92),
+        ],
+      );
+    canvas.drawPath(plate, platePaint);
+
+    // Bevel highlights: light on top-left, dark on bottom-right
+    final ui.Paint bevelLight = ui.Paint()
+      ..color = const ui.Color(0x66FFFFFF)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    final ui.Paint bevelDark = ui.Paint()
+      ..color = const ui.Color(0x55000000)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawLine(left, top, bevelLight);
+    canvas.drawLine(top, right, bevelLight);
+    canvas.drawLine(right, bottom, bevelDark);
+    canvas.drawLine(bottom, left, bevelDark);
+
+    // Outer rim
+    final ui.Paint rim = ui.Paint()
+      ..color = outlineColor
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawPath(plate, rim);
+  }
+
+  void _drawWaterGloss(
+    ui.Canvas canvas, {
+    required ui.Offset top,
+    required ui.Offset left,
+    required Vector2 center,
+    required double halfW,
+    required double halfH,
+  }) {
+    final double glossW = halfW * 0.9;
+    final double glossH = halfH * 0.6;
+    final ui.Rect glossRect = ui.Rect.fromCenter(
+      center: ui.Offset(center.x - halfW * 0.15, center.y - halfH * 0.35),
+      width: glossW,
+      height: glossH,
+    );
+    final ui.Paint glossPaint = ui.Paint()
+      ..shader = ui.Gradient.radial(
+        glossRect.center,
+        glossW * 0.6,
+        <ui.Color>[
+          const ui.Color(0x33FFFFFF),
+          const ui.Color(0x00FFFFFF),
+        ],
+      )
+      ..blendMode = ui.BlendMode.screen;
+    canvas.drawOval(glossRect, glossPaint);
+  }
+
+  void _drawRockNoise(
+    ui.Canvas canvas,
+    ui.Path topDiamond,
+    ui.Color baseColor, {
+    required double intensity,
+  }) {
+    // Simple stipple using two overlaid strokes for texture
+    final ui.Paint noise = ui.Paint()
+      ..color = _shadeColor(baseColor, 1.2).withOpacity(intensity)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    final ui.Rect bounds = topDiamond.getBounds();
+    for (double y = bounds.top + 2; y < bounds.bottom - 2; y += 4) {
+      canvas.drawLine(
+        ui.Offset(bounds.left + 3, y),
+        ui.Offset(bounds.right - 3, y + 0.5),
+        noise,
+      );
+    }
+  }
+
+  void _drawLeafSpeckles(
+    ui.Canvas canvas,
+    ui.Path topDiamond,
+    ui.Color baseColor, {
+    required double intensity,
+  }) {
+    final ui.Paint speck = ui.Paint()
+      ..color = _shadeColor(baseColor, 1.25).withOpacity(intensity)
+      ..style = ui.PaintingStyle.fill;
+    final ui.Rect b = topDiamond.getBounds();
+    for (double x = b.left + 3; x < b.right - 3; x += 6) {
+      for (double y = b.top + 2; y < b.bottom - 2; y += 6) {
+        canvas.drawCircle(ui.Offset(x, y), 0.6, speck);
+      }
+    }
+  }
+
+  double _extrusionHeightForTerrain(TerrainType terrain) {
+    switch (terrain) {
+      case TerrainType.mountain:
+        return 12;
+      case TerrainType.stone:
+        return 9;
+      case TerrainType.forest:
+        return 8;
+      case TerrainType.desert:
+        return 7;
+      case TerrainType.grass:
+        return 6;
+      case TerrainType.water:
+        return 4;
+    }
+  }
+
+  ui.Color _shadeColor(ui.Color color, double factor) {
+    int clamp(int v) => v.clamp(0, 255).toInt();
+    final double r = (color.red * factor);
+    final double g = (color.green * factor);
+    final double b = (color.blue * factor);
+    return ui.Color.fromARGB(color.alpha, clamp(r.round()), clamp(g.round()), clamp(b.round()));
   }
 
   void _drawHealthBar(
