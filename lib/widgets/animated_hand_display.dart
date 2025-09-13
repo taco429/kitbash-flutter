@@ -4,6 +4,7 @@ import '../models/card.dart';
 import '../models/card_instance.dart';
 import '../services/game_service.dart';
 import 'advanced_card_display.dart';
+import '../models/card_drag_payload.dart';
 
 class AnimatedHandDisplay extends StatefulWidget {
   final List<GameCard> cards;
@@ -265,91 +266,26 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
                           scale: _scaleAnimations[i].value,
                           child: Opacity(
                             opacity: _fadeAnimations[i].value,
-                            child: Stack(
-                              children: [
-                                MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    width: cardWidth,
-                                    height: cardHeight,
-                                    decoration: i <
-                                                widget.cardInstances.length &&
-                                            gameService.isCardMarkedForDiscard(
-                                                widget.cardInstances[i]
-                                                    .instanceId)
-                                        ? BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: Colors.red
-                                                  .withValues(alpha: 0.6),
-                                              width: 2,
-                                            ),
-                                          )
-                                        : null,
-                                    child: Opacity(
-                                      opacity: i <
-                                                  widget.cardInstances.length &&
-                                              gameService
-                                                  .isCardMarkedForDiscard(widget
-                                                      .cardInstances[i]
-                                                      .instanceId)
-                                          ? 0.6
-                                          : 1.0,
-                                      child: AdvancedCardDisplay(
-                                        card: widget.cards[i],
-                                        width: cardWidth,
-                                        height: cardHeight,
-                                        enableParallax: true,
-                                        enableGlow: true,
-                                        enableShadow: true,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                // Show discard X button during planning phase when not locked
-                                if (isPlanning && !isLocked)
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        if (i < widget.cardInstances.length) {
-                                          gameService.toggleCardDiscard(widget
-                                              .cardInstances[i].instanceId);
-                                        }
-                                      },
-                                      child: Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          color: i <
-                                                      widget.cardInstances
-                                                          .length &&
-                                                  gameService
-                                                      .isCardMarkedForDiscard(
-                                                          widget
-                                                              .cardInstances[i]
-                                                              .instanceId)
-                                              ? Colors.red
-                                              : Colors.black
-                                                  .withValues(alpha: 0.7),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.close,
-                                          size: 16,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
+                            child: _DraggableHandCard(
+                              width: cardWidth,
+                              height: cardHeight,
+                              card: widget.cards[i],
+                              isMarkedForDiscard:
+                                  i < widget.cardInstances.length &&
+                                      gameService.isCardMarkedForDiscard(
+                                          widget.cardInstances[i].instanceId),
+                              instance: i < widget.cardInstances.length
+                                  ? widget.cardInstances[i]
+                                  : null,
+                              handIndex: i,
+                              isPlanning: isPlanning,
+                              isLocked: isLocked,
+                              onToggleDiscard: () {
+                                if (i < widget.cardInstances.length) {
+                                  gameService.toggleCardDiscard(
+                                      widget.cardInstances[i].instanceId);
+                                }
+                              },
                             ),
                           ),
                         ),
@@ -380,5 +316,142 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
         );
       },
     );
+  }
+}
+
+class _DraggableHandCard extends StatelessWidget {
+  final double width;
+  final double height;
+  final GameCard card;
+  final CardInstance? instance;
+  final int handIndex;
+  final bool isMarkedForDiscard;
+  final bool isPlanning;
+  final bool isLocked;
+  final VoidCallback onToggleDiscard;
+
+  const _DraggableHandCard({
+    required this.width,
+    required this.height,
+    required this.card,
+    required this.instance,
+    required this.handIndex,
+    required this.isMarkedForDiscard,
+    required this.isPlanning,
+    required this.isLocked,
+    required this.onToggleDiscard,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final payload = CardDragPayload(
+      card: card,
+      handIndex: handIndex,
+      instance: instance,
+    );
+
+    final cardWidget = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: width,
+        height: height,
+        decoration: isMarkedForDiscard
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.red.withValues(alpha: 0.6),
+                  width: 2,
+                ),
+              )
+            : null,
+        child: Opacity(
+          opacity: isMarkedForDiscard ? 0.6 : 1.0,
+          child: AdvancedCardDisplay(
+            card: card,
+            width: width,
+            height: height,
+            enableParallax: true,
+            enableGlow: true,
+            enableShadow: true,
+          ),
+        ),
+      ),
+    );
+
+    final discardButton = isPlanning && !isLocked
+        ? Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: onToggleDiscard,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isMarkedForDiscard
+                      ? Colors.red
+                      : Colors.black.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.close,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
+
+    // Feedback widget for drag
+    final feedback = Opacity(
+      opacity: 0.9,
+      child: Material(
+        type: MaterialType.transparency,
+        child: AdvancedCardDisplay(
+          card: card,
+          width: width * 1.1,
+          height: height * 1.1,
+          enableParallax: false,
+          enableGlow: true,
+          enableShadow: true,
+        ),
+      ),
+    );
+
+    return Draggable<CardDragPayload>(
+      data: payload,
+      feedback: feedback,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedbackOffset: const Offset(0, -12),
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: IgnorePointer(child: cardWidget),
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _showCardPreview(context),
+        child: Stack(
+          children: [
+            cardWidget,
+            if (discardButton is! SizedBox) discardButton,
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCardPreview(BuildContext context) {
+    final gameService = Provider.of<GameService>(context, listen: false);
+    gameService.showCardPreview(CardDragPayload(
+      card: card,
+      handIndex: handIndex,
+      instance: instance,
+    ));
   }
 }

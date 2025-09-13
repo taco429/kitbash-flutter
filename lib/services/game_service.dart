@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 import '../models/card_instance.dart';
+import '../models/card_drag_payload.dart';
 
 class CommandCenter {
   final int playerIndex;
@@ -247,6 +248,34 @@ class GameService extends ChangeNotifier {
 
   void clearDiscardSelection() {
     _cardsToDiscard.clear();
+    notifyListeners();
+  }
+
+  // Pending placement flow (tap-to-place after preview)
+  CardDragPayload? _pendingPlacement;
+  CardDragPayload? get pendingPlacement => _pendingPlacement;
+
+  void beginCardPlacement(CardDragPayload payload) {
+    _pendingPlacement = payload;
+    notifyListeners();
+  }
+
+  // Lightweight preview state for right-side panel
+  CardDragPayload? _previewPayload;
+  CardDragPayload? get previewPayload => _previewPayload;
+
+  void showCardPreview(CardDragPayload payload) {
+    _previewPayload = payload;
+    notifyListeners();
+  }
+
+  void clearCardPreview() {
+    _previewPayload = null;
+    notifyListeners();
+  }
+
+  void clearCardPlacement() {
+    _pendingPlacement = null;
     notifyListeners();
   }
 
@@ -548,6 +577,27 @@ class GameService extends ChangeNotifier {
   // Request game state via WebSocket
   void requestGameState() {
     sendAction({'type': 'get_game_state'});
+  }
+
+  /// Stage a play-card action locally and notify the backend (placeholder)
+  void stagePlayCard(
+    String gameId,
+    int playerIndex,
+    String cardInstanceId,
+    int row,
+    int col,
+  ) {
+    debugPrint(
+        'Stage play card instance=$cardInstanceId at ($row,$col) by player $playerIndex');
+    sendAction({
+      'type': 'stage_play_card',
+      'gameId': gameId,
+      'playerIndex': playerIndex,
+      'cardInstanceId': cardInstanceId,
+      'row': row,
+      'col': col,
+    });
+    // Future: Update local optimistic UI, e.g. mark tile as targeted
   }
 
   // Lock in player's choices for the current turn
