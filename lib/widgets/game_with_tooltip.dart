@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flame/game.dart';
 import '../game/kitbash_game.dart';
+import '../game/enhanced_grid_component.dart';
 import '../models/tile_data.dart';
 import 'game_tooltip.dart';
+import 'grid_settings_panel.dart';
 
 /// A widget that wraps the KitbashGame with tooltip functionality
 class GameWithTooltip extends StatefulWidget {
@@ -112,6 +114,11 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             position: _hoverPosition,
             isVisible: _showTooltip,
           ),
+          // Grid settings panel (only show if using enhanced grid)
+          if (widget.game.useEnhancedGrid)
+            GridSettingsPanel(
+              gridComponent: widget.game.gridComponent,
+            ),
         ],
       ),
     );
