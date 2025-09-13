@@ -190,26 +190,22 @@ class IsometricGridComponent extends PositionComponent {
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
         final Vector2 center = isoToScreen(r, c, originX, originY);
+
+        // Base terrain color
+        final Color baseColor = getTerrainColor(_tileData[r][c].terrain);
+
+        // Draw rich 2.5D tile
+        _drawTile3D(
+          canvas,
+          center,
+          baseColor,
+          isHovered: hoveredRow == r && hoveredCol == c,
+          isSelected: highlightedRow == r && highlightedCol == c,
+        );
+
+        // Optional subtle grid line on top face
         final ui.Path diamond = _tileDiamond(center);
-
-        // Get terrain-based color
-        final terrainColor = getTerrainColor(_tileData[r][c].terrain);
-        final terrainPaint = ui.Paint()..color = terrainColor;
-
-        // Fill with terrain color
-        canvas.drawPath(diamond, terrainPaint);
-        // Stroke
         canvas.drawPath(diamond, gridLinePaint);
-
-        // Apply hover highlight
-        if (hoveredRow == r && hoveredCol == c) {
-          canvas.drawPath(diamond, hoverPaint);
-        }
-
-        // Apply selection highlight (higher priority than hover)
-        if (highlightedRow == r && highlightedCol == c) {
-          canvas.drawPath(diamond, highlightPaint);
-        }
       }
     }
 
@@ -234,11 +230,14 @@ class IsometricGridComponent extends PositionComponent {
         paint = cc.playerIndex == 0 ? ccPaintP0 : ccPaintP1;
       }
 
-      // Draw command center tiles
+      // Draw command center tiles with the same 2.5D style
       for (final Vector2 center in centers) {
-        final ui.Path diamond = _tileDiamond(center);
-        canvas.drawPath(diamond, paint);
-        canvas.drawPath(diamond, gridLinePaint);
+        _drawTile3D(
+          canvas,
+          center,
+          (paint as ui.Paint).color,
+          emissiveRim: true,
+        );
       }
 
       // Draw health bar above the command center
@@ -401,6 +400,163 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x, center.y + halfH)
       ..lineTo(center.x - halfW, center.y)
       ..close();
+  }
+
+  ui.Path _tileDiamondWithSize(Vector2 center, double halfW, double halfH) {
+    return ui.Path()
+      ..moveTo(center.x, center.y - halfH)
+      ..lineTo(center.x + halfW, center.y)
+      ..lineTo(center.x, center.y + halfH)
+      ..lineTo(center.x - halfW, center.y)
+      ..close();
+  }
+
+  void _drawTile3D(
+    ui.Canvas canvas,
+    Vector2 center,
+    Color baseColor, {
+    bool isHovered = false,
+    bool isSelected = false,
+    bool emissiveRim = false,
+  }) {
+    final double halfW = tileSize.x / 2;
+    final double halfH = tileSize.y / 2;
+    final double elevation = math.max(4.0, tileSize.y * 0.4);
+
+    final ui.Offset top = ui.Offset(center.x, center.y - halfH);
+    final ui.Offset right = ui.Offset(center.x + halfW, center.y);
+    final ui.Offset bottom = ui.Offset(center.x, center.y + halfH);
+    final ui.Offset left = ui.Offset(center.x - halfW, center.y);
+    final ui.Offset off = ui.Offset(0, elevation);
+
+    final ui.Path topFace = _tileDiamond(center);
+
+    // Soft drop shadow
+    final ui.Offset shadowShift = ui.Offset(0, elevation + 4);
+    final ui.Offset leftS = left + shadowShift;
+    final ui.Offset rightS = right + shadowShift;
+    final ui.Path shadow = ui.Path()
+      ..moveTo(leftS.dx - 2, leftS.dy + 1)
+      ..lineTo(rightS.dx + 2, rightS.dy + 1)
+      ..lineTo(rightS.dx + 3, rightS.dy + 6)
+      ..lineTo(leftS.dx - 3, leftS.dy + 6)
+      ..close();
+
+    final ui.Paint shadowPaint = ui.Paint()
+      ..color = Colors.black.withOpacity(0.25)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 6);
+    canvas.drawPath(shadow, shadowPaint);
+
+    // Front face (extrusion)
+    final ui.Path frontFace = ui.Path()
+      ..moveTo(left.dx, left.dy)
+      ..lineTo(right.dx, right.dy)
+      ..lineTo((right + off).dx, (right + off).dy)
+      ..lineTo((left + off).dx, (left + off).dy)
+      ..close();
+
+    final ui.Paint frontPaint = ui.Paint()
+      ..shader = ui.Gradient.linear(
+        bottom,
+        bottom + off,
+        [
+          _darken(baseColor, 0.45),
+          _darken(baseColor, 0.65),
+        ],
+      );
+    canvas.drawPath(frontFace, frontPaint);
+
+    // Top face with subtle gradient
+    final ui.Offset gradStart = ui.Offset(
+      (top.dx + left.dx) * 0.5,
+      (top.dy + left.dy) * 0.5,
+    );
+    final ui.Offset gradEnd = ui.Offset(
+      (bottom.dx + right.dx) * 0.5,
+      (bottom.dy + right.dy) * 0.5,
+    );
+    final ui.Paint topPaint = ui.Paint()
+      ..shader = ui.Gradient.linear(
+        gradStart,
+        gradEnd,
+        [
+          _lighten(baseColor, 0.18),
+          baseColor,
+          _darken(baseColor, 0.15),
+        ],
+        const [0.0, 0.6, 1.0],
+      );
+    canvas.drawPath(topFace, topPaint);
+
+    // Bevel highlights (top and left edges)
+    final ui.Path bevelLightPath = ui.Path()
+      ..moveTo(left.dx, left.dy)
+      ..lineTo(top.dx, top.dy)
+      ..lineTo(right.dx, right.dy);
+    final ui.Paint bevelLight = ui.Paint()
+      ..color = _lighten(baseColor, 0.45).withOpacity(0.35)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawPath(bevelLightPath, bevelLight);
+
+    // Bevel shadow (bottom and right edges)
+    final ui.Path bevelShadowPath = ui.Path()
+      ..moveTo(left.dx, left.dy)
+      ..lineTo(bottom.dx, bottom.dy)
+      ..lineTo(right.dx, right.dy);
+    final ui.Paint bevelShadow = ui.Paint()
+      ..color = _darken(baseColor, 0.55).withOpacity(0.4)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+    canvas.drawPath(bevelShadowPath, bevelShadow);
+
+    // Emissive rim for special tiles
+    if (emissiveRim) {
+      final ui.Paint rim = ui.Paint()
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2.0
+        ..color = _lighten(baseColor, 0.2).withOpacity(0.9)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.outer, 8);
+      canvas.drawPath(topFace, rim);
+    }
+
+    // Hover glow
+    if (isHovered) {
+      final ui.Paint hoverStroke = ui.Paint()
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = Colors.white.withOpacity(0.6)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.outer, 2);
+      canvas.drawPath(topFace, hoverStroke);
+      final ui.Paint hoverFill = ui.Paint()
+        ..color = Colors.white.withOpacity(0.08);
+      canvas.drawPath(topFace, hoverFill);
+    }
+
+    // Selection overlay
+    if (isSelected) {
+      final ui.Paint selectFill = ui.Paint()
+        ..color = const Color(0x8854C7EC);
+      canvas.drawPath(topFace, selectFill);
+      final ui.Paint selectRim = ui.Paint()
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2.0
+        ..color = const Color(0xFF54C7EC)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.outer, 3);
+      canvas.drawPath(topFace, selectRim);
+    }
+  }
+
+  Color _lighten(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    final lightness = (hsl.lightness + amount).clamp(0.0, 1.0);
+    return hsl.withLightness(lightness).toColor();
+  }
+
+  Color _darken(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    final lightness = (hsl.lightness - amount).clamp(0.0, 1.0);
+    return hsl.withLightness(lightness).toColor();
   }
 
   void _drawHealthBar(
