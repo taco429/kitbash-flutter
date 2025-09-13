@@ -8,46 +8,67 @@ import 'package:flutter/material.dart';
 
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
+import 'enhanced_grid_component.dart';
 
-class KitbashGame extends FlameGame with TapCallbacks {
+class KitbashGame extends FlameGame with TapCallbacks, HasGameRef {
   final String gameId;
   final GameService gameService;
-  IsometricGridComponent? _grid;
+  Component? _grid;
+  bool useEnhancedGrid = true; // Toggle this to switch between grids
 
   KitbashGame({required this.gameId, required this.gameService});
 
   @override
-  Color backgroundColor() => const Color(0xFF2A2A2A);
+  Color backgroundColor() => const Color(0xFF1A1A1A); // Darker background for better contrast
 
   @override
   Future<void> onLoad() async {
     // Initialize game components
 
-    // Add an isometric grid to the scene
+    // Add an enhanced isometric grid to the scene
     const int rows = 12;
     const int cols = 12;
-    final IsometricGridComponent isoGrid = IsometricGridComponent(
-      rows: rows,
-      cols: cols,
-      tileSize: Vector2(64, 32),
-      commandCenters:
-          IsometricGridComponent.computeDefaultCommandCenters(rows, cols),
-      gameService: gameService,
-    );
+    
+    if (useEnhancedGrid) {
+      final EnhancedIsometricGrid enhancedGrid = EnhancedIsometricGrid(
+        rows: rows,
+        cols: cols,
+        tileSize: Vector2(64, 32),
+        commandCenters:
+            EnhancedIsometricGrid.computeDefaultCommandCenters(rows, cols),
+        gameService: gameService,
+      );
 
-    // Center the grid in the current viewport
-    isoGrid.anchor = Anchor.center;
-    isoGrid.position = size / 2;
+      // Center the grid in the current viewport
+      enhancedGrid.anchor = Anchor.center;
+      enhancedGrid.position = size / 2;
 
-    _grid = isoGrid;
-    add(isoGrid);
+      _grid = enhancedGrid;
+      add(enhancedGrid);
+    } else {
+      final IsometricGridComponent isoGrid = IsometricGridComponent(
+        rows: rows,
+        cols: cols,
+        tileSize: Vector2(64, 32),
+        commandCenters:
+            IsometricGridComponent.computeDefaultCommandCenters(rows, cols),
+        gameService: gameService,
+      );
+
+      // Center the grid in the current viewport
+      isoGrid.anchor = Anchor.center;
+      isoGrid.position = size / 2;
+
+      _grid = isoGrid;
+      add(isoGrid);
+    }
   }
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     // Keep grid centered in viewport
-    final IsometricGridComponent? grid = _grid;
+    final Component? grid = _grid;
     if (grid != null) {
       grid.position = this.size / 2;
     }
@@ -56,10 +77,14 @@ class KitbashGame extends FlameGame with TapCallbacks {
   @override
   void onTapDown(TapDownEvent event) {
     // Forward tap to grid if present
-    final IsometricGridComponent? grid = _grid;
+    final Component? grid = _grid;
     if (grid != null) {
       final Vector2 localPoint = grid.parentToLocal(event.localPosition);
-      grid.handleTap(localPoint);
+      if (grid is EnhancedIsometricGrid) {
+        grid.handleTap(localPoint);
+      } else if (grid is IsometricGridComponent) {
+        grid.handleTap(localPoint);
+      }
     }
   }
 
@@ -71,27 +96,43 @@ class KitbashGame extends FlameGame with TapCallbacks {
   /// local coordinate space and updates hover highlight in the grid.
   /// Returns the [TileData] at that position or null if out of bounds.
   TileData? resolveHoverAt(Offset localOffset) {
-    final IsometricGridComponent? grid = _grid;
+    final Component? grid = _grid;
     if (grid == null) return null;
 
     final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
     final Vector2 gridLocal = grid.parentToLocal(parentLocal);
-    return grid.handleHover(gridLocal);
+    
+    if (grid is EnhancedIsometricGrid) {
+      return grid.handleHover(gridLocal);
+    } else if (grid is IsometricGridComponent) {
+      return grid.handleHover(gridLocal);
+    }
+    return null;
   }
 
   /// Clears any active hover highlight in the grid
   void clearHover() {
-    _grid?.clearHover();
+    final Component? grid = _grid;
+    if (grid is EnhancedIsometricGrid) {
+      grid.clearHover();
+    } else if (grid is IsometricGridComponent) {
+      grid.clearHover();
+    }
   }
 
   /// Selects the tile at the given UI-local offset (relative to GameWidget)
   void selectAt(Offset localOffset) {
-    final IsometricGridComponent? grid = _grid;
+    final Component? grid = _grid;
     if (grid == null) return;
 
     final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
     final Vector2 gridLocal = grid.parentToLocal(parentLocal);
-    grid.handleTap(gridLocal);
+    
+    if (grid is EnhancedIsometricGrid) {
+      grid.handleTap(gridLocal);
+    } else if (grid is IsometricGridComponent) {
+      grid.handleTap(gridLocal);
+    }
   }
 }
 
