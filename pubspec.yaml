@@ -27,7 +27,6 @@ flutter:
     - assets/images/
     - assets/audio/
     - assets/cards/art/
-    - assets/cards/frames/
     - assets/cards/overlays/
     - assets/cards/backs/
     - pubspec.yaml 
