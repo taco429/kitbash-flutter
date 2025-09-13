@@ -2,13 +2,12 @@ name: Go Tests
 
 on:
   push:
+    branches: [ main, develop ]
     paths:
       - 'backend/**'
       - '.github/workflows/go-tests.yml'
   pull_request:
-    paths:
-      - 'backend/**'
-      - '.github/workflows/go-tests.yml'
+    branches: [ main, develop ]
 
 permissions:
   contents: read
@@ -37,4 +36,3 @@ jobs:
 
       - name: Test
         run: go test -race -v ./...
-
