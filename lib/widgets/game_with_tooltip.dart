@@ -222,8 +222,7 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             child: DragTarget<CardDragPayload>(
               builder: (context, candidateData, rejectedData) {
                 // Provide an invisible hit area for drag events
-                return Container(
-                    key: _dropOverlayKey, color: Colors.transparent);
+                return SizedBox.expand(key: _dropOverlayKey);
               },
               onWillAcceptWithDetails: (details) {
                 _isDragActive = true;
