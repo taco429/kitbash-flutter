@@ -5,6 +5,26 @@ import 'dart:convert';
 import '../models/card_instance.dart';
 import '../models/card_drag_payload.dart';
 
+class RoundDiscardSummary {
+  final int roundNumber;
+  final Map<int, int> playerToDiscardCount;
+
+  RoundDiscardSummary({
+    required this.roundNumber,
+    Map<int, int>? playerToDiscardCount,
+  }) : playerToDiscardCount = playerToDiscardCount ?? {0: 0, 1: 0};
+
+  RoundDiscardSummary copyWith({
+    Map<int, int>? playerToDiscardCount,
+  }) {
+    return RoundDiscardSummary(
+      roundNumber: roundNumber,
+      playerToDiscardCount:
+          playerToDiscardCount ?? Map<int, int>.from(this.playerToDiscardCount),
+    );
+  }
+}
+
 class CommandCenter {
   final int playerIndex;
   final int topLeftRow;
@@ -229,6 +249,29 @@ class GameService extends ChangeNotifier {
   int _currentPlayerIndex =
       0; // Default to player 0, should be set when joining game
   int get currentPlayerIndex => _currentPlayerIndex;
+
+  // Discard summaries per round
+  final List<RoundDiscardSummary> _discardLog = [];
+  List<RoundDiscardSummary> get discardLog => List.unmodifiable(_discardLog);
+
+  RoundDiscardSummary _ensureRoundSummary(int round) {
+    final idx = _discardLog.indexWhere((e) => e.roundNumber == round);
+    if (idx >= 0) return _discardLog[idx];
+    final summary = RoundDiscardSummary(roundNumber: round);
+    _discardLog.add(summary);
+    // Keep only recent 50 rounds to bound memory
+    if (_discardLog.length > 50) {
+      _discardLog.removeRange(0, _discardLog.length - 50);
+    }
+    return summary;
+  }
+
+  void _recordDiscardEvent(
+      {required int round, required int playerIndex, required int count}) {
+    final summary = _ensureRoundSummary(round);
+    summary.playerToDiscardCount[playerIndex] =
+        (summary.playerToDiscardCount[playerIndex] ?? 0) + count;
+  }
 
   // Track cards marked for discard during planning phase (using instance IDs)
   final Set<String> _cardsToDiscard = {};
@@ -489,9 +532,61 @@ class GameService extends ChangeNotifier {
           }
         }
       } else if (messageType == 'resolution_timeline') {
-        final round = data['round'];
-        debugPrint('Resolution timeline received for round $round');
-        // After resolution, fetch the latest authoritative state
+        final roundRaw = data['round'];
+        int? round;
+        if (roundRaw is int) {
+          round = roundRaw;
+        } else if (roundRaw is double) {
+          round = roundRaw.toInt();
+        } else if (roundRaw is String) {
+          round = int.tryParse(roundRaw);
+        }
+        if (round != null) {
+          debugPrint('Resolution timeline received for round $round');
+          // Ensure there is a summary entry for this round (zero counts by default)
+          _ensureRoundSummary(round);
+
+          // Parse events for discard counts
+          final events = data['events'];
+          if (events is List) {
+            for (final evt in events) {
+              if (evt is Map) {
+                final type = evt['type'];
+                if (type == 'discard') {
+                  final evtData = evt['data'];
+                  int? playerIdx;
+                  int count = 0;
+                  if (evtData is Map) {
+                    final pi = evtData['playerIndex'];
+                    if (pi is int) {
+                      playerIdx = pi;
+                    } else if (pi is double) {
+                      playerIdx = pi.toInt();
+                    } else if (pi is String) {
+                      playerIdx = int.tryParse(pi);
+                    }
+                    final c = evtData['count'];
+                    if (c is int) {
+                      count = c;
+                    } else if (c is double) {
+                      count = c.toInt();
+                    } else if (c is String) {
+                      count = int.tryParse(c) ?? 0;
+                    }
+                  }
+                  if (playerIdx != null) {
+                    _recordDiscardEvent(
+                        round: round, playerIndex: playerIdx, count: count);
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          debugPrint(
+              'Resolution timeline received with unknown round: ${data['round']}');
+        }
+        // After resolution/upkeep, fetch the latest authoritative state
         requestGameState();
       } else if (messageType == 'player_joined') {
         // Set the current player index when joining
