@@ -241,8 +241,9 @@ class IsometricGridComponent extends PositionComponent {
     for (final CommandCenter cc in _commandCenters) {
       final int r0 = cc.topLeftRow.clamp(0, rows - 1);
       final int c0 = cc.topLeftCol.clamp(0, cols - 1);
-      final Vector2 buildingCenter = isoToScreen(r0 + 0.5, c0 + 0.5, originX, originY);
-      
+      final Vector2 buildingCenter =
+          isoToScreen(r0 + 0.5, c0 + 0.5, originX, originY);
+
       // Render 3D building based on player
       _render3DCommandCenter(canvas, buildingCenter, cc, originX, originY);
     }
@@ -932,9 +933,11 @@ class IsometricGridComponent extends PositionComponent {
     }
   }
 
-  Vector2 isoToScreen(int row, int col, double originX, double originY) {
-    final double screenX = (col - row) * (tileSize.x / 2) + originX;
-    final double screenY = (col + row) * (tileSize.y / 2) + originY;
+  Vector2 isoToScreen(num row, num col, double originX, double originY) {
+    final double rowD = row.toDouble();
+    final double colD = col.toDouble();
+    final double screenX = (colD - rowD) * (tileSize.x / 2) + originX;
+    final double screenY = (colD + rowD) * (tileSize.y / 2) + originY;
     return Vector2(screenX, screenY);
   }
 
@@ -950,13 +953,14 @@ class IsometricGridComponent extends PositionComponent {
   }
 
   /// Renders a 3D command center building based on player index
-  void _render3DCommandCenter(ui.Canvas canvas, Vector2 center, CommandCenter cc, double originX, double originY) {
+  void _render3DCommandCenter(ui.Canvas canvas, Vector2 center,
+      CommandCenter cc, double originX, double originY) {
     if (cc.playerIndex == 0) {
       _renderPlayer0Fortress(canvas, center, cc);
     } else {
       _renderPlayer1Citadel(canvas, center, cc);
     }
-    
+
     // Draw health bar above the building
     if (!cc.isDestroyed) {
       _drawBuildingHealthBar(canvas, center, cc);
@@ -964,26 +968,27 @@ class IsometricGridComponent extends PositionComponent {
   }
 
   /// Renders Player 0's fortress - a sturdy castle-like structure
-  void _renderPlayer0Fortress(ui.Canvas canvas, Vector2 center, CommandCenter cc) {
+  void _renderPlayer0Fortress(
+      ui.Canvas canvas, Vector2 center, CommandCenter cc) {
     final double healthFactor = cc.isDestroyed ? 0.3 : cc.healthPercentage;
-    
+
     // Base colors for Player 0 (Green theme)
     final Color baseColor = Color.lerp(
-      const Color(0xFF4A5A2A), // Dark green
-      const Color(0xFF8BC34A), // Bright green
-      healthFactor
-    )!;
+        const Color(0xFF4A5A2A), // Dark green
+        const Color(0xFF8BC34A), // Bright green
+        healthFactor)!;
     final Color highlightColor = Color.lerp(baseColor, Colors.white, 0.3)!;
     final Color shadowColor = Color.lerp(baseColor, Colors.black, 0.4)!;
-    
+
     // Main building base (foundation)
-    _renderBuildingBase(canvas, center, 80.0, 60.0, 40.0, 
-                       baseColor, highlightColor, shadowColor);
-    
+    _renderBuildingBase(canvas, center, 80.0, 60.0, 40.0, baseColor,
+        highlightColor, shadowColor);
+
     // Central keep (main tower)
     final Vector2 keepCenter = Vector2(center.x, center.y - 35);
-    _renderCylindricalTower(canvas, keepCenter, 25.0, 45.0, baseColor, highlightColor, shadowColor);
-    
+    _renderCylindricalTower(
+        canvas, keepCenter, 25.0, 45.0, baseColor, highlightColor, shadowColor);
+
     // Corner towers
     final List<Vector2> towerPositions = [
       Vector2(center.x - 25, center.y - 10), // Left tower
@@ -991,17 +996,19 @@ class IsometricGridComponent extends PositionComponent {
       Vector2(center.x - 15, center.y + 15), // Back left
       Vector2(center.x + 15, center.y + 15), // Back right
     ];
-    
+
     for (final Vector2 towerPos in towerPositions) {
-      _renderCylindricalTower(canvas, towerPos, 12.0, 30.0, baseColor, highlightColor, shadowColor);
+      _renderCylindricalTower(
+          canvas, towerPos, 12.0, 30.0, baseColor, highlightColor, shadowColor);
     }
-    
+
     // Fortress walls connecting towers
-    _renderFortressWalls(canvas, center, baseColor, highlightColor, shadowColor);
-    
+    _renderFortressWalls(
+        canvas, center, baseColor, highlightColor, shadowColor);
+
     // Add fortress details
     _renderFortressDetails(canvas, center, baseColor, healthFactor);
-    
+
     // Damage effects if health is low
     if (healthFactor < 0.5 && !cc.isDestroyed) {
       _renderBuildingDamage(canvas, center, 1.0 - healthFactor);
@@ -1009,12 +1016,19 @@ class IsometricGridComponent extends PositionComponent {
   }
 
   /// Renders a basic 3D building foundation
-  void _renderBuildingBase(ui.Canvas canvas, Vector2 center, double width, double height, double depth,
-                          Color baseColor, Color highlightColor, Color shadowColor) {
+  void _renderBuildingBase(
+      ui.Canvas canvas,
+      Vector2 center,
+      double width,
+      double height,
+      double depth,
+      Color baseColor,
+      Color highlightColor,
+      Color shadowColor) {
     final double halfW = width / 2;
     final double halfH = height / 2;
     final double halfD = depth / 2;
-    
+
     // Top face
     final ui.Path topFace = ui.Path()
       ..moveTo(center.x - halfW, center.y - halfH)
@@ -1022,7 +1036,7 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x + halfW, center.y - halfH)
       ..lineTo(center.x, center.y - halfH + halfD)
       ..close();
-    
+
     // Left face
     final ui.Path leftFace = ui.Path()
       ..moveTo(center.x - halfW, center.y - halfH)
@@ -1030,7 +1044,7 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x, center.y + halfH - halfD)
       ..lineTo(center.x - halfW, center.y + halfH)
       ..close();
-    
+
     // Right face
     final ui.Path rightFace = ui.Path()
       ..moveTo(center.x + halfW, center.y - halfH)
@@ -1038,33 +1052,33 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x, center.y + halfH + halfD)
       ..lineTo(center.x + halfW, center.y + halfH)
       ..close();
-    
+
     // Draw faces with different lighting
     canvas.drawPath(topFace, ui.Paint()..color = highlightColor);
     canvas.drawPath(leftFace, ui.Paint()..color = baseColor);
     canvas.drawPath(rightFace, ui.Paint()..color = shadowColor);
-    
+
     // Add edges
     final ui.Paint edgePaint = ui.Paint()
       ..color = Colors.black.withOpacity(0.3)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1.0;
-    
+
     canvas.drawPath(topFace, edgePaint);
     canvas.drawPath(leftFace, edgePaint);
     canvas.drawPath(rightFace, edgePaint);
   }
-  
+
   /// Renders a cylindrical tower for the fortress
-  void _renderCylindricalTower(ui.Canvas canvas, Vector2 center, double radius, double height,
-                              Color baseColor, Color highlightColor, Color shadowColor) {
+  void _renderCylindricalTower(ui.Canvas canvas, Vector2 center, double radius,
+      double height, Color baseColor, Color highlightColor, Color shadowColor) {
     // Tower body (cylinder approximation with ellipse)
     final ui.Rect towerRect = ui.Rect.fromCenter(
       center: ui.Offset(center.x, center.y - height / 2),
       width: radius * 2,
       height: height,
     );
-    
+
     // Create gradient for cylindrical appearance
     final ui.Paint towerPaint = ui.Paint()
       ..shader = ui.Gradient.linear(
@@ -1073,28 +1087,28 @@ class IsometricGridComponent extends PositionComponent {
         [highlightColor, baseColor, shadowColor],
         [0.0, 0.5, 1.0],
       );
-    
+
     canvas.drawRRect(
       ui.RRect.fromRectAndRadius(towerRect, ui.Radius.circular(radius)),
       towerPaint,
     );
-    
+
     // Tower top (ellipse for 3D effect)
     final ui.Rect topRect = ui.Rect.fromCenter(
       center: ui.Offset(center.x, center.y - height),
       width: radius * 2,
       height: radius * 0.6, // Flattened for isometric view
     );
-    
+
     final ui.Paint topPaint = ui.Paint()..color = highlightColor;
     canvas.drawOval(topRect, topPaint);
-    
+
     // Tower edge
     final ui.Paint edgePaint = ui.Paint()
       ..color = Colors.black.withOpacity(0.4)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1.5;
-    
+
     canvas.drawRRect(
       ui.RRect.fromRectAndRadius(towerRect, ui.Radius.circular(radius)),
       edgePaint,
@@ -1103,98 +1117,108 @@ class IsometricGridComponent extends PositionComponent {
   }
 
   /// Renders fortress walls connecting towers
-  void _renderFortressWalls(ui.Canvas canvas, Vector2 center, Color baseColor, Color highlightColor, Color shadowColor) {
+  void _renderFortressWalls(ui.Canvas canvas, Vector2 center, Color baseColor,
+      Color highlightColor, Color shadowColor) {
     const double wallHeight = 25.0;
     const double wallThickness = 8.0;
-    
+
     // Front wall segments
     final List<ui.Rect> wallSegments = [
-      ui.Rect.fromLTWH(center.x - 35, center.y - 15, 20, wallHeight), // Left wall
-      ui.Rect.fromLTWH(center.x + 15, center.y - 15, 20, wallHeight), // Right wall
+      ui.Rect.fromLTWH(
+          center.x - 35, center.y - 15, 20, wallHeight), // Left wall
+      ui.Rect.fromLTWH(
+          center.x + 15, center.y - 15, 20, wallHeight), // Right wall
     ];
-    
+
     for (final ui.Rect wall in wallSegments) {
       // Wall face
       final ui.Paint wallPaint = ui.Paint()..color = baseColor;
       canvas.drawRect(wall, wallPaint);
-      
+
       // Wall top
       final ui.Path wallTop = ui.Path()
         ..moveTo(wall.left, wall.top)
-        ..lineTo(wall.left - wallThickness * 0.5, wall.top - wallThickness * 0.3)
-        ..lineTo(wall.right - wallThickness * 0.5, wall.top - wallThickness * 0.3)
+        ..lineTo(
+            wall.left - wallThickness * 0.5, wall.top - wallThickness * 0.3)
+        ..lineTo(
+            wall.right - wallThickness * 0.5, wall.top - wallThickness * 0.3)
         ..lineTo(wall.right, wall.top)
         ..close();
-      
+
       canvas.drawPath(wallTop, ui.Paint()..color = highlightColor);
-      
+
       // Wall edge
       final ui.Paint edgePaint = ui.Paint()
         ..color = Colors.black.withOpacity(0.3)
         ..style = ui.PaintingStyle.stroke
         ..strokeWidth = 1.0;
-      
+
       canvas.drawRect(wall, edgePaint);
       canvas.drawPath(wallTop, edgePaint);
     }
   }
-  
+
   /// Renders fortress-specific details
-  void _renderFortressDetails(ui.Canvas canvas, Vector2 center, Color baseColor, double healthFactor) {
+  void _renderFortressDetails(
+      ui.Canvas canvas, Vector2 center, Color baseColor, double healthFactor) {
     // Fortress flag on main tower
     if (healthFactor > 0.3) {
       final Vector2 flagPos = Vector2(center.x + 5, center.y - 75);
       final ui.Paint flagPaint = ui.Paint()..color = const Color(0xFF8BC34A);
-      
+
       final ui.Path flagPath = ui.Path()
         ..moveTo(flagPos.x, flagPos.y)
         ..lineTo(flagPos.x + 15, flagPos.y + 3)
         ..lineTo(flagPos.x + 12, flagPos.y + 8)
         ..lineTo(flagPos.x, flagPos.y + 5)
         ..close();
-      
+
       canvas.drawPath(flagPath, flagPaint);
-      
+
       // Flag pole
       canvas.drawLine(
         ui.Offset(flagPos.x, flagPos.y),
         ui.Offset(flagPos.x, flagPos.y + 15),
-        ui.Paint()..color = Colors.brown..strokeWidth = 2.0,
+        ui.Paint()
+          ..color = Colors.brown
+          ..strokeWidth = 2.0,
       );
     }
-    
+
     // Windows on towers
     final List<Vector2> windowPositions = [
       Vector2(center.x - 25, center.y - 20), // Left tower
       Vector2(center.x + 25, center.y - 20), // Right tower
     ];
-    
+
     for (final Vector2 windowPos in windowPositions) {
       final ui.Rect windowRect = ui.Rect.fromCenter(
         center: ui.Offset(windowPos.x, windowPos.y),
         width: 4,
         height: 6,
       );
-      
+
       final ui.Paint windowPaint = ui.Paint()
         ..color = healthFactor > 0.5 ? const Color(0xFFFFE082) : Colors.black;
-      
+
       canvas.drawRect(windowRect, windowPaint);
     }
   }
-  
+
   /// Renders damage effects on buildings
-  void _renderBuildingDamage(ui.Canvas canvas, Vector2 center, double damageLevel) {
+  void _renderBuildingDamage(
+      ui.Canvas canvas, Vector2 center, double damageLevel) {
     final ui.Paint damagePaint = ui.Paint()
       ..color = Colors.red.withOpacity(0.3 * damageLevel)
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2.0);
-    
+
     // Damage particles/smoke
     for (int i = 0; i < (damageLevel * 8).round(); i++) {
       final double offsetX = (i % 3 - 1) * 20 + math.sin(i * 2.5) * 10;
       final double offsetY = (i ~/ 3 - 1) * 15 + math.cos(i * 1.8) * 8;
-      final Vector2 damagePos = Vector2(center.x + offsetX, center.y + offsetY - 30);
-      
+      final Vector2 damagePos =
+          Vector2(center.x + offsetX, center.y + offsetY - 30);
+
       canvas.drawCircle(
         ui.Offset(damagePos.x, damagePos.y),
         2 + math.sin(i * 3) * 1,
@@ -1204,52 +1228,55 @@ class IsometricGridComponent extends PositionComponent {
   }
 
   /// Renders Player 1's citadel - an elegant spire-like structure
-  void _renderPlayer1Citadel(ui.Canvas canvas, Vector2 center, CommandCenter cc) {
+  void _renderPlayer1Citadel(
+      ui.Canvas canvas, Vector2 center, CommandCenter cc) {
     final double healthFactor = cc.isDestroyed ? 0.3 : cc.healthPercentage;
-    
+
     // Base colors for Player 1 (Pink/Purple theme)
     final Color baseColor = Color.lerp(
-      const Color(0xFF5A2A4A), // Dark pink
-      const Color(0xFFE91E63), // Bright pink
-      healthFactor
-    )!;
+        const Color(0xFF5A2A4A), // Dark pink
+        const Color(0xFFE91E63), // Bright pink
+        healthFactor)!;
     final Color highlightColor = Color.lerp(baseColor, Colors.white, 0.3)!;
     final Color shadowColor = Color.lerp(baseColor, Colors.black, 0.4)!;
-    
+
     // Main building base
-    _renderBuildingBase(canvas, center, 70.0, 50.0, 35.0,
-                       baseColor, highlightColor, shadowColor);
-    
+    _renderBuildingBase(canvas, center, 70.0, 50.0, 35.0, baseColor,
+        highlightColor, shadowColor);
+
     // Central spire (main tower) - taller and more elegant
     final Vector2 spireCenter = Vector2(center.x, center.y - 40);
-    _renderElegantSpire(canvas, spireCenter, 20.0, 65.0, baseColor, highlightColor, shadowColor);
-    
+    _renderElegantSpire(canvas, spireCenter, 20.0, 65.0, baseColor,
+        highlightColor, shadowColor);
+
     // Smaller decorative spires
     final List<Vector2> spirePositions = [
       Vector2(center.x - 20, center.y - 15), // Left spire
       Vector2(center.x + 20, center.y - 15), // Right spire
       Vector2(center.x, center.y + 10), // Back spire
     ];
-    
+
     for (final Vector2 spirePos in spirePositions) {
-      _renderElegantSpire(canvas, spirePos, 10.0, 35.0, baseColor, highlightColor, shadowColor);
+      _renderElegantSpire(
+          canvas, spirePos, 10.0, 35.0, baseColor, highlightColor, shadowColor);
     }
-    
+
     // Connecting archways
-    _renderCitadelArchways(canvas, center, baseColor, highlightColor, shadowColor);
-    
+    _renderCitadelArchways(
+        canvas, center, baseColor, highlightColor, shadowColor);
+
     // Add citadel details
     _renderCitadelDetails(canvas, center, baseColor, healthFactor);
-    
+
     // Damage effects if health is low
     if (healthFactor < 0.5 && !cc.isDestroyed) {
       _renderBuildingDamage(canvas, center, 1.0 - healthFactor);
     }
   }
-  
+
   /// Renders an elegant spire for the citadel
-  void _renderElegantSpire(ui.Canvas canvas, Vector2 center, double baseRadius, double height,
-                          Color baseColor, Color highlightColor, Color shadowColor) {
+  void _renderElegantSpire(ui.Canvas canvas, Vector2 center, double baseRadius,
+      double height, Color baseColor, Color highlightColor, Color shadowColor) {
     // Spire body (tapered)
     final ui.Path spirePath = ui.Path()
       ..moveTo(center.x - baseRadius, center.y)
@@ -1258,7 +1285,7 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x + baseRadius * 0.3, center.y - height * 0.7)
       ..lineTo(center.x + baseRadius, center.y)
       ..close();
-    
+
     // Create gradient for spire
     final ui.Paint spirePaint = ui.Paint()
       ..shader = ui.Gradient.linear(
@@ -1267,35 +1294,36 @@ class IsometricGridComponent extends PositionComponent {
         [highlightColor, baseColor, shadowColor],
         [0.0, 0.5, 1.0],
       );
-    
+
     canvas.drawPath(spirePath, spirePaint);
-    
+
     // Spire base (cylindrical)
     final ui.Rect baseRect = ui.Rect.fromCenter(
       center: ui.Offset(center.x, center.y - baseRadius * 0.3),
       width: baseRadius * 2,
       height: baseRadius * 0.8,
     );
-    
+
     canvas.drawOval(baseRect, ui.Paint()..color = baseColor);
-    
+
     // Add edges
     final ui.Paint edgePaint = ui.Paint()
       ..color = Colors.black.withOpacity(0.4)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1.0;
-    
+
     canvas.drawPath(spirePath, edgePaint);
     canvas.drawOval(baseRect, edgePaint);
   }
-  
+
   /// Renders citadel archways
-  void _renderCitadelArchways(ui.Canvas canvas, Vector2 center, Color baseColor, Color highlightColor, Color shadowColor) {
+  void _renderCitadelArchways(ui.Canvas canvas, Vector2 center, Color baseColor,
+      Color highlightColor, Color shadowColor) {
     final List<Vector2> archPositions = [
       Vector2(center.x - 15, center.y), // Left arch
       Vector2(center.x + 15, center.y), // Right arch
     ];
-    
+
     for (final Vector2 archPos in archPositions) {
       // Arch structure
       final ui.Rect archRect = ui.Rect.fromCenter(
@@ -1303,20 +1331,20 @@ class IsometricGridComponent extends PositionComponent {
         width: 12,
         height: 20,
       );
-      
+
       final ui.Paint archPaint = ui.Paint()..color = baseColor;
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(archRect, const ui.Radius.circular(6)),
         archPaint,
       );
-      
+
       // Arch opening
       final ui.Rect openingRect = ui.Rect.fromCenter(
         center: ui.Offset(archPos.x, archPos.y - 8),
         width: 6,
         height: 12,
       );
-      
+
       final ui.Paint openingPaint = ui.Paint()..color = shadowColor;
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(openingRect, const ui.Radius.circular(3)),
@@ -1324,9 +1352,10 @@ class IsometricGridComponent extends PositionComponent {
       );
     }
   }
-  
-  /// Renders citadel-specific details  
-  void _renderCitadelDetails(ui.Canvas canvas, Vector2 center, Color baseColor, double healthFactor) {
+
+  /// Renders citadel-specific details
+  void _renderCitadelDetails(
+      ui.Canvas canvas, Vector2 center, Color baseColor, double healthFactor) {
     // Magical orb on main spire
     if (healthFactor > 0.3) {
       final Vector2 orbPos = Vector2(center.x, center.y - 100);
@@ -1341,9 +1370,9 @@ class IsometricGridComponent extends PositionComponent {
           ],
           [0.0, 0.7, 1.0],
         );
-      
+
       canvas.drawCircle(ui.Offset(orbPos.x, orbPos.y), 8, orbPaint);
-      
+
       // Orb core
       canvas.drawCircle(
         ui.Offset(orbPos.x, orbPos.y),
@@ -1351,31 +1380,33 @@ class IsometricGridComponent extends PositionComponent {
         ui.Paint()..color = Colors.white.withOpacity(0.9),
       );
     }
-    
+
     // Elegant windows with arched tops
     final List<Vector2> windowPositions = [
       Vector2(center.x - 20, center.y - 25), // Left spire
       Vector2(center.x + 20, center.y - 25), // Right spire
       Vector2(center.x, center.y - 15), // Main building
     ];
-    
+
     for (final Vector2 windowPos in windowPositions) {
       // Window frame
       final ui.Path windowPath = ui.Path()
         ..moveTo(windowPos.x - 3, windowPos.y + 4)
         ..lineTo(windowPos.x - 3, windowPos.y - 2)
-        ..quadraticBezierTo(windowPos.x, windowPos.y - 5, windowPos.x + 3, windowPos.y - 2)
+        ..quadraticBezierTo(
+            windowPos.x, windowPos.y - 5, windowPos.x + 3, windowPos.y - 2)
         ..lineTo(windowPos.x + 3, windowPos.y + 4)
         ..close();
-      
+
       final ui.Paint windowPaint = ui.Paint()
         ..color = healthFactor > 0.5 ? const Color(0xFFE1BEE7) : Colors.black;
-      
+
       canvas.drawPath(windowPath, windowPaint);
     }
   }
 
-  void _drawBuildingHealthBar(ui.Canvas canvas, Vector2 center, CommandCenter cc) {
+  void _drawBuildingHealthBar(
+      ui.Canvas canvas, Vector2 center, CommandCenter cc) {
     const double barWidth = 50.0;
     const double barHeight = 8.0;
     const double barOffsetY = -120.0; // Position above the building
@@ -1393,10 +1424,10 @@ class IsometricGridComponent extends PositionComponent {
 
     // Health bar fill
     final ui.Paint fillPaint = ui.Paint()
-      ..color = cc.healthPercentage > 0.3 
-        ? const Color(0xAA4CAF50) 
-        : const Color(0xAAF44336);
-    
+      ..color = cc.healthPercentage > 0.3
+          ? const Color(0xAA4CAF50)
+          : const Color(0xAAF44336);
+
     final double fillWidth = barWidth * cc.healthPercentage;
     final ui.Rect fillRect = ui.Rect.fromLTWH(barX, barY, fillWidth, barHeight);
     canvas.drawRRect(
