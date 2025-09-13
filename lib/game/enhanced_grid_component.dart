@@ -251,11 +251,19 @@ class EnhancedIsometricGridComponent extends PositionComponent {
       for (int c = 0; c < cols; c++) {
         final elevation = _tileElevations[r][c];
         if (elevation > 0) {
+          // Keep shadow at fixed position, just offset slightly for depth illusion
           final center = isoToScreen(r, c, originX, originY);
-          final shadowOffset = Vector2(elevation * 0.5, elevation * 0.3);
+          final shadowOffset = Vector2(3, 2); // Fixed small offset
           final shadowCenter = center + shadowOffset;
           
-          final shadowPath = _tileDiamond(shadowCenter, 1.1);
+          // Make shadow size based on elevation
+          final shadowScale = 1.0 + (elevation / 50);
+          final shadowPath = _tileDiamond(shadowCenter, shadowScale);
+          
+          // Adjust shadow opacity based on elevation
+          final shadowOpacity = 0.2 + (elevation / 100).clamp(0, 0.3);
+          shadowPaint.color = Colors.black.withOpacity(shadowOpacity);
+          
           canvas.drawPath(shadowPath, shadowPaint);
         }
       }
@@ -267,33 +275,35 @@ class EnhancedIsometricGridComponent extends PositionComponent {
     final elevation = _tileElevations[r][c];
     final animOffset = _tileAnimationOffsets[r][c];
     
-    Vector2 center = isoToScreen(r, c, originX, originY);
+    // Keep the actual tile position fixed for proper click detection
+    final Vector2 center = isoToScreen(r, c, originX, originY);
     
-    // Apply elevation
+    // Visual-only elevation offset for 3D effect (used only for rendering, not position)
+    double visualElevation = 0;
     if (enable3DEffect) {
-      center = Vector2(center.x, center.y - elevation);
+      visualElevation = elevation;
     }
     
-    // Apply animation for certain terrain types
+    // Visual-only animation offset (used only for decorations, not tile position)
+    double waveOffset = 0;
+    double swayOffset = 0;
     if (enableAnimations) {
       if (tileData.terrain == TerrainType.water) {
-        final wave = math.sin(_waterAnimationTime + animOffset) * 2;
-        center = Vector2(center.x, center.y + wave);
+        waveOffset = math.sin(_waterAnimationTime + animOffset) * 1.5;
       } else if (tileData.terrain == TerrainType.forest || tileData.terrain == TerrainType.grass) {
-        final sway = math.sin(_vegetationSwayTime + animOffset) * 0.5;
-        center = Vector2(center.x + sway, center.y);
+        swayOffset = math.sin(_vegetationSwayTime + animOffset) * 0.5;
       }
     }
     
-    // Draw tile with 3D effect
+    // Draw tile with 3D effect (using visual elevation, not actual position)
     if (enable3DEffect && elevation != 0) {
-      _draw3DTile(canvas, center, tileData.terrain, elevation);
+      _draw3DTile(canvas, center, tileData.terrain, visualElevation, waveOffset);
     } else {
       _drawFlatTile(canvas, center, tileData.terrain);
     }
     
-    // Draw tile decorations
-    _drawTileDecorations(canvas, center, tileData.terrain, animOffset);
+    // Draw tile decorations with animation offsets
+    _drawTileDecorations(canvas, center, tileData.terrain, animOffset, swayOffset, waveOffset);
     
     // Apply hover effect
     if (hoveredRow == r && hoveredCol == c) {
@@ -306,51 +316,57 @@ class EnhancedIsometricGridComponent extends PositionComponent {
     }
   }
   
-  void _draw3DTile(ui.Canvas canvas, Vector2 center, TerrainType terrain, double elevation) {
+  void _draw3DTile(ui.Canvas canvas, Vector2 center, TerrainType terrain, double elevation, double waveOffset) {
     final baseColor = getEnhancedTerrainColor(terrain);
     final darkColor = Color.lerp(baseColor, Colors.black, 0.3)!;
     final lightColor = Color.lerp(baseColor, Colors.white, 0.2)!;
     
-    // Draw tile sides for 3D effect
+    // Draw tile sides for 3D effect (visual only, drawn below the tile)
     if (elevation > 0) {
       final sideHeight = elevation.abs();
+      // Draw the 3D sides as if the tile was elevated, but keep tile in place
+      final visualCenter = Vector2(center.x, center.y - elevation);
+      
       final leftSidePath = ui.Path()
-        ..moveTo(center.x - tileSize.x / 2, center.y)
-        ..lineTo(center.x - tileSize.x / 2, center.y + sideHeight)
-        ..lineTo(center.x, center.y + tileSize.y / 2 + sideHeight)
+        ..moveTo(visualCenter.x - tileSize.x / 2, visualCenter.y)
+        ..lineTo(center.x - tileSize.x / 2, center.y)
         ..lineTo(center.x, center.y + tileSize.y / 2)
+        ..lineTo(visualCenter.x, visualCenter.y + tileSize.y / 2)
         ..close();
       
       final rightSidePath = ui.Path()
-        ..moveTo(center.x, center.y + tileSize.y / 2)
-        ..lineTo(center.x, center.y + tileSize.y / 2 + sideHeight)
-        ..lineTo(center.x + tileSize.x / 2, center.y + sideHeight)
+        ..moveTo(visualCenter.x, visualCenter.y + tileSize.y / 2)
+        ..lineTo(center.x, center.y + tileSize.y / 2)
         ..lineTo(center.x + tileSize.x / 2, center.y)
+        ..lineTo(visualCenter.x + tileSize.x / 2, visualCenter.y)
         ..close();
       
       final leftSidePaint = ui.Paint()
         ..shader = ui.Gradient.linear(
+          ui.Offset(visualCenter.x - tileSize.x / 2, visualCenter.y),
           ui.Offset(center.x - tileSize.x / 2, center.y),
-          ui.Offset(center.x - tileSize.x / 2, center.y + sideHeight),
-          [darkColor, darkColor.withOpacity(0.8)],
+          [darkColor, darkColor.withOpacity(0.6)],
         );
       
       final rightSidePaint = ui.Paint()
         ..shader = ui.Gradient.linear(
+          ui.Offset(visualCenter.x + tileSize.x / 2, visualCenter.y),
           ui.Offset(center.x + tileSize.x / 2, center.y),
-          ui.Offset(center.x + tileSize.x / 2, center.y + sideHeight),
-          [darkColor.withOpacity(0.9), darkColor.withOpacity(0.7)],
+          [darkColor.withOpacity(0.9), darkColor.withOpacity(0.5)],
         );
       
       canvas.drawPath(leftSidePath, leftSidePaint);
       canvas.drawPath(rightSidePath, rightSidePaint);
     }
     
-    // Draw main tile surface with gradient
-    final tilePath = _tileDiamond(center, 1.0);
+    // Draw main tile surface with gradient (apply wave offset for water)
+    final tileCenter = terrain == TerrainType.water 
+        ? Vector2(center.x, center.y + waveOffset)
+        : center;
+    final tilePath = _tileDiamond(tileCenter, 1.0);
     final gradientPaint = ui.Paint()
       ..shader = ui.Gradient.radial(
-        ui.Offset(center.x, center.y),
+        ui.Offset(tileCenter.x, tileCenter.y),
         tileSize.x / 2,
         [lightColor, baseColor, darkColor],
         [0.0, 0.5, 1.0],
@@ -366,7 +382,7 @@ class EnhancedIsometricGridComponent extends PositionComponent {
     canvas.drawPath(tilePath, edgePaint);
     
     // Add texture pattern
-    _drawTexturePattern(canvas, center, terrain);
+    _drawTexturePattern(canvas, tileCenter, terrain);
   }
   
   void _drawFlatTile(ui.Canvas canvas, Vector2 center, TerrainType terrain) {
@@ -444,8 +460,8 @@ class EnhancedIsometricGridComponent extends PositionComponent {
     }
   }
   
-  void _drawTileDecorations(ui.Canvas canvas, Vector2 center, TerrainType terrain, double animOffset) {
-    if (!enableAnimations) return;
+  void _drawTileDecorations(ui.Canvas canvas, Vector2 center, TerrainType terrain, double animOffset, double swayOffset, double waveOffset) {
+    if (!enableAnimations && terrain != TerrainType.mountain) return;
     
     switch (terrain) {
       case TerrainType.forest:
@@ -453,40 +469,39 @@ class EnhancedIsometricGridComponent extends PositionComponent {
         final treePaint = ui.Paint()..color = Colors.green.shade800;
         final trunkPaint = ui.Paint()..color = Colors.brown.shade700;
         
-        final swayOffset = math.sin(_vegetationSwayTime + animOffset) * 2;
-        
-        // Tree trunk
+        // Tree trunk (base stays fixed)
         canvas.drawRect(
           ui.Rect.fromCenter(
-            center: ui.Offset(center.x + swayOffset / 2, center.y - 5),
+            center: ui.Offset(center.x, center.y - 5),
             width: 3,
             height: 10,
           ),
           trunkPaint,
         );
         
-        // Tree crown
+        // Tree crown (sways)
         canvas.drawCircle(
-          ui.Offset(center.x + swayOffset, center.y - 10),
+          ui.Offset(center.x + swayOffset * 2, center.y - 10),
           6,
           treePaint,
         );
         break;
         
       case TerrainType.water:
-        // Draw animated water sparkles
+        // Draw animated water sparkles (follow wave motion)
         final sparkleAlpha = (math.sin(_waterAnimationTime * 3 + animOffset) + 1) / 2;
         final sparklePaint = ui.Paint()
           ..color = Colors.white.withOpacity(sparkleAlpha * 0.5)
           ..strokeWidth = 1;
         
+        final sparkleY = center.y + waveOffset;
         canvas.drawCircle(
-          ui.Offset(center.x - 5, center.y),
+          ui.Offset(center.x - 5, sparkleY),
           2,
           sparklePaint,
         );
         canvas.drawCircle(
-          ui.Offset(center.x + 5, center.y - 3),
+          ui.Offset(center.x + 5, sparkleY - 3),
           1.5,
           sparklePaint,
         );
@@ -557,32 +572,33 @@ class EnhancedIsometricGridComponent extends PositionComponent {
       final int r0 = cc.topLeftRow.clamp(0, rows - 1);
       final int c0 = cc.topLeftCol.clamp(0, cols - 1);
       
-      // Draw command center as a larger elevated structure
+      // Draw command center at fixed position
       final centerRow = r0 + 0.5;
       final centerCol = c0 + 0.5;
       final center = isoToScreen(centerRow.toInt(), centerCol.toInt(), originX, originY);
-      final elevatedCenter = Vector2(center.x, center.y - 20);
+      // Visual elevation for the structure (not affecting position)
+      final visualElevation = 20.0;
       
-      // Draw base platform
+      // Draw base platform at fixed positions
       final platformPath = ui.Path();
       final platforms = <Vector2>[];
       for (int dr = 0; dr < 2; dr++) {
         for (int dc = 0; dc < 2; dc++) {
           if (r0 + dr < rows && c0 + dc < cols) {
             final pos = isoToScreen(r0 + dr, c0 + dc, originX, originY);
-            platforms.add(Vector2(pos.x, pos.y - 10));
+            platforms.add(pos); // Keep at original position
           }
         }
       }
       
       if (platforms.isNotEmpty) {
-        // Draw platform shadow
+        // Draw platform shadow at fixed offset
         final shadowPaint = ui.Paint()
           ..color = const Color(0x60000000)
           ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 8);
         
         for (final platform in platforms) {
-          final shadowPath = _tileDiamond(Vector2(platform.x + 5, platform.y + 5), 1.2);
+          final shadowPath = _tileDiamond(Vector2(platform.x + 4, platform.y + 3), 1.15);
           canvas.drawPath(shadowPath, shadowPaint);
         }
         
@@ -592,20 +608,22 @@ class EnhancedIsometricGridComponent extends PositionComponent {
             : (cc.playerIndex == 0 ? const Color(0xFF1B5E20) : const Color(0xFF880E4F));
         
         for (final platform in platforms) {
-          // Draw 3D sides
-          final sideHeight = 15.0;
+          // Draw 3D sides (visual only, platform stays at fixed position)
+          final sideHeight = 12.0;
+          final visualTop = Vector2(platform.x, platform.y - sideHeight);
+          
           final leftSide = ui.Path()
-            ..moveTo(platform.x - tileSize.x / 2, platform.y)
-            ..lineTo(platform.x - tileSize.x / 2, platform.y + sideHeight)
-            ..lineTo(platform.x, platform.y + tileSize.y / 2 + sideHeight)
+            ..moveTo(visualTop.x - tileSize.x / 2, visualTop.y)
+            ..lineTo(platform.x - tileSize.x / 2, platform.y)
             ..lineTo(platform.x, platform.y + tileSize.y / 2)
+            ..lineTo(visualTop.x, visualTop.y + tileSize.y / 2)
             ..close();
           
           final rightSide = ui.Path()
-            ..moveTo(platform.x, platform.y + tileSize.y / 2)
-            ..lineTo(platform.x, platform.y + tileSize.y / 2 + sideHeight)
-            ..lineTo(platform.x + tileSize.x / 2, platform.y + sideHeight)
+            ..moveTo(visualTop.x, visualTop.y + tileSize.y / 2)
+            ..lineTo(platform.x, platform.y + tileSize.y / 2)
             ..lineTo(platform.x + tileSize.x / 2, platform.y)
+            ..lineTo(visualTop.x + tileSize.x / 2, visualTop.y)
             ..close();
           
           final sidePaint = ui.Paint()
@@ -636,43 +654,46 @@ class EnhancedIsometricGridComponent extends PositionComponent {
           canvas.drawPath(topPath, edgePaint);
         }
         
-        // Draw central structure
+        // Draw central structure at fixed position with visual elevation
         if (!cc.isDestroyed) {
-          _drawCommandCenterStructure(canvas, elevatedCenter, cc.playerIndex);
+          _drawCommandCenterStructure(canvas, center, cc.playerIndex, visualElevation);
         }
       }
     }
   }
   
-  void _drawCommandCenterStructure(ui.Canvas canvas, Vector2 center, int playerIndex) {
+  void _drawCommandCenterStructure(ui.Canvas canvas, Vector2 center, int playerIndex, double visualElevation) {
     // Draw a futuristic tower structure
     final baseColor = playerIndex == 0 ? Colors.green : Colors.pink;
     
-    // Tower base
-    final basePath = ui.Path()
-      ..addRect(ui.Rect.fromCenter(
-        center: ui.Offset(center.x, center.y),
-        width: 20,
-        height: 30,
-      ));
+    // Draw tower with visual elevation effect (position stays fixed)
+    final visualTop = center.y - visualElevation;
     
-    final basePaint = ui.Paint()
+    // Tower sides (3D effect)
+    final towerSidePath = ui.Path()
+      ..moveTo(center.x - 10, center.y)
+      ..lineTo(center.x - 10, visualTop)
+      ..lineTo(center.x + 10, visualTop)
+      ..lineTo(center.x + 10, center.y)
+      ..close();
+    
+    final sidePaint = ui.Paint()
       ..shader = ui.Gradient.linear(
-        ui.Offset(center.x, center.y - 15),
-        ui.Offset(center.x, center.y + 15),
+        ui.Offset(center.x, visualTop),
+        ui.Offset(center.x, center.y),
         [
           Color.lerp(baseColor, Colors.white, 0.3)!,
-          baseColor,
+          Color.lerp(baseColor, Colors.black, 0.2)!,
         ],
       );
-    canvas.drawPath(basePath, basePaint);
+    canvas.drawPath(towerSidePath, sidePaint);
     
-    // Tower top with animation
+    // Tower top (at visual elevation)
     final topOffset = math.sin(_time * 2) * 2;
     final topPath = ui.Path()
-      ..moveTo(center.x - 10, center.y - 15)
-      ..lineTo(center.x, center.y - 25 + topOffset)
-      ..lineTo(center.x + 10, center.y - 15)
+      ..moveTo(center.x - 10, visualTop)
+      ..lineTo(center.x, visualTop - 10 + topOffset)
+      ..lineTo(center.x + 10, visualTop)
       ..close();
     
     final topPaint = ui.Paint()
@@ -721,7 +742,7 @@ class EnhancedIsometricGridComponent extends PositionComponent {
       
       _drawHealthBar(
         canvas,
-        Vector2(center.x + tileSize.x / 2, center.y - 35),
+        Vector2(center.x + tileSize.x / 2, center.y - 25), // Fixed position above tile
         cc.healthPercentage,
         cc.playerIndex,
       );
@@ -863,6 +884,7 @@ class EnhancedIsometricGridComponent extends PositionComponent {
     final double halfW = tileSize.x / 2;
     final double halfH = tileSize.y / 2;
     
+    // Direct inverse transform - no elevation adjustments
     final double colF = (dy / halfH + dx / halfW) / 2.0;
     final double rowF = (dy / halfH - dx / halfW) / 2.0;
     
@@ -883,6 +905,7 @@ class EnhancedIsometricGridComponent extends PositionComponent {
       final int row = cand.y;
       if (row < 0 || col < 0 || row >= rows || col >= cols) continue;
       
+      // Use exact tile position for hit detection
       final Vector2 center = isoToScreen(row, col, originX, originY);
       final double ddx = (localPoint.x - center.x).abs();
       final double ddy = (localPoint.y - center.y).abs();
