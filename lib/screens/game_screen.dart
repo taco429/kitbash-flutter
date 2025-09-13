@@ -14,6 +14,7 @@ import '../widgets/player_deck_display.dart';
 import '../widgets/animated_hand_display.dart';
 import '../models/card.dart';
 import 'game_over_screen.dart';
+import '../widgets/game_log.dart';
 
 class GameScreen extends StatefulWidget {
   final String gameId;
@@ -310,6 +311,15 @@ class _GameScreenState extends State<GameScreen> {
                             label: 'Discard',
                             accentColor: Colors.green,
                           ),
+                        ],
+                      ),
+                    ),
+                    // Game log row
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: Row(
+                        children: const [
+                          Expanded(child: GameLog(maxRows: 5)),
                         ],
                       ),
                     ),
