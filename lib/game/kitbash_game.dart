@@ -14,15 +14,15 @@ class Vector3 {
   final double x;
   final double y;
   final double z;
-  
+
   const Vector3(this.x, this.y, this.z);
-  
+
   Vector3 normalized() {
     final double length = math.sqrt(x * x + y * y + z * z);
     if (length == 0) return const Vector3(0, 0, 1);
     return Vector3(x / length, y / length, z / length);
   }
-  
+
   double dot(Vector3 other) {
     return x * other.x + y * other.y + z * other.z;
   }
@@ -34,7 +34,7 @@ class TerrainVisuals {
   final Color highlightColor;
   final Color shadowColor;
   final double roughness;
-  
+
   const TerrainVisuals({
     required this.baseColor,
     required this.highlightColor,
@@ -135,6 +135,12 @@ class IsometricGridComponent extends PositionComponent {
   int? hoveredRow;
   int? hoveredCol;
 
+  // Paint for grid/overlay outlines
+  final ui.Paint gridLinePaint = ui.Paint()
+    ..color = const Color(0xAAFFFFFF)
+    ..style = ui.PaintingStyle.stroke
+    ..strokeWidth = 1.0;
+
   // Debug overlay state
   bool debugHoverOverlay = false;
   Vector2? _debugLocalPoint;
@@ -204,8 +210,6 @@ class IsometricGridComponent extends PositionComponent {
       _commandCenters = gameState.commandCenters;
     }
 
-    final ui.Paint highlightPaint = ui.Paint()..color = const Color(0x8854C7EC);
-    final ui.Paint hoverPaint = ui.Paint()..color = const Color(0x66FFFFFF);
     final ui.Paint ccPaintP0 = ui.Paint()..color = const Color(0xCC8BC34A);
     final ui.Paint ccPaintP1 = ui.Paint()..color = const Color(0xCCE91E63);
     final ui.Paint healthBarBg = ui.Paint()..color = const Color(0xAA000000);
@@ -225,7 +229,7 @@ class IsometricGridComponent extends PositionComponent {
         }
       }
     }
-    
+
     // Second pass: render tiles with enhanced 2.5D effects
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
@@ -390,16 +394,18 @@ class IsometricGridComponent extends PositionComponent {
   }
 
   /// Renders ground shadows for elevated tiles to enhance depth perception
-  void _renderGroundShadow(ui.Canvas canvas, int r, int c, double originX, double originY, double elevation) {
+  void _renderGroundShadow(ui.Canvas canvas, int r, int c, double originX,
+      double originY, double elevation) {
     final Vector2 center = isoToScreen(r, c, originX, originY);
     final double halfW = tileSize.x / 2;
     final double halfH = tileSize.y / 2;
-    
+
     // Shadow offset based on light direction and elevation
     final double shadowOffsetX = elevation * 0.3;
     final double shadowOffsetY = elevation * 0.2;
-    final Vector2 shadowCenter = Vector2(center.x + shadowOffsetX, center.y + shadowOffsetY);
-    
+    final Vector2 shadowCenter =
+        Vector2(center.x + shadowOffsetX, center.y + shadowOffsetY);
+
     // Create shadow diamond (slightly larger and offset)
     final ui.Path shadowPath = ui.Path()
       ..moveTo(shadowCenter.x, shadowCenter.y - halfH * 0.9)
@@ -407,43 +413,45 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(shadowCenter.x, shadowCenter.y + halfH * 0.9)
       ..lineTo(shadowCenter.x - halfW * 0.9, shadowCenter.y)
       ..close();
-    
+
     // Shadow paint with gradient based on elevation
     final double shadowOpacity = (elevation / 20.0).clamp(0.1, 0.4);
     final ui.Paint shadowPaint = ui.Paint()
       ..color = Colors.black.withOpacity(shadowOpacity)
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2.0);
-    
+
     canvas.drawPath(shadowPath, shadowPaint);
   }
-  
+
   /// Renders an enhanced tile with 2.5D effects, lighting, and detailed terrain
-  void _renderEnhancedTile(ui.Canvas canvas, int r, int c, double originX, double originY) {
+  void _renderEnhancedTile(
+      ui.Canvas canvas, int r, int c, double originX, double originY) {
     final Vector2 center = isoToScreen(r, c, originX, originY);
     final TileData tileData = _tileData[r][c];
     final TerrainType terrain = tileData.terrain;
-    
+
     // Get terrain elevation and visual properties
     final double elevation = _getTerrainElevation(terrain);
     final TerrainVisuals visuals = _getTerrainVisuals(terrain);
-    
+
     // Calculate lighting based on position and terrain
     final Vector3 lightDirection = Vector3(-0.5, -0.8, 0.3).normalized();
-    final double lightIntensity = _calculateLighting(r, c, terrain, lightDirection);
-    
+    final double lightIntensity =
+        _calculateLighting(r, c, terrain, lightDirection);
+
     // Render base tile with depth
     _renderTileBase(canvas, center, elevation, visuals, lightIntensity);
-    
+
     // Add terrain-specific details
     _renderTerrainDetails(canvas, center, terrain, elevation, lightIntensity);
-    
+
     // Add edge highlights and shadows for 3D effect
     _renderTileEdges(canvas, center, elevation, lightIntensity);
-    
+
     // Apply hover and selection effects
     _applyTileEffects(canvas, center, r, c);
   }
-  
+
   double _getTerrainElevation(TerrainType terrain) {
     switch (terrain) {
       case TerrainType.water:
@@ -460,7 +468,7 @@ class IsometricGridComponent extends PositionComponent {
         return 12.0; // High elevation
     }
   }
-  
+
   TerrainVisuals _getTerrainVisuals(TerrainType terrain) {
     switch (terrain) {
       case TerrainType.grass:
@@ -507,77 +515,77 @@ class IsometricGridComponent extends PositionComponent {
         );
     }
   }
-  
-  double _calculateLighting(int r, int c, TerrainType terrain, Vector3 lightDir) {
+
+  double _calculateLighting(
+      int r, int c, TerrainType terrain, Vector3 lightDir) {
     // Calculate surface normal based on terrain and neighbors
     Vector3 normal = Vector3(0, 0, 1); // Default upward normal
-    
+
     // Modify normal based on terrain type
     switch (terrain) {
       case TerrainType.mountain:
         // Rocky, uneven surface
-        normal = Vector3(
-          (math.sin(r * 0.7 + c * 0.5) * 0.3),
-          (math.cos(r * 0.5 + c * 0.7) * 0.3),
-          0.9
-        ).normalized();
+        normal = Vector3((math.sin(r * 0.7 + c * 0.5) * 0.3),
+                (math.cos(r * 0.5 + c * 0.7) * 0.3), 0.9)
+            .normalized();
         break;
       case TerrainType.water:
         // Gentle waves
         final double time = DateTime.now().millisecondsSinceEpoch / 1000.0;
-        normal = Vector3(
-          math.sin(time + r * 0.3 + c * 0.2) * 0.1,
-          math.cos(time + r * 0.2 + c * 0.3) * 0.1,
-          0.99
-        ).normalized();
+        normal = Vector3(math.sin(time + r * 0.3 + c * 0.2) * 0.1,
+                math.cos(time + r * 0.2 + c * 0.3) * 0.1, 0.99)
+            .normalized();
         break;
       case TerrainType.forest:
         // Slightly bumpy from vegetation
-        normal = Vector3(
-          (r + c) % 3 == 0 ? 0.1 : -0.1,
-          (r - c) % 2 == 0 ? 0.1 : -0.1,
-          0.98
-        ).normalized();
+        normal = Vector3((r + c) % 3 == 0 ? 0.1 : -0.1,
+                (r - c) % 2 == 0 ? 0.1 : -0.1, 0.98)
+            .normalized();
         break;
       default:
         // Slight variation for other terrains
-        normal = Vector3(
-          math.sin(r * 1.3) * 0.05,
-          math.cos(c * 1.1) * 0.05,
-          0.995
-        ).normalized();
+        normal =
+            Vector3(math.sin(r * 1.3) * 0.05, math.cos(c * 1.1) * 0.05, 0.995)
+                .normalized();
     }
-    
+
     // Calculate base lighting from dot product
     final double dot = normal.dot(lightDir);
     double lighting = (dot * 0.5 + 0.5).clamp(0.3, 1.0); // Ambient + diffuse
-    
+
     // Add ambient occlusion from neighboring tiles
     final double ambientOcclusion = _calculateAmbientOcclusion(r, c);
     lighting *= ambientOcclusion;
-    
+
     return lighting;
   }
-  
+
   double _calculateAmbientOcclusion(int r, int c) {
     double occlusion = 1.0;
-    final double currentElevation = _getTerrainElevation(_tileData[r][c].terrain);
-    
+    final double currentElevation =
+        _getTerrainElevation(_tileData[r][c].terrain);
+
     // Check neighboring tiles for occlusion
     final List<List<int>> neighbors = [
-      [-1, -1], [-1, 0], [-1, 1],
-      [0, -1],           [0, 1],
-      [1, -1],  [1, 0],  [1, 1]
+      [-1, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, -1],
+      [0, 1],
+      [1, -1],
+      [1, 0],
+      [1, 1]
     ];
-    
+
     for (final List<int> offset in neighbors) {
       final int nr = r + offset[0];
       final int nc = c + offset[1];
-      
+
       if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-        final double neighborElevation = _getTerrainElevation(_tileData[nr][nc].terrain);
+        final double neighborElevation =
+            _getTerrainElevation(_tileData[nr][nc].terrain);
         final double elevationDiff = neighborElevation - currentElevation;
-        
+
         if (elevationDiff > 0) {
           // Higher neighbor casts shadow
           final double shadowStrength = (elevationDiff / 20.0).clamp(0.0, 0.15);
@@ -585,16 +593,16 @@ class IsometricGridComponent extends PositionComponent {
         }
       }
     }
-    
+
     return occlusion.clamp(0.6, 1.0); // Ensure minimum lighting
   }
-  
-  void _renderTileBase(ui.Canvas canvas, Vector2 center, double elevation, 
-                      TerrainVisuals visuals, double lightIntensity) {
+
+  void _renderTileBase(ui.Canvas canvas, Vector2 center, double elevation,
+      TerrainVisuals visuals, double lightIntensity) {
     final double halfW = tileSize.x / 2;
     final double halfH = tileSize.y / 2;
     final Vector2 elevatedCenter = Vector2(center.x, center.y - elevation);
-    
+
     // Create the main tile diamond
     final ui.Path tilePath = ui.Path()
       ..moveTo(elevatedCenter.x, elevatedCenter.y - halfH)
@@ -602,14 +610,11 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(elevatedCenter.x, elevatedCenter.y + halfH)
       ..lineTo(elevatedCenter.x - halfW, elevatedCenter.y)
       ..close();
-    
+
     // Apply lighting to base color
     final Color litColor = Color.lerp(
-      visuals.shadowColor,
-      visuals.highlightColor,
-      lightIntensity
-    )!;
-    
+        visuals.shadowColor, visuals.highlightColor, lightIntensity)!;
+
     // Create gradient for 3D effect
     final ui.Paint gradientPaint = ui.Paint()
       ..shader = ui.Gradient.linear(
@@ -622,14 +627,15 @@ class IsometricGridComponent extends PositionComponent {
         ],
         [0.0, 0.5, 1.0],
       );
-    
+
     canvas.drawPath(tilePath, gradientPaint);
-    
+
     // Draw depth/side faces for elevated tiles
     if (elevation > 0) {
-      _renderTileDepth(canvas, center, elevatedCenter, elevation, visuals, lightIntensity);
+      _renderTileDepth(
+          canvas, center, elevatedCenter, elevation, visuals, lightIntensity);
     }
-    
+
     // Add subtle border
     final ui.Paint borderPaint = ui.Paint()
       ..color = Color.lerp(litColor, Colors.black, 0.4)!
@@ -637,12 +643,17 @@ class IsometricGridComponent extends PositionComponent {
       ..strokeWidth = 0.5;
     canvas.drawPath(tilePath, borderPaint);
   }
-  
-  void _renderTileDepth(ui.Canvas canvas, Vector2 baseCenter, Vector2 elevatedCenter, 
-                       double elevation, TerrainVisuals visuals, double lightIntensity) {
+
+  void _renderTileDepth(
+      ui.Canvas canvas,
+      Vector2 baseCenter,
+      Vector2 elevatedCenter,
+      double elevation,
+      TerrainVisuals visuals,
+      double lightIntensity) {
     final double halfW = tileSize.x / 2;
     final double halfH = tileSize.y / 2;
-    
+
     // Right face
     final ui.Path rightFace = ui.Path()
       ..moveTo(elevatedCenter.x + halfW, elevatedCenter.y)
@@ -650,46 +661,40 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(baseCenter.x, baseCenter.y + halfH)
       ..lineTo(elevatedCenter.x, elevatedCenter.y + halfH)
       ..close();
-    
-    // Left face  
+
+    // Left face
     final ui.Path leftFace = ui.Path()
       ..moveTo(elevatedCenter.x, elevatedCenter.y + halfH)
       ..lineTo(baseCenter.x, baseCenter.y + halfH)
       ..lineTo(baseCenter.x - halfW, baseCenter.y)
       ..lineTo(elevatedCenter.x - halfW, elevatedCenter.y)
       ..close();
-    
+
     // Calculate face lighting (darker for side faces)
     final Color rightFaceColor = Color.lerp(
-      visuals.shadowColor,
-      visuals.baseColor,
-      lightIntensity * 0.6
-    )!;
-    
+        visuals.shadowColor, visuals.baseColor, lightIntensity * 0.6)!;
+
     final Color leftFaceColor = Color.lerp(
-      visuals.shadowColor,
-      visuals.baseColor,
-      lightIntensity * 0.4
-    )!;
-    
+        visuals.shadowColor, visuals.baseColor, lightIntensity * 0.4)!;
+
     // Draw faces
     canvas.drawPath(rightFace, ui.Paint()..color = rightFaceColor);
     canvas.drawPath(leftFace, ui.Paint()..color = leftFaceColor);
-    
+
     // Add edge highlights
     final ui.Paint edgePaint = ui.Paint()
       ..color = Color.lerp(rightFaceColor, Colors.white, 0.3)!
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 0.5;
-    
+
     canvas.drawPath(rightFace, edgePaint);
     canvas.drawPath(leftFace, edgePaint);
   }
-  
-  void _renderTerrainDetails(ui.Canvas canvas, Vector2 center, TerrainType terrain, 
-                            double elevation, double lightIntensity) {
+
+  void _renderTerrainDetails(ui.Canvas canvas, Vector2 center,
+      TerrainType terrain, double elevation, double lightIntensity) {
     final Vector2 elevatedCenter = Vector2(center.x, center.y - elevation);
-    
+
     switch (terrain) {
       case TerrainType.water:
         _renderWaterEffects(canvas, elevatedCenter, lightIntensity);
@@ -711,30 +716,25 @@ class IsometricGridComponent extends PositionComponent {
         break;
     }
   }
-  
-  void _renderWaterEffects(ui.Canvas canvas, Vector2 center, double lightIntensity) {
+
+  void _renderWaterEffects(
+      ui.Canvas canvas, Vector2 center, double lightIntensity) {
     final double time = DateTime.now().millisecondsSinceEpoch / 1000.0;
-    
+
     // Animated water surface with reflection
     final ui.Paint waterPaint = ui.Paint()
       ..shader = ui.Gradient.radial(
         ui.Offset(center.x, center.y),
         20.0,
         [
-          Color.lerp(
-            const Color(0xFF4A9FD1),
-            const Color(0xFF87CEEB),
-            (math.sin(time * 2) * 0.3 + 0.7) * lightIntensity
-          )!,
-          Color.lerp(
-            const Color(0xFF2E5984),
-            const Color(0xFF4A7BA7),
-            lightIntensity
-          )!,
+          Color.lerp(const Color(0xFF4A9FD1), const Color(0xFF87CEEB),
+              (math.sin(time * 2) * 0.3 + 0.7) * lightIntensity)!,
+          Color.lerp(const Color(0xFF2E5984), const Color(0xFF4A7BA7),
+              lightIntensity)!,
         ],
         [0.0, 1.0],
       );
-    
+
     // Draw water base with subtle movement
     final double halfW = tileSize.x / 2;
     final double halfH = tileSize.y / 2;
@@ -744,64 +744,63 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x, center.y + halfH + math.sin(time * 3.5) * 0.5)
       ..lineTo(center.x - halfW + math.cos(time * 2) * 0.5, center.y)
       ..close();
-    
+
     canvas.drawPath(waterPath, waterPaint);
-    
+
     // Draw animated water ripples
     for (int i = 0; i < 3; i++) {
       final double radius = 8 + i * 6 + math.sin(time * 3 + i) * 2;
       final double alpha = (0.3 - i * 0.1) * lightIntensity;
-      
+
       final ui.Paint ripplePaint = ui.Paint()
         ..color = Colors.white.withOpacity(alpha)
         ..style = ui.PaintingStyle.stroke
         ..strokeWidth = 1.0;
-      
+
       canvas.drawCircle(ui.Offset(center.x, center.y), radius, ripplePaint);
     }
-    
+
     // Add sparkles for light reflection
     for (int i = 0; i < 4; i++) {
-      final double sparkleX = center.x + (i % 2 - 0.5) * 20 + math.sin(time * 4 + i) * 3;
-      final double sparkleY = center.y + (i ~/ 2 - 0.5) * 12 + math.cos(time * 3 + i) * 2;
-      final double sparkleAlpha = (math.sin(time * 6 + i * 2) * 0.5 + 0.5) * lightIntensity;
-      
+      final double sparkleX =
+          center.x + (i % 2 - 0.5) * 20 + math.sin(time * 4 + i) * 3;
+      final double sparkleY =
+          center.y + (i ~/ 2 - 0.5) * 12 + math.cos(time * 3 + i) * 2;
+      final double sparkleAlpha =
+          (math.sin(time * 6 + i * 2) * 0.5 + 0.5) * lightIntensity;
+
       if (sparkleAlpha > 0.3) {
         final ui.Paint sparklePaint = ui.Paint()
           ..color = Colors.white.withOpacity(sparkleAlpha * 0.8)
           ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 1.0);
-        
+
         canvas.drawCircle(ui.Offset(sparkleX, sparkleY), 1.5, sparklePaint);
       }
     }
   }
-  
-  void _renderForestDetails(ui.Canvas canvas, Vector2 center, double lightIntensity) {
+
+  void _renderForestDetails(
+      ui.Canvas canvas, Vector2 center, double lightIntensity) {
     final ui.Paint treePaint = ui.Paint()
       ..color = Color.lerp(
-        const Color(0xFF1A2D15),
-        const Color(0xFF2D4A22),
-        lightIntensity
-      )!;
-    
+          const Color(0xFF1A2D15), const Color(0xFF2D4A22), lightIntensity)!;
+
     // Draw simplified tree shapes
     for (int i = 0; i < 4; i++) {
       final double offsetX = (i % 2 - 0.5) * 12;
       final double offsetY = (i ~/ 2 - 0.5) * 8;
       final Vector2 treePos = Vector2(center.x + offsetX, center.y + offsetY);
-      
+
       canvas.drawCircle(ui.Offset(treePos.x, treePos.y), 4, treePaint);
     }
   }
-  
-  void _renderMountainDetails(ui.Canvas canvas, Vector2 center, double lightIntensity) {
+
+  void _renderMountainDetails(
+      ui.Canvas canvas, Vector2 center, double lightIntensity) {
     final ui.Paint rockPaint = ui.Paint()
       ..color = Color.lerp(
-        const Color(0xFF2A1F18),
-        const Color(0xFF6B5240),
-        lightIntensity
-      )!;
-    
+          const Color(0xFF2A1F18), const Color(0xFF6B5240), lightIntensity)!;
+
     // Draw rocky outcroppings
     final ui.Path rockPath = ui.Path()
       ..moveTo(center.x - 8, center.y + 4)
@@ -811,160 +810,136 @@ class IsometricGridComponent extends PositionComponent {
       ..lineTo(center.x + 6, center.y + 2)
       ..lineTo(center.x, center.y + 6)
       ..close();
-    
+
     canvas.drawPath(rockPath, rockPaint);
-    
+
     // Add snow cap for high peaks
     final ui.Paint snowPaint = ui.Paint()
       ..color = Colors.white.withOpacity(0.8 * lightIntensity);
-    
+
     final ui.Path snowPath = ui.Path()
       ..moveTo(center.x - 4, center.y - 6)
       ..lineTo(center.x + 2, center.y - 4)
       ..lineTo(center.x + 8, center.y - 8)
       ..lineTo(center.x - 2, center.y - 8)
       ..close();
-    
+
     canvas.drawPath(snowPath, snowPaint);
   }
-  
-  void _renderDesertDetails(ui.Canvas canvas, Vector2 center, double lightIntensity) {
+
+  void _renderDesertDetails(
+      ui.Canvas canvas, Vector2 center, double lightIntensity) {
     final ui.Paint sandPaint = ui.Paint()
       ..color = Color.lerp(
-        const Color(0xFF6B5A42),
-        const Color(0xFFD4B896),
-        lightIntensity
-      )!
+          const Color(0xFF6B5A42), const Color(0xFFD4B896), lightIntensity)!
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1.0;
-    
+
     // Draw sand dune lines
     for (int i = 0; i < 3; i++) {
       final double y = center.y - 8 + i * 6;
       final ui.Path dunePath = ui.Path()
         ..moveTo(center.x - 12, y)
         ..quadraticBezierTo(center.x, y - 2, center.x + 12, y);
-      
+
       canvas.drawPath(dunePath, sandPaint);
     }
   }
-  
-  void _renderStoneDetails(ui.Canvas canvas, Vector2 center, double lightIntensity) {
+
+  void _renderStoneDetails(
+      ui.Canvas canvas, Vector2 center, double lightIntensity) {
     final ui.Paint stonePaint = ui.Paint()
       ..color = Color.lerp(
-        const Color(0xFF3A3A3A),
-        const Color(0xFF8A8A8A),
-        lightIntensity
-      )!
+          const Color(0xFF3A3A3A), const Color(0xFF8A8A8A), lightIntensity)!
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 0.5;
-    
+
     // Draw stone tile patterns
     final double halfW = tileSize.x / 4;
     final double halfH = tileSize.y / 4;
-    
+
     // Cross pattern
-    canvas.drawLine(
-      ui.Offset(center.x - halfW, center.y),
-      ui.Offset(center.x + halfW, center.y),
-      stonePaint
-    );
-    canvas.drawLine(
-      ui.Offset(center.x, center.y - halfH),
-      ui.Offset(center.x, center.y + halfH),
-      stonePaint
-    );
+    canvas.drawLine(ui.Offset(center.x - halfW, center.y),
+        ui.Offset(center.x + halfW, center.y), stonePaint);
+    canvas.drawLine(ui.Offset(center.x, center.y - halfH),
+        ui.Offset(center.x, center.y + halfH), stonePaint);
   }
-  
-  void _renderGrassDetails(ui.Canvas canvas, Vector2 center, double lightIntensity) {
+
+  void _renderGrassDetails(
+      ui.Canvas canvas, Vector2 center, double lightIntensity) {
     final ui.Paint grassPaint = ui.Paint()
       ..color = Color.lerp(
-        const Color(0xFF2D3A15),
-        const Color(0xFF6B8432),
-        lightIntensity
-      )!
+          const Color(0xFF2D3A15), const Color(0xFF6B8432), lightIntensity)!
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 0.8;
-    
+
     // Draw grass blades
     for (int i = 0; i < 6; i++) {
       final double angle = (i / 6.0) * math.pi * 2;
       final double length = 6 + math.sin(angle * 3) * 2;
-      final Vector2 end = Vector2(
-        center.x + math.cos(angle) * length,
-        center.y + math.sin(angle) * length * 0.5
-      );
-      
+      final Vector2 end = Vector2(center.x + math.cos(angle) * length,
+          center.y + math.sin(angle) * length * 0.5);
+
       canvas.drawLine(
-        ui.Offset(center.x, center.y),
-        ui.Offset(end.x, end.y),
-        grassPaint
-      );
+          ui.Offset(center.x, center.y), ui.Offset(end.x, end.y), grassPaint);
     }
   }
-  
-  void _renderTileEdges(ui.Canvas canvas, Vector2 center, double elevation, double lightIntensity) {
+
+  void _renderTileEdges(ui.Canvas canvas, Vector2 center, double elevation,
+      double lightIntensity) {
     final double halfW = tileSize.x / 2;
     final double halfH = tileSize.y / 2;
     final Vector2 elevatedCenter = Vector2(center.x, center.y - elevation);
-    
+
     // Highlight top-left edges
     final ui.Paint highlightPaint = ui.Paint()
       ..color = Colors.white.withOpacity(0.3 * lightIntensity)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1.0;
-    
-    canvas.drawLine(
-      ui.Offset(elevatedCenter.x, elevatedCenter.y - halfH),
-      ui.Offset(elevatedCenter.x - halfW, elevatedCenter.y),
-      highlightPaint
-    );
-    
-    canvas.drawLine(
-      ui.Offset(elevatedCenter.x, elevatedCenter.y - halfH),
-      ui.Offset(elevatedCenter.x + halfW, elevatedCenter.y),
-      highlightPaint
-    );
+
+    canvas.drawLine(ui.Offset(elevatedCenter.x, elevatedCenter.y - halfH),
+        ui.Offset(elevatedCenter.x - halfW, elevatedCenter.y), highlightPaint);
+
+    canvas.drawLine(ui.Offset(elevatedCenter.x, elevatedCenter.y - halfH),
+        ui.Offset(elevatedCenter.x + halfW, elevatedCenter.y), highlightPaint);
   }
-  
+
   void _applyTileEffects(ui.Canvas canvas, Vector2 center, int r, int c) {
     final double halfW = tileSize.x / 2;
     final double halfH = tileSize.y / 2;
-    
+
     final ui.Path diamond = ui.Path()
       ..moveTo(center.x, center.y - halfH)
       ..lineTo(center.x + halfW, center.y)
       ..lineTo(center.x, center.y + halfH)
       ..lineTo(center.x - halfW, center.y)
       ..close();
-    
+
     // Apply hover highlight with glow effect
     if (hoveredRow == r && hoveredCol == c) {
       final double time = DateTime.now().millisecondsSinceEpoch / 1000.0;
       final double pulse = (math.sin(time * 4) * 0.2 + 0.8);
-      
+
       final ui.Paint hoverPaint = ui.Paint()
         ..color = Color.fromRGBO(255, 255, 255, (0.4 * pulse).clamp(0.0, 1.0))
         ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
-      
+
       canvas.drawPath(diamond, hoverPaint);
     }
-    
+
     // Apply selection highlight with animated border
     if (highlightedRow == r && highlightedCol == c) {
       final double time = DateTime.now().millisecondsSinceEpoch / 1000.0;
       final double pulse = math.sin(time * 3) * 0.5 + 0.5;
-      
+
       final ui.Paint selectionPaint = ui.Paint()
-        ..color = Color.lerp(
-          const Color(0xFF54C7EC),
-          const Color(0xFF00A8E8),
-          pulse
-        )!.withOpacity(0.7)
+        ..color =
+            Color.lerp(const Color(0xFF54C7EC), const Color(0xFF00A8E8), pulse)!
+                .withOpacity(0.7)
         ..style = ui.PaintingStyle.stroke
         ..strokeWidth = 3.0
         ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 1);
-      
+
       canvas.drawPath(diamond, selectionPaint);
     }
   }
