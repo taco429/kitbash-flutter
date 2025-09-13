@@ -37,16 +37,19 @@ class PlayerDeckDisplay extends StatelessWidget {
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: onTap ?? (deckCards != null ? () {
-              CardListModal.show(
-                context: context,
-                title: '$label Contents',
-                cards: deckCards!,
-                cardInstances: deckInstances,
-                accentColor: accentColor,
-                emptyMessage: 'The deck is empty',
-              );
-            } : null),
+            onTap: onTap ??
+                (deckCards != null
+                    ? () {
+                        CardListModal.show(
+                          context: context,
+                          title: '$label Contents',
+                          cards: deckCards!,
+                          cardInstances: deckInstances,
+                          accentColor: accentColor,
+                          emptyMessage: 'The deck is empty',
+                        );
+                      }
+                    : null),
             borderRadius: BorderRadius.circular(8),
             child: Container(
               width: 80,
@@ -81,7 +84,10 @@ class PlayerDeckDisplay extends StatelessWidget {
                     children: [
                       Text(
                         '$remainingCards',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
                               color: accentColor,
                               fontWeight: FontWeight.bold,
                             ),

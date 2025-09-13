@@ -174,7 +174,7 @@ class PlayerBattleState {
         return CardInstance(instanceId: '', cardId: e.toString());
       }).toList();
     }
-    
+
     // Parse draw pile
     List<CardInstance> drawPileInstances = [];
     final rawDrawPile = json['drawPile'];
@@ -186,7 +186,7 @@ class PlayerBattleState {
         return CardInstance(instanceId: '', cardId: e.toString());
       }).toList();
     }
-    
+
     // Parse discard pile
     List<CardInstance> discardPileInstances = [];
     final rawDiscardPile = json['discardPile'];
@@ -198,7 +198,7 @@ class PlayerBattleState {
         return CardInstance(instanceId: '', cardId: e.toString());
       }).toList();
     }
-    
+
     return PlayerBattleState(
       playerIndex: json['playerIndex'] ?? 0,
       deckId: json['deckId']?.toString() ?? '',
