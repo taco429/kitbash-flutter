@@ -316,9 +316,9 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                     // Game log row
                     const Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: const Row(
-                        children: const [
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: Row(
+                        children: [
                           Expanded(child: GameLog(maxRows: 5)),
                         ],
                       ),

@@ -65,4 +65,3 @@ class GameLog extends StatelessWidget {
     );
   }
 }
-

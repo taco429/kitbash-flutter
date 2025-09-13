@@ -266,7 +266,8 @@ class GameService extends ChangeNotifier {
     return summary;
   }
 
-  void _recordDiscardEvent({required int round, required int playerIndex, required int count}) {
+  void _recordDiscardEvent(
+      {required int round, required int playerIndex, required int count}) {
     final summary = _ensureRoundSummary(round);
     summary.playerToDiscardCount[playerIndex] =
         (summary.playerToDiscardCount[playerIndex] ?? 0) + count;
@@ -574,14 +575,16 @@ class GameService extends ChangeNotifier {
                     }
                   }
                   if (playerIdx != null) {
-                    _recordDiscardEvent(round: round, playerIndex: playerIdx, count: count);
+                    _recordDiscardEvent(
+                        round: round, playerIndex: playerIdx, count: count);
                   }
                 }
               }
             }
           }
         } else {
-          debugPrint('Resolution timeline received with unknown round: ${data['round']}');
+          debugPrint(
+              'Resolution timeline received with unknown round: ${data['round']}');
         }
         // After resolution/upkeep, fetch the latest authoritative state
         requestGameState();
