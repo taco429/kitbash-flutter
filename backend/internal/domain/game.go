@@ -34,9 +34,9 @@ type PlayerBattleState struct {
 	Hand        []CardInstance   `json:"hand"`
 	// DeckCount is the remaining number of cards in the player's deck/draw pile.
 	DeckCount   int        `json:"deckCount"`
-	// DrawPile and DiscardPile are server-internal and not serialized to clients.
-	DrawPile    []CardInstance   `json:"-"`
-	DiscardPile []CardInstance   `json:"-"`
+	// DrawPile and DiscardPile - now exposed to clients for viewing
+	DrawPile    []CardInstance   `json:"drawPile"`
+	DiscardPile []CardInstance   `json:"discardPile"`
 	// Resources and limits
 	Gold        int        `json:"gold"`
 	Mana        int        `json:"mana"`
