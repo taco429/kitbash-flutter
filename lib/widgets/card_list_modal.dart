@@ -91,12 +91,13 @@ class CardListModal extends StatelessWidget {
                           const SizedBox(height: 16),
                           Text(
                             emptyMessage,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.5),
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.5),
+                                    ),
                           ),
                         ],
                       ),
@@ -104,7 +105,8 @@ class CardListModal extends StatelessWidget {
                   : Padding(
                       padding: const EdgeInsets.all(16),
                       child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 4,
                           childAspectRatio: 0.7,
                           crossAxisSpacing: 12,
@@ -113,16 +115,16 @@ class CardListModal extends StatelessWidget {
                         itemCount: cards.length,
                         itemBuilder: (context, index) {
                           final card = cards[index];
-                          final instance = cardInstances != null && index < cardInstances!.length
+                          final instance = cardInstances != null &&
+                                  index < cardInstances!.length
                               ? cardInstances![index]
                               : null;
-                          
+
                           return Column(
                             children: [
                               Expanded(
                                 child: AdvancedCardDisplay(
                                   card: card,
-                                  cardInstance: instance,
                                   width: double.infinity,
                                   height: double.infinity,
                                   enableParallax: false,
@@ -138,10 +140,14 @@ class CardListModal extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              if (instance != null && instance.instanceId.isNotEmpty)
+                              if (instance != null &&
+                                  instance.instanceId.isNotEmpty)
                                 Text(
                                   'ID: ${instance.instanceId.substring(0, 8)}...',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
                                         fontSize: 10,
                                         color: Theme.of(context)
                                             .colorScheme

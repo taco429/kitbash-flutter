@@ -36,16 +36,17 @@ class DiscardPile extends StatelessWidget {
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: onTap ?? () {
-              CardListModal.show(
-                context: context,
-                title: '$label Pile',
-                cards: discardedCards,
-                cardInstances: discardInstances,
-                accentColor: accentColor,
-                emptyMessage: 'The discard pile is empty',
-              );
-            },
+            onTap: onTap ??
+                () {
+                  CardListModal.show(
+                    context: context,
+                    title: '$label Pile',
+                    cards: discardedCards,
+                    cardInstances: discardInstances,
+                    accentColor: accentColor,
+                    emptyMessage: 'The discard pile is empty',
+                  );
+                },
             borderRadius: BorderRadius.circular(8),
             child: Container(
               width: 80,
@@ -76,12 +77,13 @@ class DiscardPile extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             'Empty',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.3),
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.3),
+                                    ),
                           ),
                         ],
                       ),
@@ -91,9 +93,6 @@ class DiscardPile extends StatelessWidget {
                     Center(
                       child: AdvancedCardDisplay(
                         card: discardedCards.last,
-                        cardInstance: discardInstances?.isNotEmpty == true 
-                            ? discardInstances!.last 
-                            : null,
                         width: 70,
                         height: 100,
                         enableParallax: false,
