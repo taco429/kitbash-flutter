@@ -302,8 +302,7 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
   }
 
   Widget _buildCardArt(CardVisualData visualData) {
-    // Placeholder for actual card art
-    // In production, this would load the actual art asset
+    // Load card-specific art using CardVisualData path
     return Positioned(
       top: widget.height * 0.05,
       left: widget.width * 0.05,
@@ -314,7 +313,9 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
           borderRadius: BorderRadius.circular(8),
           color: Colors.black26,
           image: DecorationImage(
-            image: const AssetImage('assets/placeholder_card_art.jpg'),
+            image: AssetImage(
+              visualData.getArtAssetPath(resolution: 'medium'),
+            ),
             fit: visualData.variation == CardVariation.fullArt ||
                     visualData.variation == CardVariation.extendedArt
                 ? BoxFit.cover
