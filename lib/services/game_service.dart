@@ -610,9 +610,10 @@ class GameService extends ChangeNotifier {
 
       // Send discard information along with lock choice if any cards are marked
       final discardList = _cardsToDiscard.toList();
-      
+
       // Debug: Log what we're sending
-      debugPrint('Locking player $playerIndex with ${discardList.length} cards to discard');
+      debugPrint(
+          'Locking player $playerIndex with ${discardList.length} cards to discard');
       if (discardList.isNotEmpty) {
         debugPrint('Cards to discard: $discardList');
       }
