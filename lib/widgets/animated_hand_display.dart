@@ -24,13 +24,16 @@ class AnimatedHandDisplay extends StatefulWidget {
 
 class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
     with TickerProviderStateMixin {
-  late List<AnimationController> _cardControllers;
-  late List<Animation<double>> _slideAnimations;
-  late List<Animation<double>> _fadeAnimations;
-  late List<Animation<double>> _scaleAnimations;
+  List<AnimationController> _cardControllers = [];
+  List<Animation<double>> _slideAnimations = [];
+  List<Animation<double>> _fadeAnimations = [];
+  List<Animation<double>> _scaleAnimations = [];
   List<String> _previousCardIds = [];
   List<String> _currentCardIds = [];
   bool _hasAnimatedDrawPhase = false;
+
+  // Cache for reusing animations when card count doesn't change
+  int _lastCardCount = -1;
 
   @override
   void initState() {
@@ -40,10 +43,13 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
   }
 
   void _initializeAnimations() {
-    _cardControllers = [];
-    _slideAnimations = [];
-    _fadeAnimations = [];
-    _scaleAnimations = [];
+    // Reuse existing controllers if card count is the same
+    if (_lastCardCount == widget.cards.length &&
+        _cardControllers.length == widget.cards.length) {
+      return; // Reuse existing animations
+    }
+
+    _lastCardCount = widget.cards.length;
 
     for (int i = 0; i < widget.cards.length; i++) {
       final controller = AnimationController(
@@ -131,6 +137,12 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
       controller.dispose();
     }
 
+    // IMPORTANT: Clear the lists to prevent memory leaks
+    _cardControllers.clear();
+    _slideAnimations.clear();
+    _fadeAnimations.clear();
+    _scaleAnimations.clear();
+
     // Reinitialize with new card count
     _initializeAnimations();
 
@@ -148,6 +160,8 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
   void _animateNewCards() {
     // Stagger the animations for each card
     for (int i = 0; i < _cardControllers.length; i++) {
+      if (i >= _currentCardIds.length) break; // Safety check
+
       final cardId = _currentCardIds[i];
       final isNewCard = !_previousCardIds.contains(cardId);
 
@@ -155,7 +169,7 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
         // Reset and start animation with stagger
         _cardControllers[i].reset();
         Future.delayed(Duration(milliseconds: i * 100), () {
-          if (mounted) {
+          if (mounted && i < _cardControllers.length) {
             _cardControllers[i].forward();
           }
         });
@@ -252,45 +266,49 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: needsScroll ? MainAxisSize.max : MainAxisSize.min,
               children: [
-                for (int i = 0; i < widget.cards.length; i++) ...[
-                  AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _slideAnimations[i],
-                      _fadeAnimations[i],
-                      _scaleAnimations[i],
-                    ]),
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(_slideAnimations[i].value, 0),
-                        child: Transform.scale(
-                          scale: _scaleAnimations[i].value,
-                          child: Opacity(
-                            opacity: _fadeAnimations[i].value,
-                            child: _DraggableHandCard(
-                              width: cardWidth,
-                              height: cardHeight,
-                              card: widget.cards[i],
-                              isMarkedForDiscard:
-                                  i < widget.cardInstances.length &&
-                                      gameService.isCardMarkedForDiscard(
-                                          widget.cardInstances[i].instanceId),
-                              instance: i < widget.cardInstances.length
-                                  ? widget.cardInstances[i]
-                                  : null,
-                              handIndex: i,
-                              isPlanning: isPlanning,
-                              isLocked: isLocked,
-                              onToggleDiscard: () {
-                                if (i < widget.cardInstances.length) {
-                                  gameService.toggleCardDiscard(
-                                      widget.cardInstances[i].instanceId);
-                                }
-                              },
+                for (int i = 0;
+                    i < widget.cards.length && i < _cardControllers.length;
+                    i++) ...[
+                  RepaintBoundary(
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([
+                        if (i < _slideAnimations.length) _slideAnimations[i],
+                        if (i < _fadeAnimations.length) _fadeAnimations[i],
+                        if (i < _scaleAnimations.length) _scaleAnimations[i],
+                      ]),
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(_slideAnimations[i].value, 0),
+                          child: Transform.scale(
+                            scale: _scaleAnimations[i].value,
+                            child: Opacity(
+                              opacity: _fadeAnimations[i].value,
+                              child: _DraggableHandCard(
+                                width: cardWidth,
+                                height: cardHeight,
+                                card: widget.cards[i],
+                                isMarkedForDiscard:
+                                    i < widget.cardInstances.length &&
+                                        gameService.isCardMarkedForDiscard(
+                                            widget.cardInstances[i].instanceId),
+                                instance: i < widget.cardInstances.length
+                                    ? widget.cardInstances[i]
+                                    : null,
+                                handIndex: i,
+                                isPlanning: isPlanning,
+                                isLocked: isLocked,
+                                onToggleDiscard: () {
+                                  if (i < widget.cardInstances.length) {
+                                    gameService.toggleCardDiscard(
+                                        widget.cardInstances[i].instanceId);
+                                  }
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                   if (i < widget.cards.length - 1)
                     const SizedBox(width: gapWidth),

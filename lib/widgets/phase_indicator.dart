@@ -80,13 +80,18 @@ class _PhaseIndicatorState extends State<PhaseIndicator> {
           DateTime.now().difference(widget.phaseStartTime!).inSeconds;
       final remaining = planningDuration - elapsed;
 
-      setState(() {
-        _remainingSeconds = remaining > 0 ? remaining : 0;
-      });
+      // Check mounted again before setState
+      if (mounted) {
+        setState(() {
+          _remainingSeconds = remaining > 0 ? remaining : 0;
+        });
+      }
 
       if (remaining <= 0) {
         timer.cancel();
-        widget.onTimerExpired?.call();
+        if (mounted) {
+          widget.onTimerExpired?.call();
+        }
       }
     });
 
