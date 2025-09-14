@@ -423,7 +423,7 @@ class _DraggableHandCardState extends State<_DraggableHandCard> {
             card: widget.card,
             width: widget.width,
             height: widget.height,
-            enableParallax: true,
+            enableParallax: false,
             enableGlow: true,
             enableShadow: true,
           ),
