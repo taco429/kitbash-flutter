@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/card.dart';
 import '../models/card_instance.dart';
@@ -367,13 +368,32 @@ class _DraggableHandCard extends StatefulWidget {
   State<_DraggableHandCard> createState() => _DraggableHandCardState();
 }
 
-class _DraggableHandCardState extends State<_DraggableHandCard> {
+class _DraggableHandCardState extends State<_DraggableHandCard>
+    with SingleTickerProviderStateMixin {
   late Widget _feedbackWidget;
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+  bool _isDragging = false;
 
   @override
   void initState() {
     super.initState();
     _buildFeedback();
+
+    // Initialize scale animation for immediate feedback
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95, // Slight scale down on press
+    ).animate(CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.easeInOut,
+    ));
   }
 
   @override
@@ -383,6 +403,12 @@ class _DraggableHandCardState extends State<_DraggableHandCard> {
     if (oldWidget.card.id != widget.card.id) {
       _buildFeedback();
     }
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
   }
 
   void _buildFeedback() {
@@ -403,31 +429,56 @@ class _DraggableHandCardState extends State<_DraggableHandCard> {
     );
 
     final cardWidget = MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: widget.width,
-        height: widget.height,
-        decoration: widget.isMarkedForDiscard
-            ? BoxDecoration(
+      cursor:
+          _isDragging ? SystemMouseCursors.grabbing : SystemMouseCursors.grab,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              width: widget.width,
+              height: widget.height,
+              transform: Matrix4.identity()
+                ..translate(0.0, _isPressed ? -2.0 : 0.0, 0.0),
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.red.withValues(alpha: 0.6),
-                  width: 2,
+                border: widget.isMarkedForDiscard
+                    ? Border.all(
+                        color: Colors.red.withValues(alpha: 0.6),
+                        width: 2,
+                      )
+                    : null,
+                boxShadow: _isPressed
+                    ? [
+                        BoxShadow(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Opacity(
+                opacity: widget.isMarkedForDiscard ? 0.6 : 1.0,
+                child: AdvancedCardDisplay(
+                  card: widget.card,
+                  width: widget.width,
+                  height: widget.height,
+                  enableParallax: false,
+                  enableGlow: true,
+                  enableShadow:
+                      !_isPressed, // Disable shadow when pressed since we add our own
                 ),
-              )
-            : null,
-        child: Opacity(
-          opacity: widget.isMarkedForDiscard ? 0.6 : 1.0,
-          child: AdvancedCardDisplay(
-            card: widget.card,
-            width: widget.width,
-            height: widget.height,
-            enableParallax: false,
-            enableGlow: true,
-            enableShadow: true,
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
 
@@ -456,18 +507,59 @@ class _DraggableHandCardState extends State<_DraggableHandCard> {
           )
         : const SizedBox.shrink();
 
-    return Draggable<CardDragPayload>(
-      data: payload,
-      feedback: _feedbackWidget,
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedbackOffset: const Offset(0, -12),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
-        child: IgnorePointer(child: cardWidget),
-      ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _showCardPreview(context),
+    return GestureDetector(
+      onTapDown: (_) {
+        // Immediate feedback on touch
+        setState(() {
+          _isPressed = true;
+        });
+        _scaleController.forward();
+        // Light haptic feedback for touch
+        HapticFeedback.selectionClick();
+      },
+      onTapUp: (_) {
+        setState(() {
+          _isPressed = false;
+        });
+        _scaleController.reverse();
+      },
+      onTapCancel: () {
+        setState(() {
+          _isPressed = false;
+        });
+        _scaleController.reverse();
+      },
+      onTap: () => _showCardPreview(context),
+      child: LongPressDraggable<CardDragPayload>(
+        data: payload,
+        feedback: _feedbackWidget,
+        delay: const Duration(
+            milliseconds: 100), // Reduced delay for faster response
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        feedbackOffset: const Offset(0, -20),
+        onDragStarted: () {
+          // Strong haptic feedback when drag starts
+          HapticFeedback.mediumImpact();
+          setState(() {
+            _isDragging = true;
+            _isPressed = false;
+          });
+          _scaleController.reverse();
+        },
+        onDragEnd: (_) {
+          setState(() {
+            _isDragging = false;
+          });
+        },
+        onDraggableCanceled: (_, __) {
+          setState(() {
+            _isDragging = false;
+          });
+        },
+        childWhenDragging: Opacity(
+          opacity: 0.3,
+          child: IgnorePointer(child: cardWidget),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
