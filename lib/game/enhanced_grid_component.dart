@@ -808,7 +808,7 @@ class EnhancedIsometricGrid extends PositionComponent {
       final glowPaint = ui.Paint()
         ..color = glowColor.withValues(alpha: 0.4) // Removed pulse animation
         ..maskFilter =
-            ui.MaskFilter.blur(ui.BlurStyle.normal, 4); // Static blur
+            const ui.MaskFilter.blur(ui.BlurStyle.normal, 4); // Static blur
       canvas.drawRRect(windowRect, glowPaint);
 
       // Window fill
