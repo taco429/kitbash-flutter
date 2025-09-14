@@ -15,40 +15,46 @@ class GameLog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gameService = context.watch<GameService>();
-    final entries = gameService.discardLog.toList()
-      ..sort((a, b) => b.roundNumber.compareTo(a.roundNumber));
+    final gameService = context.read<GameService>();
+    // Listen only to discard log changes, not entire GameService
+    return ListenableBuilder(
+      listenable: gameService.discardLog,
+      builder: (context, child) {
+        final entries = gameService.discardLog.discardLog.toList()
+          ..sort((a, b) => b.roundNumber.compareTo(a.roundNumber));
 
-    final visible = entries.take(maxRows).toList();
+        final visible = entries.take(maxRows).toList();
 
-    return Container(
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (visible.isEmpty)
-            Text(
-              'No events yet',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.greenAccent),
-            )
-          else
-            ...visible.map(
-              (s) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text(
-                  _formatEntry(s),
+        return Container(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (visible.isEmpty)
+                Text(
+                  'No events yet',
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
                       ?.copyWith(color: Colors.greenAccent),
+                )
+              else
+                ...visible.map(
+                  (s) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      _formatEntry(s),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.greenAccent),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

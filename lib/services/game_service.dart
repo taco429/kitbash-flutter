@@ -4,6 +4,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 import '../models/card_instance.dart';
 import '../models/card_drag_payload.dart';
+import 'granular_game_state.dart';
 
 class RoundDiscardSummary {
   final int roundNumber;
@@ -237,98 +238,88 @@ class GameService extends ChangeNotifier {
   static const String wsUrl = 'ws://192.168.4.156:8080';
   WebSocketChannel? _channel;
 
-  bool _isConnected = false;
-  bool get isConnected => _isConnected;
+  // Granular notifiers for specific state aspects
+  late final ConnectionStateNotifier connectionState;
+  late final GameStateNotifier gameStateNotifier;
+  final discardSelection = DiscardSelectionNotifier();
+  final cardPreview = CardPreviewNotifier();
+  final cardPlacement = CardPlacementNotifier();
+  final lockState = LockStateNotifier();
+  final discardLog = DiscardLogNotifier();
 
-  String? _lastError;
-  String? get lastError => _lastError;
+  GameService() {
+    connectionState = ConnectionStateNotifier();
+    gameStateNotifier = GameStateNotifier();
 
-  GameState? _gameState;
-  GameState? get gameState => _gameState;
+    // Listen to gameStateNotifier changes and propagate them
+    gameStateNotifier.addListener(_onGameStateChanged);
+  }
+
+  void _onGameStateChanged() {
+    // Notify GameService listeners when game state changes
+    notifyListeners();
+  }
+
+  bool get isConnected => connectionState.value;
+  String? get lastError => gameStateNotifier.lastError;
+  GameState? get gameState => gameStateNotifier.gameState;
 
   int _currentPlayerIndex =
       0; // Default to player 0, should be set when joining game
   int get currentPlayerIndex => _currentPlayerIndex;
 
-  // Discard summaries per round
-  final List<RoundDiscardSummary> _discardLog = [];
-  List<RoundDiscardSummary> get discardLog => List.unmodifiable(_discardLog);
-
+  // Delegate to granular notifiers
   RoundDiscardSummary _ensureRoundSummary(int round) {
-    final idx = _discardLog.indexWhere((e) => e.roundNumber == round);
-    if (idx >= 0) return _discardLog[idx];
-    final summary = RoundDiscardSummary(roundNumber: round);
-    _discardLog.add(summary);
-    // Keep only recent 50 rounds to bound memory
-    if (_discardLog.length > 50) {
-      _discardLog.removeRange(0, _discardLog.length - 50);
-    }
-    return summary;
+    return discardLog.ensureRoundSummary(round);
   }
 
   void _recordDiscardEvent(
       {required int round, required int playerIndex, required int count}) {
-    final summary = _ensureRoundSummary(round);
-    summary.playerToDiscardCount[playerIndex] =
-        (summary.playerToDiscardCount[playerIndex] ?? 0) + count;
+    discardLog.recordDiscardEvent(
+      round: round,
+      playerIndex: playerIndex,
+      count: count,
+    );
   }
 
-  // Track cards marked for discard during planning phase (using instance IDs)
-  final Set<String> _cardsToDiscard = {};
-  Set<String> get cardsToDiscard => _cardsToDiscard;
+  // Delegate discard tracking to granular notifier
+  Set<String> get cardsToDiscard => discardSelection.value;
 
   bool isCardMarkedForDiscard(String instanceId) =>
-      _cardsToDiscard.contains(instanceId);
+      discardSelection.isCardMarkedForDiscard(instanceId);
 
   void toggleCardDiscard(String instanceId) {
-    if (_cardsToDiscard.contains(instanceId)) {
-      _cardsToDiscard.remove(instanceId);
-      debugPrint('Unmarked card for discard: $instanceId');
-    } else {
-      _cardsToDiscard.add(instanceId);
-      debugPrint('Marked card for discard: $instanceId');
-    }
-    debugPrint('Total cards marked for discard: ${_cardsToDiscard.length}');
-    notifyListeners();
+    discardSelection.toggleCardDiscard(instanceId);
   }
 
   void clearDiscardSelection() {
-    _cardsToDiscard.clear();
-    notifyListeners();
+    discardSelection.clearDiscardSelection();
   }
 
-  // Pending placement flow (tap-to-place after preview)
-  CardDragPayload? _pendingPlacement;
-  CardDragPayload? get pendingPlacement => _pendingPlacement;
+  // Delegate placement/preview to granular notifiers
+  CardDragPayload? get pendingPlacement => cardPlacement.value;
+  CardDragPayload? get previewPayload => cardPreview.value;
 
   void beginCardPlacement(CardDragPayload payload) {
-    _pendingPlacement = payload;
-    notifyListeners();
+    cardPlacement.beginCardPlacement(payload);
   }
 
-  // Lightweight preview state for right-side panel
-  CardDragPayload? _previewPayload;
-  CardDragPayload? get previewPayload => _previewPayload;
-
   void showCardPreview(CardDragPayload payload) {
-    _previewPayload = payload;
-    notifyListeners();
+    cardPreview.showCardPreview(payload);
   }
 
   void clearCardPreview() {
-    _previewPayload = null;
-    notifyListeners();
+    cardPreview.clearCardPreview();
   }
 
   void clearCardPlacement() {
-    _pendingPlacement = null;
-    notifyListeners();
+    cardPlacement.clearCardPlacement();
   }
 
   // REST API methods
   Future<List<dynamic>> findGames() async {
     try {
-      _lastError = null;
+      gameStateNotifier.setError(null);
       debugPrint('GameService: Finding games at $baseUrl/api/games');
 
       final response = await http.get(
@@ -346,12 +337,12 @@ class GameService extends ChangeNotifier {
       } else {
         final error =
             'Failed to load games: ${response.statusCode} ${response.reasonPhrase}';
-        _lastError = error;
+        gameStateNotifier.setError(error);
         throw Exception(error);
       }
     } catch (e) {
       final error = 'Error finding games: $e';
-      _lastError = error;
+      gameStateNotifier.setError(error);
       debugPrint('GameService: $error');
       return [];
     }
@@ -372,11 +363,16 @@ class GameService extends ChangeNotifier {
         final gameData = json.decode(response.body);
         // Connect to WebSocket for game
         await connectToGame(gameData['id']);
+
+        // Also request game state via REST to ensure we have initial state
+        await getGameState(gameData['id']);
+
         return gameData;
       } else {
-        _lastError =
+        final error =
             'Failed to create game: ${response.statusCode} ${response.reasonPhrase} ${response.body}';
-        throw Exception(_lastError);
+        gameStateNotifier.setError(error);
+        throw Exception(lastError);
       }
     } catch (e) {
       debugPrint('Error creating game: $e');
@@ -394,11 +390,16 @@ class GameService extends ChangeNotifier {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final gameData = json.decode(response.body);
         await connectToGame(gameData['id']);
+
+        // Also request game state via REST to ensure we have initial state
+        await getGameState(gameData['id']);
+
         return gameData;
       } else {
-        _lastError =
+        final error =
             'Failed to create CPU game: ${response.statusCode} ${response.reasonPhrase} ${response.body}';
-        throw Exception(_lastError);
+        gameStateNotifier.setError(error);
+        throw Exception(lastError);
       }
     } catch (e) {
       debugPrint('Error creating CPU game: $e');
@@ -408,7 +409,7 @@ class GameService extends ChangeNotifier {
 
   Future<Map<String, dynamic>?> joinGame(String gameId) async {
     try {
-      _lastError = null;
+      gameStateNotifier.setError(null);
       debugPrint(
         'GameService: Joining game $gameId at $baseUrl/api/games/$gameId/join',
       );
@@ -427,16 +428,20 @@ class GameService extends ChangeNotifier {
 
         // Connect to WebSocket for game
         await connectToGame(gameId);
+
+        // Also request game state via REST to ensure we have initial state
+        await getGameState(gameId);
+
         return gameData;
       } else {
         final error =
             'Failed to join game: ${response.statusCode} ${response.reasonPhrase}';
-        _lastError = error;
+        gameStateNotifier.setError(error);
         throw Exception(error);
       }
     } catch (e) {
       final error = 'Error joining game: $e';
-      _lastError = error;
+      gameStateNotifier.setError(error);
       debugPrint('GameService: $error');
       return null;
     }
@@ -445,12 +450,13 @@ class GameService extends ChangeNotifier {
   // WebSocket methods
   Future<void> connectToGame(String gameId) async {
     try {
+      debugPrint('Connecting to game WebSocket: $wsUrl/ws/game/$gameId');
       _channel = WebSocketChannel.connect(
         Uri.parse('$wsUrl/ws/game/$gameId'),
       );
 
-      _isConnected = true;
-      notifyListeners();
+      connectionState.setConnected(true);
+      debugPrint('WebSocket connected successfully');
 
       _channel!.stream.listen(
         (message) {
@@ -466,8 +472,7 @@ class GameService extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint('Error connecting to game: $e');
-      _isConnected = false;
-      notifyListeners();
+      connectionState.setConnected(false);
     }
   }
 
@@ -480,31 +485,46 @@ class GameService extends ChangeNotifier {
       if (messageType == 'game_state') {
         final gameStateData = data['gameState'];
         if (gameStateData != null) {
-          _gameState = GameState.fromJson(gameStateData);
+          final newState = GameState.fromJson(gameStateData);
+          gameStateNotifier.updateGameState(newState);
+          // Update lock states separately
+          lockState.setPlayerLocked(0, newState.isPlayerLocked(0));
+          lockState.setPlayerLocked(1, newState.isPlayerLocked(1));
           debugPrint(
-            'Updated game state: ${_gameState?.status}, Command Centers: ${_gameState?.commandCenters.length}',
+            'Updated game state: ${newState.status}, Command Centers: ${newState.commandCenters.length}, Player States: ${newState.playerStates.length}',
           );
+          // Debug: Check if player states have hand data
+          for (var ps in newState.playerStates) {
+            debugPrint(
+                'Player ${ps.playerIndex}: hand=${ps.hand.length}, deck=${ps.deckCount}');
+          }
         }
       } else if (messageType == 'player_locked') {
         // Handle player lock update
         final playerIndex = data['playerIndex'];
-        if (playerIndex != null && _gameState != null) {
-          _gameState!.playerChoicesLocked[playerIndex] = true;
+        if (playerIndex != null && gameState != null) {
+          gameState!.playerChoicesLocked[playerIndex] = true;
+          lockState.setPlayerLocked(playerIndex, true);
           debugPrint('Player $playerIndex locked their choice');
         }
       } else if (messageType == 'turn_advanced') {
         // Handle turn advancement when both players have locked
         final newTurn = data['newTurn'];
         final gameStateData = data['gameState'];
-        if (newTurn != null && _gameState != null) {
+        if (newTurn != null && gameState != null) {
           // If game state is included, use it (it should have reset lock states)
           if (gameStateData != null) {
-            _gameState = GameState.fromJson(gameStateData);
+            final newState = GameState.fromJson(gameStateData);
+            gameStateNotifier.updateGameState(newState);
+            lockState.setPlayerLocked(0, false);
+            lockState.setPlayerLocked(1, false);
             debugPrint('Updated game state from turn advancement');
           } else {
             // Otherwise just reset lock states locally
-            _gameState!.playerChoicesLocked[0] = false;
-            _gameState!.playerChoicesLocked[1] = false;
+            gameState!.playerChoicesLocked[0] = false;
+            gameState!.playerChoicesLocked[1] = false;
+            lockState.setPlayerLocked(0, false);
+            lockState.setPlayerLocked(1, false);
           }
           debugPrint('Turn advanced to $newTurn');
         }
@@ -516,7 +536,7 @@ class GameService extends ChangeNotifier {
           debugPrint('Phase changed to $newPhase');
 
           // When entering reveal_resolve phase, process discards
-          if (newPhase == 'reveal_resolve' && _cardsToDiscard.isNotEmpty) {
+          if (newPhase == 'reveal_resolve' && cardsToDiscard.isNotEmpty) {
             // The backend will handle moving cards to discard pile
             // Clear local discard selection
             clearDiscardSelection();
@@ -524,7 +544,10 @@ class GameService extends ChangeNotifier {
 
           // If game state is included in the message, use it directly
           if (gameStateData != null) {
-            _gameState = GameState.fromJson(gameStateData);
+            final newState = GameState.fromJson(gameStateData);
+            gameStateNotifier.updateGameState(newState);
+            lockState.setPlayerLocked(0, newState.isPlayerLocked(0));
+            lockState.setPlayerLocked(1, newState.isPlayerLocked(1));
             debugPrint('Updated game state from phase change');
           } else {
             // Only request game state if not included in the message
@@ -597,14 +620,18 @@ class GameService extends ChangeNotifier {
         }
       }
 
-      notifyListeners();
+      // Most state is now handled by specific notifiers
+      // But we still need to notify for currentPlayerIndex changes
+      if (messageType == 'player_joined') {
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint('Error handling message: $e');
     }
   }
 
   void sendAction(Map<String, dynamic> action) {
-    if (_channel != null && _isConnected) {
+    if (_channel != null && isConnected) {
       _channel!.sink.add(json.encode(action));
     }
   }
@@ -612,7 +639,7 @@ class GameService extends ChangeNotifier {
   // Deal damage to a command center
   Future<bool> dealDamage(String gameId, int playerIndex, int damage) async {
     try {
-      _lastError = null;
+      gameStateNotifier.setError(null);
 
       final response = await http.post(
         Uri.parse('$baseUrl/api/games/$gameId/damage'),
@@ -636,12 +663,13 @@ class GameService extends ChangeNotifier {
 
         return result['destroyed'] ?? false;
       } else {
-        _lastError = 'Failed to deal damage: ${response.statusCode}';
-        throw Exception(_lastError);
+        gameStateNotifier
+            .setError('Failed to deal damage: ${response.statusCode}');
+        throw Exception(lastError);
       }
     } catch (e) {
-      _lastError = 'Error dealing damage: $e';
-      debugPrint(_lastError);
+      gameStateNotifier.setError('Error dealing damage: $e');
+      debugPrint(lastError);
       return false;
     }
   }
@@ -649,7 +677,7 @@ class GameService extends ChangeNotifier {
   // Get current game state
   Future<GameState?> getGameState(String gameId) async {
     try {
-      _lastError = null;
+      gameStateNotifier.setError(null);
 
       final response = await http.get(
         Uri.parse('$baseUrl/api/games/$gameId/state'),
@@ -658,16 +686,20 @@ class GameService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final gameStateData = json.decode(response.body);
-        _gameState = GameState.fromJson(gameStateData);
-        notifyListeners();
-        return _gameState;
+        final newState = GameState.fromJson(gameStateData);
+        gameStateNotifier.updateGameState(newState);
+        // Update lock states separately
+        lockState.setPlayerLocked(0, newState.isPlayerLocked(0));
+        lockState.setPlayerLocked(1, newState.isPlayerLocked(1));
+        return gameState;
       } else {
-        _lastError = 'Failed to get game state: ${response.statusCode}';
-        throw Exception(_lastError);
+        final error = 'Failed to get game state: ${response.statusCode}';
+        gameStateNotifier.setError(error);
+        throw Exception(error);
       }
     } catch (e) {
-      _lastError = 'Error getting game state: $e';
-      debugPrint(_lastError);
+      gameStateNotifier.setError('Error getting game state: $e');
+      debugPrint('Error getting game state: $e');
       return null;
     }
   }
@@ -701,10 +733,10 @@ class GameService extends ChangeNotifier {
   // Lock in player's choices for the current turn
   Future<bool> lockPlayerChoice(String gameId, int playerIndex) async {
     try {
-      _lastError = null;
+      gameStateNotifier.setError(null);
 
       // Send discard information along with lock choice if any cards are marked
-      final discardList = _cardsToDiscard.toList();
+      final discardList = cardsToDiscard.toList();
 
       // Debug: Log what we're sending
       debugPrint(
@@ -714,9 +746,9 @@ class GameService extends ChangeNotifier {
       }
 
       // Update local state optimistically
-      if (_gameState != null) {
-        _gameState!.playerChoicesLocked[playerIndex] = true;
-        notifyListeners();
+      if (gameState != null) {
+        gameState!.playerChoicesLocked[playerIndex] = true;
+        lockState.setPlayerLocked(playerIndex, true);
       }
 
       // Send lock choice via WebSocket for real-time updates
@@ -758,19 +790,19 @@ class GameService extends ChangeNotifier {
       debugPrint('Player $playerIndex locked their choice');
 
       // Check if both players have locked and simulate turn advancement
-      if (_gameState != null && _gameState!.allPlayersLocked) {
+      if (gameState != null && gameState!.allPlayersLocked) {
         debugPrint('Both players locked - turn should advance');
       }
 
       return true;
     } catch (e) {
       // Revert optimistic update on error
-      if (_gameState != null) {
-        _gameState!.playerChoicesLocked[playerIndex] = false;
-        notifyListeners();
+      if (gameState != null) {
+        gameState!.playerChoicesLocked[playerIndex] = false;
+        lockState.setPlayerLocked(playerIndex, false);
       }
-      _lastError = 'Error locking choice: $e';
-      debugPrint(_lastError);
+      gameStateNotifier.setError('Error locking choice: $e');
+      debugPrint(lastError);
       return false;
     }
   }
@@ -778,12 +810,12 @@ class GameService extends ChangeNotifier {
   void disconnect() {
     _channel?.sink.close();
     _channel = null;
-    _isConnected = false;
-    notifyListeners();
+    connectionState.setConnected(false);
   }
 
   @override
   void dispose() {
+    gameStateNotifier.removeListener(_onGameStateChanged);
     disconnect();
     super.dispose();
   }
