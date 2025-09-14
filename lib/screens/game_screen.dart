@@ -124,8 +124,27 @@ class _GameScreenState extends State<GameScreen> {
               Expanded(
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(8)),
-                  child: GameWithTooltip(
-                    game: _game,
+                  child: Stack(
+                    children: [
+                      // Game board
+                      Positioned.fill(
+                        child: GameWithTooltip(
+                          game: _game,
+                        ),
+                      ),
+                      // Floating game log overlay anchored to bottom-left
+                      Positioned(
+                        left: 8,
+                        bottom: 8,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: const IgnorePointer(
+                            ignoring: true,
+                            child: GameLog(maxRows: 4),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -246,15 +265,7 @@ class _GameScreenState extends State<GameScreen> {
                         ],
                       ),
                     ),
-                    // Game log row
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Row(
-                        children: [
-                          Expanded(child: GameLog(maxRows: 5)),
-                        ],
-                      ),
-                    ),
+                    // Game log moved above the player's hand area
                     // Waiting indicator if needed
                     if (gameService.gameState != null &&
                         gameService.gameState!.isPlayerLocked(
