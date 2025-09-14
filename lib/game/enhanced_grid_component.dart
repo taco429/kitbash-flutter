@@ -22,10 +22,8 @@ class EnhancedIsometricGrid extends PositionComponent {
   // Visual enhancement properties
   final double commandCenterHeight = 40.0;
 
-  // Animation properties
-  double _time = 0.0;
-  double _pulseAnimation = 0.0;
-  double _floatAnimation = 0.0;
+  // Animation properties removed for performance
+  // All animations are now static
 
   // Tile data and variation maps
   late List<List<TileData>> _tileData;
@@ -98,13 +96,11 @@ class EnhancedIsometricGrid extends PositionComponent {
     });
   }
 
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _time += dt;
-    _pulseAnimation = (math.sin(_time * 2) + 1) / 2;
-    _floatAnimation = math.sin(_time * 1.5) * 2;
-  }
+  // Update method removed for performance - no animations
+  // @override
+  // void update(double dt) {
+  //   super.update(dt);
+  // }
 
   @override
   void render(ui.Canvas canvas) {
@@ -250,12 +246,13 @@ class EnhancedIsometricGrid extends PositionComponent {
         final seed = _rockSeeds[r][c];
 
         switch (terrain) {
-          case TerrainType.stone:
-            _draw3DRocks(canvas, center, seed, 2, 0.8);
-            break;
-          case TerrainType.mountain:
-            _draw3DRocks(canvas, center, seed, 4, 1.2);
-            break;
+          // Stones/rocks removed for performance
+          // case TerrainType.stone:
+          //   _draw3DRocks(canvas, center, seed, 2, 0.8);
+          //   break;
+          // case TerrainType.mountain:
+          //   _draw3DRocks(canvas, center, seed, 4, 1.2);
+          //   break;
           case TerrainType.forest:
             _draw3DTrees(canvas, center, seed);
             break;
@@ -266,6 +263,9 @@ class EnhancedIsometricGrid extends PositionComponent {
     }
   }
 
+  // Rock rendering methods commented out for performance
+  // Uncomment these methods if you want to re-enable rocks on terrain
+  /*
   void _draw3DRocks(ui.Canvas canvas, Vector2 tileCenter, int seed,
       int rockCount, double sizeMultiplier) {
     final random = math.Random(seed);
@@ -385,6 +385,7 @@ class EnhancedIsometricGrid extends PositionComponent {
       highlightPaint,
     );
   }
+  */
 
   void _draw3DTrees(ui.Canvas canvas, Vector2 tileCenter, int seed) {
     final random = math.Random(seed);
@@ -503,7 +504,7 @@ class EnhancedIsometricGrid extends PositionComponent {
         isoToScreen(centerRow, centerCol, originX, originY);
     final Vector2 topCenter = Vector2(
       baseCenter.x,
-      baseCenter.y - commandCenterHeight - _floatAnimation,
+      baseCenter.y - commandCenterHeight, // Removed floating animation
     );
 
     // Determine colors based on player and health
@@ -805,15 +806,15 @@ class EnhancedIsometricGrid extends PositionComponent {
 
       // Window glow
       final glowPaint = ui.Paint()
-        ..color = glowColor.withValues(alpha: 0.4 + _pulseAnimation * 0.3)
+        ..color = glowColor.withValues(alpha: 0.4) // Removed pulse animation
         ..maskFilter =
-            ui.MaskFilter.blur(ui.BlurStyle.normal, 4 + _pulseAnimation * 2);
+            ui.MaskFilter.blur(ui.BlurStyle.normal, 4); // Static blur
       canvas.drawRRect(windowRect, glowPaint);
 
       // Window fill
       final windowPaint = ui.Paint()
         ..color = Color.lerp(glowColor, const Color(0xFFFFE082), 0.5)!
-            .withValues(alpha: 0.8 + _pulseAnimation * 0.2);
+            .withValues(alpha: 0.8); // Removed pulse animation
       canvas.drawRRect(windowRect, windowPaint);
     }
   }
@@ -892,7 +893,7 @@ class EnhancedIsometricGrid extends PositionComponent {
 
     // Gate glow (magical protection)
     final glowPaint = ui.Paint()
-      ..color = glowColor.withValues(alpha: 0.2 + _pulseAnimation * 0.1)
+      ..color = glowColor.withValues(alpha: 0.2) // Removed pulse animation
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 2
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
@@ -916,25 +917,15 @@ class EnhancedIsometricGrid extends PositionComponent {
       polePaint,
     );
 
-    // Flag (waving animation)
+    // Flag (static - animation removed for performance)
     const flagWidth = 15.0;
     const flagHeight = 10.0;
-    final waveOffset = math.sin(_time * 3) * 2;
 
     final flagPath = ui.Path()
       ..moveTo(flagPoleTop.x, flagPoleTop.y)
-      ..quadraticBezierTo(
-        flagPoleTop.x + flagWidth / 2 + waveOffset,
-        flagPoleTop.y + 2,
-        flagPoleTop.x + flagWidth + waveOffset * 1.5,
-        flagPoleTop.y + 3,
-      )
-      ..quadraticBezierTo(
-        flagPoleTop.x + flagWidth / 2 + waveOffset,
-        flagPoleTop.y + flagHeight - 2,
-        flagPoleTop.x,
-        flagPoleTop.y + flagHeight,
-      )
+      ..lineTo(flagPoleTop.x + flagWidth, flagPoleTop.y)
+      ..lineTo(flagPoleTop.x + flagWidth, flagPoleTop.y + flagHeight)
+      ..lineTo(flagPoleTop.x, flagPoleTop.y + flagHeight)
       ..close();
 
     // Flag color based on player
@@ -962,16 +953,15 @@ class EnhancedIsometricGrid extends PositionComponent {
     if (playerIndex == 0) {
       // Draw a shield for player 0
       canvas.drawCircle(
-        ui.Offset(flagPoleTop.x + flagWidth / 2 + waveOffset * 0.7,
-            flagPoleTop.y + flagHeight / 2),
+        ui.Offset(
+            flagPoleTop.x + flagWidth / 2, flagPoleTop.y + flagHeight / 2),
         3,
         emblemPaint,
       );
     } else {
       // Draw a cross for player 1
       final crossCenter = ui.Offset(
-          flagPoleTop.x + flagWidth / 2 + waveOffset * 0.7,
-          flagPoleTop.y + flagHeight / 2);
+          flagPoleTop.x + flagWidth / 2, flagPoleTop.y + flagHeight / 2);
       canvas.drawLine(
         ui.Offset(crossCenter.dx - 3, crossCenter.dy),
         ui.Offset(crossCenter.dx + 3, crossCenter.dy),
@@ -1035,10 +1025,11 @@ class EnhancedIsometricGrid extends PositionComponent {
       fillPaint,
     );
 
-    // Animated glow on health bar
+    // Static glow on health bar (animation removed for performance)
     if (healthPercent > 0 && healthPercent < 1) {
       final glowPaint = ui.Paint()
-        ..color = glowColor.withValues(alpha: 0.3 * _pulseAnimation)
+        ..color = glowColor.withValues(
+            alpha: 0.15) // Static alpha instead of animated
         ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2);
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(fillRect, const ui.Radius.circular(3)),
@@ -1068,7 +1059,7 @@ class EnhancedIsometricGrid extends PositionComponent {
 
       final hoverPath = _tileDiamond(center, 1.05);
       final hoverPaint = ui.Paint()
-        ..color = Colors.white.withValues(alpha: 0.2 + _pulseAnimation * 0.1)
+        ..color = Colors.white.withValues(alpha: 0.2) // Removed pulse animation
         ..style = ui.PaintingStyle.fill;
       canvas.drawPath(hoverPath, hoverPaint);
 
@@ -1084,18 +1075,17 @@ class EnhancedIsometricGrid extends PositionComponent {
       final Vector2 center =
           isoToScreen(highlightedRow!, highlightedCol!, originX, originY);
 
-      // Animated selection ring
-      final selectionPath = _tileDiamond(center, 1.1 + _pulseAnimation * 0.05);
+      // Static selection ring (animation removed for performance)
+      final selectionPath = _tileDiamond(center, 1.1); // Static scale
       final selectionPaint = ui.Paint()
-        ..color = const Color(0xFF54C7EC)
-            .withValues(alpha: 0.3 + _pulseAnimation * 0.2)
+        ..color = const Color(0xFF54C7EC).withValues(alpha: 0.3) // Static alpha
         ..style = ui.PaintingStyle.fill;
       canvas.drawPath(selectionPath, selectionPaint);
 
       final selectionBorderPaint = ui.Paint()
         ..color = const Color(0xFF54C7EC)
         ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = 2 + _pulseAnimation;
+        ..strokeWidth = 2; // Static width
       canvas.drawPath(selectionPath, selectionBorderPaint);
 
       // Corner markers

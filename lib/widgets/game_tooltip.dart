@@ -18,54 +18,8 @@ class GameTooltip extends StatefulWidget {
   State<GameTooltip> createState() => _GameTooltipState();
 }
 
-class _GameTooltipState extends State<GameTooltip>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
-
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutBack,
-    ));
-  }
-
-  @override
-  void didUpdateWidget(GameTooltip oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isVisible != oldWidget.isVisible) {
-      if (widget.isVisible) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
+class _GameTooltipState extends State<GameTooltip> {
+  // Animations removed for performance - tooltip now appears instantly
 
   @override
   Widget build(BuildContext context) {
@@ -78,40 +32,24 @@ class _GameTooltipState extends State<GameTooltip>
     return Positioned(
       left: widget.position!.dx + 10, // Slight offset from cursor
       top: widget.position!.dy - 60, // Above the cursor
-      child: AnimatedBuilder(
-        animation: _animationController,
-        builder: (context, child) {
-          // Only show the tooltip if animation has started
-          if (_animationController.value == 0.0 && !widget.isVisible) {
-            return const SizedBox.shrink();
-          }
-
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Opacity(
-              opacity: _fadeAnimation.value,
-              child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.black87,
-                child: Container(
-                  constraints: const BoxConstraints(
-                    maxWidth: 200,
-                    minWidth: 120,
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTooltipContent(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+      child: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.black87,
+        child: Container(
+          constraints: const BoxConstraints(
+            maxWidth: 200,
+            minWidth: 120,
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTooltipContent(),
+            ],
+          ),
+        ),
       ),
     );
   }
