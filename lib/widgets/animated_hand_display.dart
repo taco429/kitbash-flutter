@@ -301,13 +301,15 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
             if (needsScroll) {
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: padding, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: padding, vertical: 4),
                 child: cardRow,
               );
             } else {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: padding, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: padding, vertical: 4),
                   child: cardRow,
                 ),
               );
