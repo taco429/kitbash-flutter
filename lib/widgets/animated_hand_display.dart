@@ -177,7 +177,7 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 180,
+      height: 200,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -301,13 +301,15 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
             if (needsScroll) {
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.all(padding),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: padding, vertical: 4),
                 child: cardRow,
               );
             } else {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(padding),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: padding, vertical: 4),
                   child: cardRow,
                 ),
               );
@@ -379,30 +381,26 @@ class _DraggableHandCard extends StatelessWidget {
       ),
     );
 
-    final discardButton = isPlanning && !isLocked
-        ? Positioned(
-            top: 4,
-            right: 4,
-            child: GestureDetector(
-              onTap: onToggleDiscard,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: isMarkedForDiscard
-                      ? Colors.red
-                      : Colors.black.withValues(alpha: 0.7),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 1.5,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.close,
-                  size: 16,
+    final Widget discardButton = isPlanning && !isLocked
+        ? GestureDetector(
+            onTap: onToggleDiscard,
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isMarkedForDiscard
+                    ? Colors.red
+                    : Colors.black.withValues(alpha: 0.7),
+                shape: BoxShape.circle,
+                border: Border.all(
                   color: Colors.white,
+                  width: 1.5,
                 ),
+              ),
+              child: const Icon(
+                Icons.close,
+                size: 16,
+                color: Colors.white,
               ),
             ),
           )
@@ -436,10 +434,14 @@ class _DraggableHandCard extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _showCardPreview(context),
-        child: Stack(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
+            if (discardButton is! SizedBox) ...[
+              Center(child: discardButton),
+              const SizedBox(height: 4),
+            ],
             cardWidget,
-            if (discardButton is! SizedBox) discardButton,
           ],
         ),
       ),
