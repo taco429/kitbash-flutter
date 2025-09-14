@@ -29,6 +29,7 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   Timer? _tooltipTimer;
   bool _showTooltip = false;
   bool _isDragActive = false;
+  bool _isZoomedIn = false;
 
   final GlobalKey _dropOverlayKey = GlobalKey();
   final FocusNode _placeFocusNode = FocusNode();
@@ -38,6 +39,7 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   @override
   void initState() {
     super.initState();
+    _isZoomedIn = widget.game.isZoomedIn;
   }
 
   @override
@@ -284,6 +286,24 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             tileData: _hoveredTile,
             position: _hoverPosition,
             isVisible: _showTooltip && !_isDragActive,
+          ),
+          // Zoom toggle button overlay (top-left)
+          Positioned(
+            left: 12,
+            top: 12,
+            child: SafeArea(
+              child: FloatingActionButton.small(
+                heroTag: 'zoom_toggle',
+                tooltip: _isZoomedIn ? 'Zoom out' : 'Zoom in',
+                onPressed: () {
+                  setState(() {
+                    _isZoomedIn = !_isZoomedIn;
+                  });
+                  widget.game.setZoomLevel(_isZoomedIn);
+                },
+                child: Icon(_isZoomedIn ? Icons.zoom_out : Icons.zoom_in),
+              ),
+            ),
           ),
         ],
       ),

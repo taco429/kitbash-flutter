@@ -16,6 +16,12 @@ class KitbashGame extends FlameGame with TapCallbacks {
   IsometricGridComponent? _grid;
   FpsCounter? _fpsCounter;
 
+  // Two-level zoom support
+  static const double zoomedOutScale = 0.9;
+  static const double zoomedInScale = 1.35;
+  bool _isZoomedIn = false;
+  double _currentScale = zoomedOutScale;
+
   KitbashGame({required this.gameId, required this.gameService});
 
   @override
@@ -40,6 +46,7 @@ class KitbashGame extends FlameGame with TapCallbacks {
     // Center the grid in the current viewport
     isoGrid.anchor = Anchor.center;
     isoGrid.position = size / 2;
+    isoGrid.scale = Vector2.all(_currentScale);
 
     _grid = isoGrid;
     add(isoGrid);
@@ -106,6 +113,23 @@ class KitbashGame extends FlameGame with TapCallbacks {
     final Vector2 gridLocal = grid.parentToLocal(parentLocal);
     grid.handleTap(gridLocal);
   }
+
+  /// Sets the zoom level to either zoomed-in or zoomed-out.
+  /// This scales the isometric grid while keeping it centered.
+  void setZoomLevel(bool zoomedIn) {
+    _isZoomedIn = zoomedIn;
+    _currentScale = zoomedIn ? zoomedInScale : zoomedOutScale;
+    final IsometricGridComponent? grid = _grid;
+    if (grid != null) {
+      grid.scale = Vector2.all(_currentScale);
+      grid.position = size / 2;
+    }
+  }
+
+  /// Toggles between zoomed-in and zoomed-out levels.
+  void toggleZoom() => setZoomLevel(!_isZoomedIn);
+
+  bool get isZoomedIn => _isZoomedIn;
 }
 
 // Remove the old CommandCenter class since we now use the one from game_service.dart
