@@ -25,7 +25,8 @@ class OpponentIndicator extends StatelessWidget {
         if (opponentState?.deckId != null && opponentState!.deckId.isNotEmpty) {
           final deck = deckService.availableDecks.firstWhere(
             (d) => d.id == opponentState!.deckId,
-            orElse: () => deckService.selectedDeck ??
+            orElse: () =>
+                deckService.selectedDeck ??
                 (deckService.availableDecks.isNotEmpty
                     ? deckService.availableDecks.first
                     : Deck(
@@ -93,4 +94,3 @@ class OpponentIndicator extends StatelessWidget {
     );
   }
 }
-

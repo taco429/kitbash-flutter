@@ -187,16 +187,16 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
               ),
-            OpponentIndicator(opponentState: opponentState),
-            // Game area taking full width (deck panels removed)
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(8)),
-                child: GameWithTooltip(
-                  game: _game,
+              OpponentIndicator(opponentState: opponentState),
+              // Game area taking full width (deck panels removed)
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(8)),
+                  child: GameWithTooltip(
+                    game: _game,
+                  ),
                 ),
               ),
-            ),
               // Player control area - reorganized layout
               Container(
                 height: 260,
