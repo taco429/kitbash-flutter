@@ -339,19 +339,19 @@ class _GameScreenState extends State<GameScreen> {
           ),
           builder: (context, playerState, child) {
             if (playerState == null) {
-              return Row(
+              return const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   PlayerDeckDisplay(
                     remainingCards: 0,
                     label: 'Deck',
                     accentColor: Colors.green,
-                    deckCards: const [],
+                    deckCards: [],
                     deckInstances: null,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   DiscardPile(
-                    discardedCards: const [],
+                    discardedCards: [],
                     discardInstances: null,
                     label: 'Discard',
                     accentColor: Colors.green,

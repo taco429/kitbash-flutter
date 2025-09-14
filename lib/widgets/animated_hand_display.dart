@@ -25,10 +25,10 @@ class AnimatedHandDisplay extends StatefulWidget {
 
 class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
     with TickerProviderStateMixin {
-  List<AnimationController> _cardControllers = [];
-  List<Animation<double>> _slideAnimations = [];
-  List<Animation<double>> _fadeAnimations = [];
-  List<Animation<double>> _scaleAnimations = [];
+  final List<AnimationController> _cardControllers = [];
+  final List<Animation<double>> _slideAnimations = [];
+  final List<Animation<double>> _fadeAnimations = [];
+  final List<Animation<double>> _scaleAnimations = [];
   List<String> _previousCardIds = [];
   List<String> _currentCardIds = [];
   bool _hasAnimatedDrawPhase = false;
