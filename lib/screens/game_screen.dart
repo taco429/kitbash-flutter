@@ -5,17 +5,16 @@ import '../services/game_service.dart';
 import '../services/card_service.dart';
 import '../services/deck_service.dart';
 import '../widgets/game_with_tooltip.dart';
-import '../widgets/turn_indicator.dart';
+// import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
 import '../widgets/discard_pile.dart';
 import '../widgets/hero_display.dart';
-import '../widgets/reset_button.dart';
 import '../widgets/player_deck_display.dart';
 import '../widgets/animated_hand_display.dart';
 import '../models/card.dart';
 import 'game_over_screen.dart';
 import '../widgets/game_log.dart';
-import '../widgets/opponent_indicator.dart';
+// import '../widgets/opponent_indicator.dart';
 
 class GameScreen extends StatefulWidget {
   final String gameId;
@@ -64,16 +63,7 @@ class _GameScreenState extends State<GameScreen> {
             deckCount: 0,
           ),
         );
-        final int oppIndex = 1 - myIndex;
-        final opponentState = gameState?.playerStates.firstWhere(
-          (ps) => ps.playerIndex == oppIndex,
-          orElse: () => PlayerBattleState(
-            playerIndex: oppIndex,
-            deckId: '',
-            hand: const [],
-            deckCount: 0,
-          ),
-        );
+        // Opponent state now consumed in overlay inside GameWithTooltip
 
         final int playerDeckCount = playerState?.deckCount ?? 0;
 
@@ -130,70 +120,31 @@ class _GameScreenState extends State<GameScreen> {
           ),
           body: Column(
             children: [
-              // Game status bar with turn indicator
-              Container(
-                padding: const EdgeInsets.all(8),
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Row(
-                  children: [
-                    Text(
-                      'Status: ${gameService.gameState?.status ?? 'Loading...'}',
-                    ),
-                    const Spacer(),
-                    // Turn indicator with phase display
-                    if (gameService.gameState != null)
-                      TurnIndicator(
-                        turnNumber: gameService.gameState!.currentTurn,
-                        player1Locked: gameService.gameState!.isPlayerLocked(0),
-                        player2Locked: gameService.gameState!.isPlayerLocked(1),
-                        currentPhase: gameService.gameState!.currentPhase,
-                        phaseStartTime: gameService.gameState!.phaseStartTime,
-                      ),
-                    const Spacer(),
-                    if (gameService.gameState != null)
-                      ...gameService.gameState!.commandCenters.map(
-                        (cc) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.home,
-                                color: cc.playerIndex == 0
-                                    ? Colors.green
-                                    : Colors.pink,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text('${cc.health}/${cc.maxHealth}'),
-                              const SizedBox(width: 4),
-                              SizedBox(
-                                width: 50,
-                                height: 8,
-                                child: LinearProgressIndicator(
-                                  value: cc.healthPercentage,
-                                  backgroundColor: Colors.grey[300],
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    cc.healthPercentage > 0.3
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              OpponentIndicator(opponentState: opponentState),
               // Game area taking full width (deck panels removed)
               Expanded(
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(8)),
-                  child: GameWithTooltip(
-                    game: _game,
+                  child: Stack(
+                    children: [
+                      // Game board
+                      Positioned.fill(
+                        child: GameWithTooltip(
+                          game: _game,
+                        ),
+                      ),
+                      // Floating game log overlay anchored to bottom-left
+                      Positioned(
+                        left: 8,
+                        bottom: 8,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: const IgnorePointer(
+                            ignoring: true,
+                            child: GameLog(maxRows: 4),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -218,48 +169,6 @@ class _GameScreenState extends State<GameScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
-                          // Left side: Lock-in and Reset buttons
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (gameService.gameState != null)
-                                LockInButton(
-                                  isLocked:
-                                      gameService.gameState!.isPlayerLocked(
-                                    gameService.currentPlayerIndex,
-                                  ),
-                                  isOpponentLocked:
-                                      gameService.gameState!.isPlayerLocked(
-                                    1 - gameService.currentPlayerIndex,
-                                  ),
-                                  playerIndex: gameService.currentPlayerIndex,
-                                  onLockIn: () {
-                                    gameService.lockPlayerChoice(
-                                      widget.gameId,
-                                      gameService.currentPlayerIndex,
-                                    );
-                                  },
-                                ),
-                              const SizedBox(height: 8),
-                              ResetButton(
-                                onReset: () {
-                                  // TODO: Implement reset functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Reset functionality coming soon'),
-                                    ),
-                                  );
-                                },
-                                isEnabled: gameService.gameState != null &&
-                                    !gameService.gameState!.isPlayerLocked(
-                                      gameService.currentPlayerIndex,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 16),
                           // Hero display
                           Consumer<DeckService>(
                             builder: (context, deckService, child) {
@@ -299,42 +208,64 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                           ),
                           // Right side: Discard pile and deck
-                          PlayerDeckDisplay(
-                            remainingCards: playerDeckCount,
-                            label: 'Deck',
-                            accentColor: Colors.green,
-                            deckCards: playerState?.drawPile
-                                    .map((instance) => cardService
-                                        .getCardById(instance.cardId))
-                                    .whereType<GameCard>()
-                                    .toList() ??
-                                [],
-                            deckInstances: playerState?.drawPile,
-                          ),
-                          const SizedBox(width: 12),
-                          DiscardPile(
-                            discardedCards: playerState?.discardPile
-                                    .map((instance) => cardService
-                                        .getCardById(instance.cardId))
-                                    .whereType<GameCard>()
-                                    .toList() ??
-                                [],
-                            discardInstances: playerState?.discardPile,
-                            label: 'Discard',
-                            accentColor: Colors.green,
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              if (gameService.gameState != null)
+                                LockInButton(
+                                  isLocked:
+                                      gameService.gameState!.isPlayerLocked(
+                                    gameService.currentPlayerIndex,
+                                  ),
+                                  isOpponentLocked:
+                                      gameService.gameState!.isPlayerLocked(
+                                    1 - gameService.currentPlayerIndex,
+                                  ),
+                                  playerIndex: gameService.currentPlayerIndex,
+                                  onLockIn: () {
+                                    gameService.lockPlayerChoice(
+                                      widget.gameId,
+                                      gameService.currentPlayerIndex,
+                                    );
+                                  },
+                                ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PlayerDeckDisplay(
+                                    remainingCards: playerDeckCount,
+                                    label: 'Deck',
+                                    accentColor: Colors.green,
+                                    deckCards: playerState?.drawPile
+                                            .map((instance) => cardService
+                                                .getCardById(instance.cardId))
+                                            .whereType<GameCard>()
+                                            .toList() ??
+                                        [],
+                                    deckInstances: playerState?.drawPile,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  DiscardPile(
+                                    discardedCards: playerState?.discardPile
+                                            .map((instance) => cardService
+                                                .getCardById(instance.cardId))
+                                            .whereType<GameCard>()
+                                            .toList() ??
+                                        [],
+                                    discardInstances: playerState?.discardPile,
+                                    label: 'Discard',
+                                    accentColor: Colors.green,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                    // Game log row
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Row(
-                        children: [
-                          Expanded(child: GameLog(maxRows: 5)),
-                        ],
-                      ),
-                    ),
+                    // Game log moved above the player's hand area
                     // Waiting indicator if needed
                     if (gameService.gameState != null &&
                         gameService.gameState!.isPlayerLocked(

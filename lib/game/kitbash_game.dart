@@ -16,6 +16,8 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
   final GameService gameService;
   PositionComponent? _grid;
   FpsCounter? _fpsCounter;
+  // Vertical offset for FPS counter to sit below the opponent overlay
+  final double _fpsTopOffset = 200.0;
   bool useEnhancedGrid = true; // Toggle this to switch between grids
 
   // Two-level zoom support
@@ -74,9 +76,9 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
       add(isoGrid);
     }
 
-    // Add FPS counter to the top-right corner
+    // Add FPS counter to the top-right corner (pushed down below opponent overlay)
     _fpsCounter = FpsCounter(
-      position: Vector2(size.x - 10, 10),
+      position: Vector2(size.x - 10, _fpsTopOffset),
       anchor: Anchor.topRight,
     );
     add(_fpsCounter!);
@@ -92,7 +94,7 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
     }
     // Update FPS counter position to stay in top-right corner
     if (_fpsCounter != null) {
-      _fpsCounter!.position = Vector2(size.x - 10, 10);
+      _fpsCounter!.position = Vector2(size.x - 10, _fpsTopOffset);
     }
   }
 

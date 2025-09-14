@@ -53,41 +53,51 @@ class OpponentIndicator extends StatelessWidget {
 
         final int remaining = opponentState?.deckCount ?? drawPileCards.length;
 
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 6,
-                offset: Offset(0, 2),
-                color: Colors.black26,
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                    color: Colors.black26,
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              HeroDisplay(
-                heroCard: heroCard,
-                playerName: 'Opponent',
-                accentColor: Colors.pink,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  HeroDisplay(
+                    heroCard: heroCard,
+                    playerName: 'Opponent',
+                    accentColor: Colors.pink,
+                  ),
+                  const SizedBox(width: 12),
+                  PlayerDeckDisplay(
+                    remainingCards: remaining,
+                    label: 'Deck',
+                    accentColor: Colors.pink,
+                    deckCards: drawPileCards,
+                    deckInstances: opponentState?.drawPile,
+                  ),
+                  const SizedBox(width: 12),
+                  DiscardPile(
+                    discardedCards: discardCards,
+                    discardInstances: opponentState?.discardPile,
+                    label: 'Discard',
+                    accentColor: Colors.pink,
+                  ),
+                ],
               ),
-              const Spacer(),
-              PlayerDeckDisplay(
-                remainingCards: remaining,
-                label: 'Deck',
-                accentColor: Colors.pink,
-                deckCards: drawPileCards,
-                deckInstances: opponentState?.drawPile,
-              ),
-              const SizedBox(width: 12),
-              DiscardPile(
-                discardedCards: discardCards,
-                discardInstances: opponentState?.discardPile,
-                label: 'Discard',
-                accentColor: Colors.pink,
-              ),
-            ],
+            ),
           ),
         );
       },
