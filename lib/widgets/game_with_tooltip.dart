@@ -119,24 +119,7 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             key: ValueKey(widget.game),
             game: widget.game,
           ),
-          // Right-side card preview panel that doesn't cover the game canvas
-          Positioned(
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: 320,
-            child: Consumer<GameService>(
-              builder: (context, gs, _) {
-                return ValueListenableBuilder<CardDragPayload?>(
-                  valueListenable: gs.cardPreview,
-                  builder: (context, preview, _) {
-                    if (preview == null) return const SizedBox.shrink();
-                    return CardPreviewPanel(payload: preview);
-                  },
-                );
-              },
-            ),
-          ),
+          // Right-side card preview panel moved to floating overlay at top-right
           // Tap-to-place overlay when a card is staged via preview
           Positioned.fill(
             child: Consumer<GameService>(
@@ -358,6 +341,33 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                     ),
                   );
                   return OpponentIndicator(opponentState: opponentState);
+                },
+              ),
+            ),
+          ),
+          // Floating card preview overlay (rendered above opponent indicator)
+          Positioned(
+            right: 12,
+            top: 12,
+            child: SafeArea(
+              child: Consumer<GameService>(
+                builder: (context, gs, _) {
+                  return ValueListenableBuilder<CardDragPayload?>(
+                    valueListenable: gs.cardPreview,
+                    builder: (context, preview, _) {
+                      if (preview == null) return const SizedBox.shrink();
+                      return ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 380,
+                          maxHeight: 640,
+                        ),
+                        child: SizedBox(
+                          width: 360,
+                          child: CardPreviewPanel(payload: preview),
+                        ),
+                      );
+                    },
+                  );
                 },
               ),
             ),

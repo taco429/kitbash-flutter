@@ -23,18 +23,23 @@ class CardPreviewPanel extends StatelessWidget {
         const double aspectRatio = 160.0 / 110.0;
         final double cardHeight = cardWidth * aspectRatio;
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            border: Border(
-                left: BorderSide(
-                    color: Colors.black.withValues(alpha: 0.2), width: 1)),
-            boxShadow: const [
-              BoxShadow(
-                  color: Colors.black26, blurRadius: 8, offset: Offset(-2, 0)),
-            ],
-          ),
-          child: Column(
+        return Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          clipBehavior: Clip.antiAlias,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                  color: Colors.black26,
+                ),
+              ],
+            ),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Header with title and close
@@ -124,6 +129,7 @@ class CardPreviewPanel extends StatelessWidget {
                 ),
               ),
             ],
+            ),
           ),
         );
       },
