@@ -21,113 +21,69 @@ class TurnIndicator extends StatefulWidget {
   State<TurnIndicator> createState() => _TurnIndicatorState();
 }
 
-class _TurnIndicatorState extends State<TurnIndicator>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-  int _lastTurnNumber = 0;
-
+class _TurnIndicatorState extends State<TurnIndicator> {
   @override
   void initState() {
     super.initState();
-    _lastTurnNumber = widget.turnNumber;
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.2,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.elasticOut,
-      ),
-    );
-  }
-
-  @override
-  void didUpdateWidget(TurnIndicator oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.turnNumber != _lastTurnNumber) {
-      _lastTurnNumber = widget.turnNumber;
-      _animationController.forward().then((_) {
-        _animationController.reverse();
-      });
-    }
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _scaleAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Turn number display
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Turn ${widget.turnNumber}',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Phase indicator
-                    PhaseIndicator(
-                      currentPhase: widget.currentPhase,
-                      phaseStartTime: widget.phaseStartTime,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Player lock status indicators
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _PlayerLockIndicator(
-                      playerName: 'Player 1',
-                      isLocked: widget.player1Locked,
-                      color: Colors.green,
-                    ),
-                    const SizedBox(width: 16),
-                    _PlayerLockIndicator(
-                      playerName: 'Player 2',
-                      isLocked: widget.player2Locked,
-                      color: Colors.pink,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
-        );
-      },
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Turn number above phase icons
+          Text(
+            'Turn ${widget.turnNumber}',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          // Phase icons row
+          PhaseIndicator(
+            currentPhase: widget.currentPhase,
+            phaseStartTime: widget.phaseStartTime,
+          ),
+          const SizedBox(height: 8),
+          // Player lock status indicators
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _PlayerLockIndicator(
+                playerName: 'Player 1',
+                isLocked: widget.player1Locked,
+                color: Colors.green,
+              ),
+              const SizedBox(width: 16),
+              _PlayerLockIndicator(
+                playerName: 'Player 2',
+                isLocked: widget.player2Locked,
+                color: Colors.pink,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
