@@ -127,9 +127,13 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             width: 320,
             child: Consumer<GameService>(
               builder: (context, gs, _) {
-                final preview = gs.previewPayload;
-                if (preview == null) return const SizedBox.shrink();
-                return CardPreviewPanel(payload: preview);
+                return ValueListenableBuilder<CardDragPayload?>(
+                  valueListenable: gs.cardPreview,
+                  builder: (context, preview, _) {
+                    if (preview == null) return const SizedBox.shrink();
+                    return CardPreviewPanel(payload: preview);
+                  },
+                );
               },
             ),
           ),
@@ -137,86 +141,91 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
           Positioned.fill(
             child: Consumer<GameService>(
               builder: (context, gameService, child) {
-                final pending = gameService.pendingPlacement;
-                if (pending == null) return const SizedBox.shrink();
-                // Ensure we can catch ESC
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    _placeFocusNode.requestFocus();
-                  }
-                });
-                return MouseRegion(
-                  onHover: (event) {
-                    final tile =
-                        widget.game.resolveHoverAt(event.localPosition);
-                    _onTileHover(tile, event.localPosition);
-                  },
-                  onExit: (_) {
-                    widget.game.clearHover();
-                    _onTileHover(null, null);
-                  },
-                  child: Focus(
-                    focusNode: _placeFocusNode,
-                    onKeyEvent: (node, event) {
-                      if (event is KeyDownEvent &&
-                          event.logicalKey == LogicalKeyboardKey.escape) {
-                        gameService.clearCardPlacement();
-                        widget.game.clearHover();
-                        _onTileHover(null, null);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Placement canceled'),
-                            duration: Duration(milliseconds: 800),
-                          ),
-                        );
-                        return KeyEventResult.handled;
+                // Use ValueListenableBuilder for granular updates
+                return ValueListenableBuilder<CardDragPayload?>(
+                  valueListenable: gameService.cardPlacement,
+                  builder: (context, pending, child) {
+                    if (pending == null) return const SizedBox.shrink();
+                    // Ensure we can catch ESC
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        _placeFocusNode.requestFocus();
                       }
-                      return KeyEventResult.ignored;
-                    },
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onSecondaryTap: () {
-                        gameService.clearCardPlacement();
+                    });
+                    return MouseRegion(
+                      onHover: (event) {
+                        final tile =
+                            widget.game.resolveHoverAt(event.localPosition);
+                        _onTileHover(tile, event.localPosition);
+                      },
+                      onExit: (_) {
                         widget.game.clearHover();
                         _onTileHover(null, null);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Placement canceled'),
-                            duration: Duration(milliseconds: 800),
-                          ),
-                        );
                       },
-                      onTapDown: (details) {
-                        final local = details.localPosition;
-                        final tile = widget.game.resolveHoverAt(local);
-                        if (tile != null && pending.instance != null) {
-                          widget.game.selectAt(local);
-                          widget.game.gameService.stagePlayCard(
-                            widget.game.gameId,
-                            widget.game.gameService.currentPlayerIndex,
-                            pending.instance!.instanceId,
-                            tile.row,
-                            tile.col,
-                          );
-                          gameService.clearCardPlacement();
-                          _onTileHover(null, null);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  'Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
-                              duration: const Duration(seconds: 2),
+                      child: Focus(
+                        focusNode: _placeFocusNode,
+                        onKeyEvent: (node, event) {
+                          if (event is KeyDownEvent &&
+                              event.logicalKey == LogicalKeyboardKey.escape) {
+                            gameService.clearCardPlacement();
+                            widget.game.clearHover();
+                            _onTileHover(null, null);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Placement canceled'),
+                                duration: Duration(milliseconds: 800),
+                              ),
+                            );
+                            return KeyEventResult.handled;
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onSecondaryTap: () {
+                            gameService.clearCardPlacement();
+                            widget.game.clearHover();
+                            _onTileHover(null, null);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Placement canceled'),
+                                duration: Duration(milliseconds: 800),
+                              ),
+                            );
+                          },
+                          onTapDown: (details) {
+                            final local = details.localPosition;
+                            final tile = widget.game.resolveHoverAt(local);
+                            if (tile != null && pending.instance != null) {
+                              widget.game.selectAt(local);
+                              widget.game.gameService.stagePlayCard(
+                                widget.game.gameId,
+                                widget.game.gameService.currentPlayerIndex,
+                                pending.instance!.instanceId,
+                                tile.row,
+                                tile.col,
+                              );
+                              gameService.clearCardPlacement();
+                              _onTileHover(null, null);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                          child: IgnorePointer(
+                            ignoring: false,
+                            child: Container(
+                              color: Colors.black.withValues(alpha: 0.02),
                             ),
-                          );
-                        }
-                      },
-                      child: IgnorePointer(
-                        ignoring: false,
-                        child: Container(
-                          color: Colors.black.withValues(alpha: 0.02),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 );
               },
             ),
