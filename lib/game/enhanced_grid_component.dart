@@ -621,90 +621,394 @@ class EnhancedIsometricGrid extends PositionComponent {
       Color secondaryColor,
       Color glowColor,
       CommandCenter cc) {
-    // Draw a futuristic tower/pyramid structure
-    final structureHeight = commandCenterHeight;
-    final baseWidth = tileSize.x * 0.8;
-    final topWidth = tileSize.x * 0.3;
+    // Draw a medieval castle structure
+    final castleHeight = commandCenterHeight;
+    final baseWidth = tileSize.x * 0.9;
+    
+    // Castle colors - stone-like appearance
+    final stoneColor = cc.isDestroyed 
+      ? const Color(0xFF424242)
+      : Color.lerp(primaryColor, const Color(0xFF8D8D8D), 0.3)!;
+    final darkStoneColor = _darkenColor(stoneColor, 0.3);
+    
+    // Draw castle walls (main body)
+    _drawCastleWalls(canvas, baseCenter, baseWidth, castleHeight * 0.6, 
+                     stoneColor, darkStoneColor);
+    
+    // Draw corner towers
+    _drawCastleTowers(canvas, baseCenter, baseWidth, castleHeight, 
+                      stoneColor, darkStoneColor, cc.isDestroyed);
+    
+    // Draw central keep
+    _drawCastleKeep(canvas, baseCenter, castleHeight * 0.8, 
+                    stoneColor, darkStoneColor, primaryColor, glowColor, cc);
+    
+    // Draw battlements
+    _drawBattlements(canvas, baseCenter, baseWidth, castleHeight * 0.6, darkStoneColor);
+    
+    // Draw castle gate
+    if (!cc.isDestroyed) {
+      _drawCastleGate(canvas, baseCenter, primaryColor, glowColor);
+    }
+    
+    // Draw flag on top
+    if (!cc.isDestroyed) {
+      _drawCastleFlag(canvas, baseCenter, castleHeight, primaryColor, cc.playerIndex);
+    }
+  }
 
-    // Calculate structure points
-    final Vector2 structureBase = Vector2(baseCenter.x, baseCenter.y - 10);
-    final Vector2 structureTop =
-        Vector2(topCenter.x, topCenter.y - structureHeight);
-
-    // Draw main tower body (trapezoid)
-    final towerPath = ui.Path()
-      ..moveTo(structureBase.x - baseWidth, structureBase.y)
-      ..lineTo(structureTop.x - topWidth, structureTop.y)
-      ..lineTo(structureTop.x + topWidth, structureTop.y)
-      ..lineTo(structureBase.x + baseWidth, structureBase.y)
+  void _drawCastleWalls(ui.Canvas canvas, Vector2 center, double width, 
+                        double height, Color stoneColor, Color darkStoneColor) {
+    // Main wall structure
+    final wallPath = ui.Path()
+      ..moveTo(center.x - width * 0.8, center.y)
+      ..lineTo(center.x - width * 0.8, center.y - height)
+      ..lineTo(center.x + width * 0.8, center.y - height)
+      ..lineTo(center.x + width * 0.8, center.y)
       ..close();
-
-    // Create gradient for tower
-    final towerPaint = ui.Paint()
+    
+    // Stone gradient
+    final wallPaint = ui.Paint()
       ..shader = ui.Gradient.linear(
-        ui.Offset(structureTop.x, structureTop.y),
-        ui.Offset(structureBase.x, structureBase.y),
+        ui.Offset(center.x, center.y - height),
+        ui.Offset(center.x, center.y),
         [
-          _brightenColor(primaryColor, 0.3),
-          primaryColor,
-          secondaryColor,
+          _brightenColor(stoneColor, 0.2),
+          stoneColor,
+          darkStoneColor,
+        ],
+        [0.0, 0.3, 1.0],
+      );
+    
+    canvas.drawPath(wallPath, wallPaint);
+    
+    // Draw stone texture lines
+    final linePaint = ui.Paint()
+      ..color = darkStoneColor.withOpacity(0.3)
+      ..strokeWidth = 0.5;
+    
+    // Horizontal stone lines
+    for (double y = center.y - height * 0.2; y > center.y - height; y -= 8) {
+      canvas.drawLine(
+        ui.Offset(center.x - width * 0.8, y),
+        ui.Offset(center.x + width * 0.8, y),
+        linePaint,
+      );
+    }
+    
+    // Vertical stone lines (staggered)
+    for (double x = center.x - width * 0.7; x < center.x + width * 0.8; x += 12) {
+      final yOffset = ((x - center.x) % 24 == 0) ? 0 : -4;
+      canvas.drawLine(
+        ui.Offset(x, center.y + yOffset),
+        ui.Offset(x, center.y - height * 0.3 + yOffset),
+        linePaint,
+      );
+    }
+  }
+  
+  void _drawCastleTowers(ui.Canvas canvas, Vector2 center, double width, 
+                         double height, Color stoneColor, Color darkStoneColor, bool isDestroyed) {
+    // Draw four corner towers
+    final towerPositions = [
+      Vector2(center.x - width * 0.75, center.y), // Left tower
+      Vector2(center.x + width * 0.75, center.y), // Right tower
+      Vector2(center.x - width * 0.4, center.y - 5), // Back left
+      Vector2(center.x + width * 0.4, center.y - 5), // Back right
+    ];
+    
+    for (int i = 0; i < towerPositions.length; i++) {
+      final towerPos = towerPositions[i];
+      final towerHeight = height * (i < 2 ? 1.0 : 0.85); // Front towers are taller
+      final towerWidth = 12.0;
+      
+      // Tower cylinder
+      final towerPath = ui.Path()
+        ..moveTo(towerPos.x - towerWidth/2, towerPos.y)
+        ..lineTo(towerPos.x - towerWidth/2 * 0.8, towerPos.y - towerHeight)
+        ..lineTo(towerPos.x + towerWidth/2 * 0.8, towerPos.y - towerHeight)
+        ..lineTo(towerPos.x + towerWidth/2, towerPos.y)
+        ..close();
+      
+      final towerPaint = ui.Paint()
+        ..shader = ui.Gradient.linear(
+          ui.Offset(towerPos.x - towerWidth/2, towerPos.y),
+          ui.Offset(towerPos.x + towerWidth/2, towerPos.y),
+          [
+            darkStoneColor,
+            stoneColor,
+            _brightenColor(stoneColor, 0.2),
+            stoneColor,
+            darkStoneColor,
+          ],
+          [0.0, 0.2, 0.5, 0.8, 1.0],
+        );
+      
+      canvas.drawPath(towerPath, towerPaint);
+      
+      // Tower top (conical roof)
+      if (!isDestroyed) {
+        final roofPath = ui.Path()
+          ..moveTo(towerPos.x - towerWidth/2 * 0.8, towerPos.y - towerHeight)
+          ..lineTo(towerPos.x, towerPos.y - towerHeight - 8)
+          ..lineTo(towerPos.x + towerWidth/2 * 0.8, towerPos.y - towerHeight)
+          ..close();
+        
+        final roofPaint = ui.Paint()
+          ..color = const Color(0xFF8B4513); // Brown roof
+        
+        canvas.drawPath(roofPath, roofPaint);
+      }
+      
+      // Tower windows (arrow slits)
+      if (!isDestroyed && i < 2) { // Only on front towers
+        final windowPaint = ui.Paint()
+          ..color = const Color(0xFF000000).withOpacity(0.5);
+        
+        for (double y = towerPos.y - towerHeight * 0.3; 
+             y > towerPos.y - towerHeight * 0.8; 
+             y -= towerHeight * 0.2) {
+          final windowRect = ui.Rect.fromCenter(
+            center: ui.Offset(towerPos.x, y),
+            width: 2,
+            height: 6,
+          );
+          canvas.drawRect(windowRect, windowPaint);
+        }
+      }
+    }
+  }
+  
+  void _drawCastleKeep(ui.Canvas canvas, Vector2 center, double height,
+                       Color stoneColor, Color darkStoneColor, 
+                       Color primaryColor, Color glowColor, CommandCenter cc) {
+    // Central keep (main tower)
+    final keepWidth = 20.0;
+    final keepBase = Vector2(center.x, center.y - 15);
+    final keepTop = Vector2(center.x, center.y - height);
+    
+    // Keep body
+    final keepPath = ui.Path()
+      ..moveTo(keepBase.x - keepWidth/2, keepBase.y)
+      ..lineTo(keepTop.x - keepWidth/2 * 0.9, keepTop.y)
+      ..lineTo(keepTop.x + keepWidth/2 * 0.9, keepTop.y)
+      ..lineTo(keepBase.x + keepWidth/2, keepBase.y)
+      ..close();
+    
+    final keepPaint = ui.Paint()
+      ..shader = ui.Gradient.linear(
+        ui.Offset(keepTop.x, keepTop.y),
+        ui.Offset(keepBase.x, keepBase.y),
+        [
+          _brightenColor(stoneColor, 0.3),
+          stoneColor,
+          darkStoneColor,
         ],
         [0.0, 0.5, 1.0],
       );
-
-    canvas.drawPath(towerPath, towerPaint);
-
-    // Draw tower edges
-    final edgePaint = ui.Paint()
-      ..color = _brightenColor(primaryColor, 0.4)
-      ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawPath(towerPath, edgePaint);
-
-    // Draw glowing core/window
+    
+    canvas.drawPath(keepPath, keepPaint);
+    
+    // Keep window (glowing if not destroyed)
     if (!cc.isDestroyed) {
-      final corePath = ui.Path()
-        ..moveTo(structureTop.x - topWidth * 0.5, structureTop.y + 5)
-        ..lineTo(structureTop.x - topWidth * 0.3, structureTop.y + 15)
-        ..lineTo(structureTop.x + topWidth * 0.3, structureTop.y + 15)
-        ..lineTo(structureTop.x + topWidth * 0.5, structureTop.y + 5)
-        ..close();
-
-      // Pulsing glow effect
-      final glowPaint = ui.Paint()
-        ..color = glowColor.withOpacity(0.6 + _pulseAnimation * 0.4)
-        ..maskFilter =
-            ui.MaskFilter.blur(ui.BlurStyle.normal, 3 + _pulseAnimation * 2);
-      canvas.drawPath(corePath, glowPaint);
-
-      final corePaint = ui.Paint()..color = _brightenColor(glowColor, 0.5);
-      canvas.drawPath(corePath, corePaint);
-    }
-
-    // Draw antenna/beacon on top
-    if (!cc.isDestroyed) {
-      final antennaBase = Vector2(structureTop.x, structureTop.y);
-      final antennaTop = Vector2(structureTop.x, structureTop.y - 15);
-
-      final antennaPaint = ui.Paint()
-        ..color = secondaryColor
-        ..strokeWidth = 3
-        ..style = ui.PaintingStyle.stroke;
-
-      canvas.drawLine(
-        ui.Offset(antennaBase.x, antennaBase.y),
-        ui.Offset(antennaTop.x, antennaTop.y),
-        antennaPaint,
+      final windowY = keepBase.y - height * 0.5;
+      
+      // Window frame
+      final windowFrame = ui.RRect.fromRectAndRadius(
+        ui.Rect.fromCenter(
+          center: ui.Offset(center.x, windowY),
+          width: 8,
+          height: 10,
+        ),
+        const ui.Radius.circular(4),
       );
-
-      // Beacon light
-      final beaconPaint = ui.Paint()
-        ..color = glowColor.withOpacity(0.8 + _pulseAnimation * 0.2)
-        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 5);
+      
+      final framePaint = ui.Paint()
+        ..color = darkStoneColor;
+      canvas.drawRRect(windowFrame, framePaint);
+      
+      // Glowing window interior
+      final windowRect = ui.RRect.fromRectAndRadius(
+        ui.Rect.fromCenter(
+          center: ui.Offset(center.x, windowY),
+          width: 6,
+          height: 8,
+        ),
+        const ui.Radius.circular(3),
+      );
+      
+      // Window glow
+      final glowPaint = ui.Paint()
+        ..color = glowColor.withOpacity(0.4 + _pulseAnimation * 0.3)
+        ..maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, 4 + _pulseAnimation * 2);
+      canvas.drawRRect(windowRect, glowPaint);
+      
+      // Window fill
+      final windowPaint = ui.Paint()
+        ..color = Color.lerp(glowColor, const Color(0xFFFFE082), 0.5)!
+                  .withOpacity(0.8 + _pulseAnimation * 0.2);
+      canvas.drawRRect(windowRect, windowPaint);
+    }
+  }
+  
+  void _drawBattlements(ui.Canvas canvas, Vector2 center, double width, 
+                        double height, Color darkStoneColor) {
+    // Draw crenellations along the walls
+    final merlonWidth = 6.0;
+    final merlonHeight = 5.0;
+    final merlonSpacing = 10.0;
+    
+    final merlonPaint = ui.Paint()
+      ..color = darkStoneColor;
+    
+    // Front wall battlements
+    for (double x = center.x - width * 0.7; x < center.x + width * 0.7; x += merlonSpacing) {
+      final merlonRect = ui.Rect.fromLTWH(
+        x - merlonWidth/2,
+        center.y - height - merlonHeight,
+        merlonWidth,
+        merlonHeight,
+      );
+      canvas.drawRect(merlonRect, merlonPaint);
+    }
+  }
+  
+  void _drawCastleGate(ui.Canvas canvas, Vector2 center, Color primaryColor, Color glowColor) {
+    // Draw the main gate
+    final gateWidth = 12.0;
+    final gateHeight = 15.0;
+    final gateY = center.y - 2;
+    
+    // Gate arch
+    final gatePath = ui.Path()
+      ..moveTo(center.x - gateWidth/2, gateY)
+      ..lineTo(center.x - gateWidth/2, gateY - gateHeight * 0.7)
+      ..quadraticBezierTo(
+        center.x, gateY - gateHeight,
+        center.x + gateWidth/2, gateY - gateHeight * 0.7,
+      )
+      ..lineTo(center.x + gateWidth/2, gateY)
+      ..close();
+    
+    // Gate gradient (darker at bottom)
+    final gatePaint = ui.Paint()
+      ..shader = ui.Gradient.linear(
+        ui.Offset(center.x, gateY - gateHeight),
+        ui.Offset(center.x, gateY),
+        [
+          const Color(0xFF2A2A2A),
+          const Color(0xFF1A1A1A),
+        ],
+        [0.0, 1.0],
+      );
+    
+    canvas.drawPath(gatePath, gatePaint);
+    
+    // Gate portcullis bars
+    final barPaint = ui.Paint()
+      ..color = const Color(0xFF0A0A0A)
+      ..strokeWidth = 1;
+    
+    for (double x = center.x - gateWidth/2 + 2; x < center.x + gateWidth/2; x += 3) {
+      canvas.drawLine(
+        ui.Offset(x, gateY),
+        ui.Offset(x, gateY - gateHeight * 0.7),
+        barPaint,
+      );
+    }
+    
+    // Gate glow (magical protection)
+    final glowPaint = ui.Paint()
+      ..color = glowColor.withOpacity(0.2 + _pulseAnimation * 0.1)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
+    canvas.drawPath(gatePath, glowPaint);
+  }
+  
+  void _drawCastleFlag(ui.Canvas canvas, Vector2 center, double height, 
+                       Color primaryColor, int playerIndex) {
+    // Draw flag on the highest point
+    final flagPoleBase = Vector2(center.x, center.y - height);
+    final flagPoleTop = Vector2(center.x, center.y - height - 20);
+    
+    // Flag pole
+    final polePaint = ui.Paint()
+      ..color = const Color(0xFF4A4A4A)
+      ..strokeWidth = 2;
+    
+    canvas.drawLine(
+      ui.Offset(flagPoleBase.x, flagPoleBase.y),
+      ui.Offset(flagPoleTop.x, flagPoleTop.y),
+      polePaint,
+    );
+    
+    // Flag (waving animation)
+    final flagWidth = 15.0;
+    final flagHeight = 10.0;
+    final waveOffset = math.sin(_time * 3) * 2;
+    
+    final flagPath = ui.Path()
+      ..moveTo(flagPoleTop.x, flagPoleTop.y)
+      ..quadraticBezierTo(
+        flagPoleTop.x + flagWidth/2 + waveOffset,
+        flagPoleTop.y + 2,
+        flagPoleTop.x + flagWidth + waveOffset * 1.5,
+        flagPoleTop.y + 3,
+      )
+      ..quadraticBezierTo(
+        flagPoleTop.x + flagWidth/2 + waveOffset,
+        flagPoleTop.y + flagHeight - 2,
+        flagPoleTop.x,
+        flagPoleTop.y + flagHeight,
+      )
+      ..close();
+    
+    // Flag color based on player
+    final flagColor = playerIndex == 0 
+      ? const Color(0xFF2E7D32)  // Green for player 0
+      : const Color(0xFFC62828); // Red for player 1
+    
+    final flagPaint = ui.Paint()
+      ..shader = ui.Gradient.linear(
+        ui.Offset(flagPoleTop.x, flagPoleTop.y),
+        ui.Offset(flagPoleTop.x + flagWidth, flagPoleTop.y),
+        [
+          flagColor,
+          _brightenColor(flagColor, 0.3),
+          flagColor,
+        ],
+        [0.0, 0.5, 1.0],
+      );
+    
+    canvas.drawPath(flagPath, flagPaint);
+    
+    // Flag emblem (simple design)
+    final emblemPaint = ui.Paint()
+      ..color = Colors.white.withOpacity(0.8);
+    
+    if (playerIndex == 0) {
+      // Draw a shield for player 0
       canvas.drawCircle(
-        ui.Offset(antennaTop.x, antennaTop.y),
-        3 + _pulseAnimation * 2,
-        beaconPaint,
+        ui.Offset(flagPoleTop.x + flagWidth/2 + waveOffset * 0.7, flagPoleTop.y + flagHeight/2),
+        3,
+        emblemPaint,
+      );
+    } else {
+      // Draw a cross for player 1  
+      final crossCenter = ui.Offset(
+        flagPoleTop.x + flagWidth/2 + waveOffset * 0.7, 
+        flagPoleTop.y + flagHeight/2
+      );
+      canvas.drawLine(
+        ui.Offset(crossCenter.dx - 3, crossCenter.dy),
+        ui.Offset(crossCenter.dx + 3, crossCenter.dy),
+        emblemPaint..strokeWidth = 2,
+      );
+      canvas.drawLine(
+        ui.Offset(crossCenter.dx, crossCenter.dy - 3),
+        ui.Offset(crossCenter.dx, crossCenter.dy + 3),
+        emblemPaint,
       );
     }
   }
