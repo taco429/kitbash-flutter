@@ -50,7 +50,7 @@ class EnhancedIsometricGrid extends PositionComponent {
   }
 
   void _initializeTileData() {
-    final random = math.Random(42); // Seed for consistent generation
+    // Seed for consistent generation
     _tileData = List.generate(rows, (row) {
       return List.generate(cols, (col) {
         // Generate varied terrain with more interesting patterns
@@ -153,7 +153,7 @@ class EnhancedIsometricGrid extends PositionComponent {
     final double halfH = tileSize.y / 2;
 
     // Get terrain color with moisture variation
-    Color baseColor = _getEnhancedTerrainColor(terrain, moisture);
+    final Color baseColor = _getEnhancedTerrainColor(terrain, moisture);
 
     // Draw flat tile with subtle gradient
     final ui.Path tilePath = _tileDiamond(center, 1.0);
@@ -178,7 +178,7 @@ class EnhancedIsometricGrid extends PositionComponent {
 
     // Draw tile outline
     final outlinePaint = ui.Paint()
-      ..color = _darkenColor(baseColor, 0.15).withOpacity(0.25)
+      ..color = _darkenColor(baseColor, 0.15).withValues(alpha: 0.25)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 0.5;
     canvas.drawPath(tilePath, outlinePaint);
@@ -192,7 +192,7 @@ class EnhancedIsometricGrid extends PositionComponent {
       case TerrainType.water:
         // Draw water ripples
         detailPaint
-          ..color = const Color(0xFF64B5F6).withOpacity(0.2)
+          ..color = const Color(0xFF64B5F6).withValues(alpha: 0.2)
           ..style = ui.PaintingStyle.stroke
           ..strokeWidth = 0.5;
         canvas.drawCircle(
@@ -203,7 +203,7 @@ class EnhancedIsometricGrid extends PositionComponent {
 
       case TerrainType.grass:
         // Add subtle grass texture
-        detailPaint.color = const Color(0xFF5D7A2B).withOpacity(0.15);
+        detailPaint.color = const Color(0xFF5D7A2B).withValues(alpha: 0.15);
         for (int i = 0; i < 4; i++) {
           final angle = i * math.pi / 2;
           final dist = halfW * 0.3;
@@ -221,7 +221,7 @@ class EnhancedIsometricGrid extends PositionComponent {
       case TerrainType.desert:
         // Add sand dune pattern
         detailPaint
-          ..color = const Color(0xFF9B8365).withOpacity(0.1)
+          ..color = const Color(0xFF9B8365).withValues(alpha: 0.1)
           ..style = ui.PaintingStyle.stroke
           ..strokeWidth = 1;
         final path = ui.Path()
@@ -356,7 +356,7 @@ class EnhancedIsometricGrid extends PositionComponent {
 
       // Draw face edge
       final edgePaint = ui.Paint()
-        ..color = const Color(0xFF2A2A2A).withOpacity(0.3)
+        ..color = const Color(0xFF2A2A2A).withValues(alpha: 0.3)
         ..style = ui.PaintingStyle.stroke
         ..strokeWidth = 0.5;
       canvas.drawPath(facePath, edgePaint);
@@ -376,7 +376,7 @@ class EnhancedIsometricGrid extends PositionComponent {
 
     // Add highlight
     final highlightPaint = ui.Paint()
-      ..color = const Color(0xFFAAAAAA).withOpacity(0.5)
+      ..color = const Color(0xFFAAAAAA).withValues(alpha: 0.5)
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2);
 
     canvas.drawCircle(
@@ -474,7 +474,7 @@ class EnhancedIsometricGrid extends PositionComponent {
 
       // Add foliage highlights
       final highlightPaint = ui.Paint()
-        ..color = const Color(0xFF6D9A3A).withOpacity(0.3);
+        ..color = const Color(0xFF6D9A3A).withValues(alpha: 0.3);
 
       canvas.drawCircle(
         ui.Offset(treeCenter.x + 3, foliageY - treeHeight * 0.3),
@@ -553,7 +553,7 @@ class EnhancedIsometricGrid extends PositionComponent {
           // Draw platform tile
           final platformPath = _tileDiamond(center, 1.0);
           final platformPaint = ui.Paint()
-            ..color = color.withOpacity(0.8)
+            ..color = color.withValues(alpha: 0.8)
             ..style = ui.PaintingStyle.fill;
           canvas.drawPath(platformPath, platformPaint);
 
@@ -579,41 +579,43 @@ class EnhancedIsometricGrid extends PositionComponent {
     // Draw a medieval castle structure
     final castleHeight = commandCenterHeight;
     final baseWidth = tileSize.x * 0.9;
-    
+
     // Castle colors - stone-like appearance
-    final stoneColor = cc.isDestroyed 
-      ? const Color(0xFF424242)
-      : Color.lerp(primaryColor, const Color(0xFF8D8D8D), 0.3)!;
+    final stoneColor = cc.isDestroyed
+        ? const Color(0xFF424242)
+        : Color.lerp(primaryColor, const Color(0xFF8D8D8D), 0.3)!;
     final darkStoneColor = _darkenColor(stoneColor, 0.3);
-    
+
     // Draw castle walls (main body)
-    _drawCastleWalls(canvas, baseCenter, baseWidth, castleHeight * 0.6, 
-                     stoneColor, darkStoneColor);
-    
+    _drawCastleWalls(canvas, baseCenter, baseWidth, castleHeight * 0.6,
+        stoneColor, darkStoneColor);
+
     // Draw corner towers
-    _drawCastleTowers(canvas, baseCenter, baseWidth, castleHeight, 
-                      stoneColor, darkStoneColor, cc.isDestroyed);
-    
+    _drawCastleTowers(canvas, baseCenter, baseWidth, castleHeight, stoneColor,
+        darkStoneColor, cc.isDestroyed);
+
     // Draw central keep
-    _drawCastleKeep(canvas, baseCenter, castleHeight * 0.8, 
-                    stoneColor, darkStoneColor, primaryColor, glowColor, cc);
-    
+    _drawCastleKeep(canvas, baseCenter, castleHeight * 0.8, stoneColor,
+        darkStoneColor, primaryColor, glowColor, cc);
+
     // Draw battlements
-    _drawBattlements(canvas, baseCenter, baseWidth, castleHeight * 0.6, darkStoneColor);
-    
+    _drawBattlements(
+        canvas, baseCenter, baseWidth, castleHeight * 0.6, darkStoneColor);
+
     // Draw castle gate
     if (!cc.isDestroyed) {
       _drawCastleGate(canvas, baseCenter, primaryColor, glowColor);
     }
-    
+
     // Draw flag on top
     if (!cc.isDestroyed) {
-      _drawCastleFlag(canvas, baseCenter, castleHeight, primaryColor, cc.playerIndex);
+      _drawCastleFlag(
+          canvas, baseCenter, castleHeight, primaryColor, cc.playerIndex);
     }
   }
 
-  void _drawCastleWalls(ui.Canvas canvas, Vector2 center, double width, 
-                        double height, Color stoneColor, Color darkStoneColor) {
+  void _drawCastleWalls(ui.Canvas canvas, Vector2 center, double width,
+      double height, Color stoneColor, Color darkStoneColor) {
     // Main wall structure
     final wallPath = ui.Path()
       ..moveTo(center.x - width * 0.8, center.y)
@@ -621,7 +623,7 @@ class EnhancedIsometricGrid extends PositionComponent {
       ..lineTo(center.x + width * 0.8, center.y - height)
       ..lineTo(center.x + width * 0.8, center.y)
       ..close();
-    
+
     // Stone gradient
     final wallPaint = ui.Paint()
       ..shader = ui.Gradient.linear(
@@ -634,14 +636,14 @@ class EnhancedIsometricGrid extends PositionComponent {
         ],
         [0.0, 0.3, 1.0],
       );
-    
+
     canvas.drawPath(wallPath, wallPaint);
-    
+
     // Draw stone texture lines
     final linePaint = ui.Paint()
-      ..color = darkStoneColor.withOpacity(0.3)
+      ..color = darkStoneColor.withValues(alpha: 0.3)
       ..strokeWidth = 0.5;
-    
+
     // Horizontal stone lines
     for (double y = center.y - height * 0.2; y > center.y - height; y -= 8) {
       canvas.drawLine(
@@ -650,9 +652,11 @@ class EnhancedIsometricGrid extends PositionComponent {
         linePaint,
       );
     }
-    
+
     // Vertical stone lines (staggered)
-    for (double x = center.x - width * 0.7; x < center.x + width * 0.8; x += 12) {
+    for (double x = center.x - width * 0.7;
+        x < center.x + width * 0.8;
+        x += 12) {
       final yOffset = ((x - center.x) % 24 == 0) ? 0 : -4;
       canvas.drawLine(
         ui.Offset(x, center.y + yOffset),
@@ -661,9 +665,9 @@ class EnhancedIsometricGrid extends PositionComponent {
       );
     }
   }
-  
-  void _drawCastleTowers(ui.Canvas canvas, Vector2 center, double width, 
-                         double height, Color stoneColor, Color darkStoneColor, bool isDestroyed) {
+
+  void _drawCastleTowers(ui.Canvas canvas, Vector2 center, double width,
+      double height, Color stoneColor, Color darkStoneColor, bool isDestroyed) {
     // Draw four corner towers
     final towerPositions = [
       Vector2(center.x - width * 0.75, center.y), // Left tower
@@ -671,24 +675,25 @@ class EnhancedIsometricGrid extends PositionComponent {
       Vector2(center.x - width * 0.4, center.y - 5), // Back left
       Vector2(center.x + width * 0.4, center.y - 5), // Back right
     ];
-    
+
     for (int i = 0; i < towerPositions.length; i++) {
       final towerPos = towerPositions[i];
-      final towerHeight = height * (i < 2 ? 1.0 : 0.85); // Front towers are taller
-      final towerWidth = 12.0;
-      
+      final towerHeight =
+          height * (i < 2 ? 1.0 : 0.85); // Front towers are taller
+      const towerWidth = 12.0;
+
       // Tower cylinder
       final towerPath = ui.Path()
-        ..moveTo(towerPos.x - towerWidth/2, towerPos.y)
-        ..lineTo(towerPos.x - towerWidth/2 * 0.8, towerPos.y - towerHeight)
-        ..lineTo(towerPos.x + towerWidth/2 * 0.8, towerPos.y - towerHeight)
-        ..lineTo(towerPos.x + towerWidth/2, towerPos.y)
+        ..moveTo(towerPos.x - towerWidth / 2, towerPos.y)
+        ..lineTo(towerPos.x - towerWidth / 2 * 0.8, towerPos.y - towerHeight)
+        ..lineTo(towerPos.x + towerWidth / 2 * 0.8, towerPos.y - towerHeight)
+        ..lineTo(towerPos.x + towerWidth / 2, towerPos.y)
         ..close();
-      
+
       final towerPaint = ui.Paint()
         ..shader = ui.Gradient.linear(
-          ui.Offset(towerPos.x - towerWidth/2, towerPos.y),
-          ui.Offset(towerPos.x + towerWidth/2, towerPos.y),
+          ui.Offset(towerPos.x - towerWidth / 2, towerPos.y),
+          ui.Offset(towerPos.x + towerWidth / 2, towerPos.y),
           [
             darkStoneColor,
             stoneColor,
@@ -698,31 +703,32 @@ class EnhancedIsometricGrid extends PositionComponent {
           ],
           [0.0, 0.2, 0.5, 0.8, 1.0],
         );
-      
+
       canvas.drawPath(towerPath, towerPaint);
-      
+
       // Tower top (conical roof)
       if (!isDestroyed) {
         final roofPath = ui.Path()
-          ..moveTo(towerPos.x - towerWidth/2 * 0.8, towerPos.y - towerHeight)
+          ..moveTo(towerPos.x - towerWidth / 2 * 0.8, towerPos.y - towerHeight)
           ..lineTo(towerPos.x, towerPos.y - towerHeight - 8)
-          ..lineTo(towerPos.x + towerWidth/2 * 0.8, towerPos.y - towerHeight)
+          ..lineTo(towerPos.x + towerWidth / 2 * 0.8, towerPos.y - towerHeight)
           ..close();
-        
+
         final roofPaint = ui.Paint()
           ..color = const Color(0xFF8B4513); // Brown roof
-        
+
         canvas.drawPath(roofPath, roofPaint);
       }
-      
+
       // Tower windows (arrow slits)
-      if (!isDestroyed && i < 2) { // Only on front towers
+      if (!isDestroyed && i < 2) {
+        // Only on front towers
         final windowPaint = ui.Paint()
-          ..color = const Color(0xFF000000).withOpacity(0.5);
-        
-        for (double y = towerPos.y - towerHeight * 0.3; 
-             y > towerPos.y - towerHeight * 0.8; 
-             y -= towerHeight * 0.2) {
+          ..color = const Color(0xFF000000).withValues(alpha: 0.5);
+
+        for (double y = towerPos.y - towerHeight * 0.3;
+            y > towerPos.y - towerHeight * 0.8;
+            y -= towerHeight * 0.2) {
           final windowRect = ui.Rect.fromCenter(
             center: ui.Offset(towerPos.x, y),
             width: 2,
@@ -733,23 +739,29 @@ class EnhancedIsometricGrid extends PositionComponent {
       }
     }
   }
-  
-  void _drawCastleKeep(ui.Canvas canvas, Vector2 center, double height,
-                       Color stoneColor, Color darkStoneColor, 
-                       Color primaryColor, Color glowColor, CommandCenter cc) {
+
+  void _drawCastleKeep(
+      ui.Canvas canvas,
+      Vector2 center,
+      double height,
+      Color stoneColor,
+      Color darkStoneColor,
+      Color primaryColor,
+      Color glowColor,
+      CommandCenter cc) {
     // Central keep (main tower)
-    final keepWidth = 20.0;
+    const keepWidth = 20.0;
     final keepBase = Vector2(center.x, center.y - 15);
     final keepTop = Vector2(center.x, center.y - height);
-    
+
     // Keep body
     final keepPath = ui.Path()
-      ..moveTo(keepBase.x - keepWidth/2, keepBase.y)
-      ..lineTo(keepTop.x - keepWidth/2 * 0.9, keepTop.y)
-      ..lineTo(keepTop.x + keepWidth/2 * 0.9, keepTop.y)
-      ..lineTo(keepBase.x + keepWidth/2, keepBase.y)
+      ..moveTo(keepBase.x - keepWidth / 2, keepBase.y)
+      ..lineTo(keepTop.x - keepWidth / 2 * 0.9, keepTop.y)
+      ..lineTo(keepTop.x + keepWidth / 2 * 0.9, keepTop.y)
+      ..lineTo(keepBase.x + keepWidth / 2, keepBase.y)
       ..close();
-    
+
     final keepPaint = ui.Paint()
       ..shader = ui.Gradient.linear(
         ui.Offset(keepTop.x, keepTop.y),
@@ -761,13 +773,13 @@ class EnhancedIsometricGrid extends PositionComponent {
         ],
         [0.0, 0.5, 1.0],
       );
-    
+
     canvas.drawPath(keepPath, keepPaint);
-    
+
     // Keep window (glowing if not destroyed)
     if (!cc.isDestroyed) {
       final windowY = keepBase.y - height * 0.5;
-      
+
       // Window frame
       final windowFrame = ui.RRect.fromRectAndRadius(
         ui.Rect.fromCenter(
@@ -777,11 +789,10 @@ class EnhancedIsometricGrid extends PositionComponent {
         ),
         const ui.Radius.circular(4),
       );
-      
-      final framePaint = ui.Paint()
-        ..color = darkStoneColor;
+
+      final framePaint = ui.Paint()..color = darkStoneColor;
       canvas.drawRRect(windowFrame, framePaint);
-      
+
       // Glowing window interior
       final windowRect = ui.RRect.fromRectAndRadius(
         ui.Rect.fromCenter(
@@ -791,35 +802,37 @@ class EnhancedIsometricGrid extends PositionComponent {
         ),
         const ui.Radius.circular(3),
       );
-      
+
       // Window glow
       final glowPaint = ui.Paint()
-        ..color = glowColor.withOpacity(0.4 + _pulseAnimation * 0.3)
-        ..maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, 4 + _pulseAnimation * 2);
+        ..color = glowColor.withValues(alpha: 0.4 + _pulseAnimation * 0.3)
+        ..maskFilter =
+            ui.MaskFilter.blur(ui.BlurStyle.normal, 4 + _pulseAnimation * 2);
       canvas.drawRRect(windowRect, glowPaint);
-      
+
       // Window fill
       final windowPaint = ui.Paint()
         ..color = Color.lerp(glowColor, const Color(0xFFFFE082), 0.5)!
-                  .withOpacity(0.8 + _pulseAnimation * 0.2);
+            .withValues(alpha: 0.8 + _pulseAnimation * 0.2);
       canvas.drawRRect(windowRect, windowPaint);
     }
   }
-  
-  void _drawBattlements(ui.Canvas canvas, Vector2 center, double width, 
-                        double height, Color darkStoneColor) {
+
+  void _drawBattlements(ui.Canvas canvas, Vector2 center, double width,
+      double height, Color darkStoneColor) {
     // Draw crenellations along the walls
-    final merlonWidth = 6.0;
-    final merlonHeight = 5.0;
-    final merlonSpacing = 10.0;
-    
-    final merlonPaint = ui.Paint()
-      ..color = darkStoneColor;
-    
+    const merlonWidth = 6.0;
+    const merlonHeight = 5.0;
+    const merlonSpacing = 10.0;
+
+    final merlonPaint = ui.Paint()..color = darkStoneColor;
+
     // Front wall battlements
-    for (double x = center.x - width * 0.7; x < center.x + width * 0.7; x += merlonSpacing) {
+    for (double x = center.x - width * 0.7;
+        x < center.x + width * 0.7;
+        x += merlonSpacing) {
       final merlonRect = ui.Rect.fromLTWH(
-        x - merlonWidth/2,
+        x - merlonWidth / 2,
         center.y - height - merlonHeight,
         merlonWidth,
         merlonHeight,
@@ -827,24 +840,27 @@ class EnhancedIsometricGrid extends PositionComponent {
       canvas.drawRect(merlonRect, merlonPaint);
     }
   }
-  
-  void _drawCastleGate(ui.Canvas canvas, Vector2 center, Color primaryColor, Color glowColor) {
+
+  void _drawCastleGate(
+      ui.Canvas canvas, Vector2 center, Color primaryColor, Color glowColor) {
     // Draw the main gate
-    final gateWidth = 12.0;
-    final gateHeight = 15.0;
+    const gateWidth = 12.0;
+    const gateHeight = 15.0;
     final gateY = center.y - 2;
-    
+
     // Gate arch
     final gatePath = ui.Path()
-      ..moveTo(center.x - gateWidth/2, gateY)
-      ..lineTo(center.x - gateWidth/2, gateY - gateHeight * 0.7)
+      ..moveTo(center.x - gateWidth / 2, gateY)
+      ..lineTo(center.x - gateWidth / 2, gateY - gateHeight * 0.7)
       ..quadraticBezierTo(
-        center.x, gateY - gateHeight,
-        center.x + gateWidth/2, gateY - gateHeight * 0.7,
+        center.x,
+        gateY - gateHeight,
+        center.x + gateWidth / 2,
+        gateY - gateHeight * 0.7,
       )
-      ..lineTo(center.x + gateWidth/2, gateY)
+      ..lineTo(center.x + gateWidth / 2, gateY)
       ..close();
-    
+
     // Gate gradient (darker at bottom)
     final gatePaint = ui.Paint()
       ..shader = ui.Gradient.linear(
@@ -856,74 +872,76 @@ class EnhancedIsometricGrid extends PositionComponent {
         ],
         [0.0, 1.0],
       );
-    
+
     canvas.drawPath(gatePath, gatePaint);
-    
+
     // Gate portcullis bars
     final barPaint = ui.Paint()
       ..color = const Color(0xFF0A0A0A)
       ..strokeWidth = 1;
-    
-    for (double x = center.x - gateWidth/2 + 2; x < center.x + gateWidth/2; x += 3) {
+
+    for (double x = center.x - gateWidth / 2 + 2;
+        x < center.x + gateWidth / 2;
+        x += 3) {
       canvas.drawLine(
         ui.Offset(x, gateY),
         ui.Offset(x, gateY - gateHeight * 0.7),
         barPaint,
       );
     }
-    
+
     // Gate glow (magical protection)
     final glowPaint = ui.Paint()
-      ..color = glowColor.withOpacity(0.2 + _pulseAnimation * 0.1)
+      ..color = glowColor.withValues(alpha: 0.2 + _pulseAnimation * 0.1)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 2
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
     canvas.drawPath(gatePath, glowPaint);
   }
-  
-  void _drawCastleFlag(ui.Canvas canvas, Vector2 center, double height, 
-                       Color primaryColor, int playerIndex) {
+
+  void _drawCastleFlag(ui.Canvas canvas, Vector2 center, double height,
+      Color primaryColor, int playerIndex) {
     // Draw flag on the highest point
     final flagPoleBase = Vector2(center.x, center.y - height);
     final flagPoleTop = Vector2(center.x, center.y - height - 20);
-    
+
     // Flag pole
     final polePaint = ui.Paint()
       ..color = const Color(0xFF4A4A4A)
       ..strokeWidth = 2;
-    
+
     canvas.drawLine(
       ui.Offset(flagPoleBase.x, flagPoleBase.y),
       ui.Offset(flagPoleTop.x, flagPoleTop.y),
       polePaint,
     );
-    
+
     // Flag (waving animation)
-    final flagWidth = 15.0;
-    final flagHeight = 10.0;
+    const flagWidth = 15.0;
+    const flagHeight = 10.0;
     final waveOffset = math.sin(_time * 3) * 2;
-    
+
     final flagPath = ui.Path()
       ..moveTo(flagPoleTop.x, flagPoleTop.y)
       ..quadraticBezierTo(
-        flagPoleTop.x + flagWidth/2 + waveOffset,
+        flagPoleTop.x + flagWidth / 2 + waveOffset,
         flagPoleTop.y + 2,
         flagPoleTop.x + flagWidth + waveOffset * 1.5,
         flagPoleTop.y + 3,
       )
       ..quadraticBezierTo(
-        flagPoleTop.x + flagWidth/2 + waveOffset,
+        flagPoleTop.x + flagWidth / 2 + waveOffset,
         flagPoleTop.y + flagHeight - 2,
         flagPoleTop.x,
         flagPoleTop.y + flagHeight,
       )
       ..close();
-    
+
     // Flag color based on player
-    final flagColor = playerIndex == 0 
-      ? const Color(0xFF2E7D32)  // Green for player 0
-      : const Color(0xFFC62828); // Red for player 1
-    
+    final flagColor = playerIndex == 0
+        ? const Color(0xFF2E7D32) // Green for player 0
+        : const Color(0xFFC62828); // Red for player 1
+
     final flagPaint = ui.Paint()
       ..shader = ui.Gradient.linear(
         ui.Offset(flagPoleTop.x, flagPoleTop.y),
@@ -935,26 +953,25 @@ class EnhancedIsometricGrid extends PositionComponent {
         ],
         [0.0, 0.5, 1.0],
       );
-    
+
     canvas.drawPath(flagPath, flagPaint);
-    
+
     // Flag emblem (simple design)
-    final emblemPaint = ui.Paint()
-      ..color = Colors.white.withOpacity(0.8);
-    
+    final emblemPaint = ui.Paint()..color = Colors.white.withValues(alpha: 0.8);
+
     if (playerIndex == 0) {
       // Draw a shield for player 0
       canvas.drawCircle(
-        ui.Offset(flagPoleTop.x + flagWidth/2 + waveOffset * 0.7, flagPoleTop.y + flagHeight/2),
+        ui.Offset(flagPoleTop.x + flagWidth / 2 + waveOffset * 0.7,
+            flagPoleTop.y + flagHeight / 2),
         3,
         emblemPaint,
       );
     } else {
-      // Draw a cross for player 1  
+      // Draw a cross for player 1
       final crossCenter = ui.Offset(
-        flagPoleTop.x + flagWidth/2 + waveOffset * 0.7, 
-        flagPoleTop.y + flagHeight/2
-      );
+          flagPoleTop.x + flagWidth / 2 + waveOffset * 0.7,
+          flagPoleTop.y + flagHeight / 2);
       canvas.drawLine(
         ui.Offset(crossCenter.dx - 3, crossCenter.dy),
         ui.Offset(crossCenter.dx + 3, crossCenter.dy),
@@ -967,7 +984,6 @@ class EnhancedIsometricGrid extends PositionComponent {
       );
     }
   }
-
 
   void _drawEnhancedHealthBar(
       ui.Canvas canvas, Vector2 center, double healthPercent, Color glowColor) {
@@ -982,7 +998,7 @@ class EnhancedIsometricGrid extends PositionComponent {
     final bgRect =
         ui.Rect.fromLTWH(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
     final bgPaint = ui.Paint()
-      ..color = const Color(0xFF000000).withOpacity(0.5)
+      ..color = const Color(0xFF000000).withValues(alpha: 0.5)
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
     canvas.drawRRect(
       ui.RRect.fromRectAndRadius(bgRect, const ui.Radius.circular(4)),
@@ -1022,7 +1038,7 @@ class EnhancedIsometricGrid extends PositionComponent {
     // Animated glow on health bar
     if (healthPercent > 0 && healthPercent < 1) {
       final glowPaint = ui.Paint()
-        ..color = glowColor.withOpacity(0.3 * _pulseAnimation)
+        ..color = glowColor.withValues(alpha: 0.3 * _pulseAnimation)
         ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2);
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(fillRect, const ui.Radius.circular(3)),
@@ -1032,7 +1048,7 @@ class EnhancedIsometricGrid extends PositionComponent {
 
     // Border
     final borderPaint = ui.Paint()
-      ..color = Colors.white.withOpacity(0.8)
+      ..color = Colors.white.withValues(alpha: 0.8)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawRRect(
@@ -1044,7 +1060,6 @@ class EnhancedIsometricGrid extends PositionComponent {
     );
   }
 
-
   void _renderOverlays(ui.Canvas canvas, double originX, double originY) {
     // Render hover effect
     if (hoveredRow != null && hoveredCol != null) {
@@ -1053,12 +1068,12 @@ class EnhancedIsometricGrid extends PositionComponent {
 
       final hoverPath = _tileDiamond(center, 1.05);
       final hoverPaint = ui.Paint()
-        ..color = Colors.white.withOpacity(0.2 + _pulseAnimation * 0.1)
+        ..color = Colors.white.withValues(alpha: 0.2 + _pulseAnimation * 0.1)
         ..style = ui.PaintingStyle.fill;
       canvas.drawPath(hoverPath, hoverPaint);
 
       final hoverBorderPaint = ui.Paint()
-        ..color = Colors.white.withOpacity(0.4)
+        ..color = Colors.white.withValues(alpha: 0.4)
         ..style = ui.PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawPath(hoverPath, hoverBorderPaint);
@@ -1072,8 +1087,8 @@ class EnhancedIsometricGrid extends PositionComponent {
       // Animated selection ring
       final selectionPath = _tileDiamond(center, 1.1 + _pulseAnimation * 0.05);
       final selectionPaint = ui.Paint()
-        ..color =
-            const Color(0xFF54C7EC).withOpacity(0.3 + _pulseAnimation * 0.2)
+        ..color = const Color(0xFF54C7EC)
+            .withValues(alpha: 0.3 + _pulseAnimation * 0.2)
         ..style = ui.PaintingStyle.fill;
       canvas.drawPath(selectionPath, selectionPaint);
 
@@ -1094,7 +1109,6 @@ class EnhancedIsometricGrid extends PositionComponent {
       ..strokeWidth = 3
       ..style = ui.PaintingStyle.stroke;
 
-    final halfW = tileSize.x / 2;
     final halfH = tileSize.y / 2;
     const cornerSize = 8.0;
 
@@ -1174,19 +1188,25 @@ class EnhancedIsometricGrid extends PositionComponent {
 
   Color _brightenColor(Color color, double factor) {
     return Color.fromARGB(
-      color.alpha,
-      (color.red + ((255 - color.red) * factor)).round().clamp(0, 255),
-      (color.green + ((255 - color.green) * factor)).round().clamp(0, 255),
-      (color.blue + ((255 - color.blue) * factor)).round().clamp(0, 255),
+      (color.a * 255.0).round() & 0xff,
+      ((color.r * 255.0).round() + ((255 - (color.r * 255.0).round()) * factor))
+          .round()
+          .clamp(0, 255),
+      ((color.g * 255.0).round() + ((255 - (color.g * 255.0).round()) * factor))
+          .round()
+          .clamp(0, 255),
+      ((color.b * 255.0).round() + ((255 - (color.b * 255.0).round()) * factor))
+          .round()
+          .clamp(0, 255),
     );
   }
 
   Color _darkenColor(Color color, double factor) {
     return Color.fromARGB(
-      color.alpha,
-      (color.red * (1 - factor)).round().clamp(0, 255),
-      (color.green * (1 - factor)).round().clamp(0, 255),
-      (color.blue * (1 - factor)).round().clamp(0, 255),
+      (color.a * 255.0).round() & 0xff,
+      ((color.r * 255.0).round() * (1 - factor)).round().clamp(0, 255),
+      ((color.g * 255.0).round() * (1 - factor)).round().clamp(0, 255),
+      ((color.b * 255.0).round() * (1 - factor)).round().clamp(0, 255),
     );
   }
 
