@@ -8,11 +8,13 @@ import 'package:flutter/material.dart';
 
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
+import 'components/fps_counter.dart';
 
 class KitbashGame extends FlameGame with TapCallbacks {
   final String gameId;
   final GameService gameService;
   IsometricGridComponent? _grid;
+  FpsCounter? _fpsCounter;
 
   KitbashGame({required this.gameId, required this.gameService});
 
@@ -41,6 +43,13 @@ class KitbashGame extends FlameGame with TapCallbacks {
 
     _grid = isoGrid;
     add(isoGrid);
+    
+    // Add FPS counter to the top-right corner
+    _fpsCounter = FpsCounter(
+      position: Vector2(size.x - 10, 10),
+      anchor: Anchor.topRight,
+    );
+    add(_fpsCounter!);
   }
 
   @override
@@ -50,6 +59,10 @@ class KitbashGame extends FlameGame with TapCallbacks {
     final IsometricGridComponent? grid = _grid;
     if (grid != null) {
       grid.position = this.size / 2;
+    }
+    // Update FPS counter position to stay in top-right corner
+    if (_fpsCounter != null) {
+      _fpsCounter!.position = Vector2(size.x - 10, 10);
     }
   }
 
