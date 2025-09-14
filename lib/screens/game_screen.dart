@@ -136,58 +136,35 @@ class _GameScreenState extends State<GameScreen> {
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: Row(
                   children: [
-                    Text(
-                      'Status: ${gameService.gameState?.status ?? 'Loading...'}',
-                    ),
-                    const Spacer(),
-                    // Turn indicator with phase display
-                    if (gameService.gameState != null)
-                      TurnIndicator(
-                        turnNumber: gameService.gameState!.currentTurn,
-                        player1Locked: gameService.gameState!.isPlayerLocked(0),
-                        player2Locked: gameService.gameState!.isPlayerLocked(1),
-                        currentPhase: gameService.gameState!.currentPhase,
-                        phaseStartTime: gameService.gameState!.phaseStartTime,
-                      ),
-                    const Spacer(),
-                    if (gameService.gameState != null)
-                      ...gameService.gameState!.commandCenters.map(
-                        (cc) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.home,
-                                color: cc.playerIndex == 0
-                                    ? Colors.green
-                                    : Colors.pink,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text('${cc.health}/${cc.maxHealth}'),
-                              const SizedBox(width: 4),
-                              SizedBox(
-                                width: 50,
-                                height: 8,
-                                child: LinearProgressIndicator(
-                                  value: cc.healthPercentage,
-                                  backgroundColor: Colors.grey[300],
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    cc.healthPercentage > 0.3
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
-                                ),
-                              ),
-                            ],
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Text(
+                            'Status: ${gameService.gameState?.status ?? 'Loading...'}',
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          // Turn indicator with phase display
+                          if (gameService.gameState != null)
+                            TurnIndicator(
+                              turnNumber: gameService.gameState!.currentTurn,
+                              player1Locked:
+                                  gameService.gameState!.isPlayerLocked(0),
+                              player2Locked:
+                                  gameService.gameState!.isPlayerLocked(1),
+                              currentPhase: gameService.gameState!.currentPhase,
+                              phaseStartTime:
+                                  gameService.gameState!.phaseStartTime,
+                            ),
+                        ],
                       ),
+                    ),
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: OpponentIndicator(opponentState: opponentState),
+                    ),
                   ],
                 ),
               ),
-              OpponentIndicator(opponentState: opponentState),
               // Game area taking full width (deck panels removed)
               Expanded(
                 child: ClipRRect(
