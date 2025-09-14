@@ -128,90 +128,93 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
           variation: CardVariation.standard,
         );
 
-    return MouseRegion(
-      onEnter: (_) {
-        if (widget.enableInteraction) {
-          setState(() => _isHovering = true);
-          _hoverController.forward();
-        }
-      },
-      onExit: (_) {
-        if (widget.enableInteraction) {
-          setState(() {
-            _isHovering = false;
-            _rotateX = 0;
-            _rotateY = 0;
-          });
-          _hoverController.reverse();
-        }
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onDoubleTap: () {
-          if (widget.onDoubleTap != null) {
-            widget.onDoubleTap!();
-          } else if (widget.enableInteraction) {
-            // Default double tap flips the card
-            setState(() => _isFlipped = !_isFlipped);
-            if (_isFlipped) {
-              _flipController.forward();
-            } else {
-              _flipController.reverse();
-            }
+    // Wrap in RepaintBoundary to isolate animations
+    return RepaintBoundary(
+      child: MouseRegion(
+        onEnter: (_) {
+          if (widget.enableInteraction) {
+            setState(() => _isHovering = true);
+            _hoverController.forward();
           }
         },
-        onPanUpdate: _handlePanUpdate,
-        onPanEnd: _handlePanEnd,
-        child: AnimatedBuilder(
-          animation: Listenable.merge([
-            _hoverController,
-            _glowController,
-            _flipAnimation,
-          ]),
-          builder: (context, child) {
-            return Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001) // Perspective
-                ..rotateX(_rotateX * (math.pi / 180))
-                ..rotateY(_rotateY * (math.pi / 180))
-                ..rotateY(_flipAnimation.value * math.pi)
-                ..scale(
-                  _isHovering ? 1.05 : 1.0,
-                  _isHovering ? 1.05 : 1.0,
-                ),
-              child: Container(
-                width: widget.width,
-                height: widget.height,
-                decoration: widget.enableShadow
-                    ? BoxDecoration(
-                        borderRadius:
-                            BorderRadius.circular(widget.borderRadius),
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.enableGlow &&
-                                    visualData.rarity.tier >= 3
-                                ? Color(visualData.rarity.glowColors[0])
-                                    .withValues(
-                                        alpha:
-                                            0.3 + _glowController.value * 0.2)
-                                : Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 20 + (_isHovering ? 10 : 0),
-                            spreadRadius: _isHovering ? 5 : 0,
-                          ),
-                        ],
-                      )
-                    : null,
-                child: _flipAnimation.value < 0.5
-                    ? _buildCardFront(visualData)
-                    : Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()..rotateY(math.pi),
-                        child: _buildCardBack(visualData),
-                      ),
-              ),
-            );
+        onExit: (_) {
+          if (widget.enableInteraction) {
+            setState(() {
+              _isHovering = false;
+              _rotateX = 0;
+              _rotateY = 0;
+            });
+            _hoverController.reverse();
+          }
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          onDoubleTap: () {
+            if (widget.onDoubleTap != null) {
+              widget.onDoubleTap!();
+            } else if (widget.enableInteraction) {
+              // Default double tap flips the card
+              setState(() => _isFlipped = !_isFlipped);
+              if (_isFlipped) {
+                _flipController.forward();
+              } else {
+                _flipController.reverse();
+              }
+            }
           },
+          onPanUpdate: _handlePanUpdate,
+          onPanEnd: _handlePanEnd,
+          child: AnimatedBuilder(
+            animation: Listenable.merge([
+              _hoverController,
+              _glowController,
+              _flipAnimation,
+            ]),
+            builder: (context, child) {
+              return Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001) // Perspective
+                  ..rotateX(_rotateX * (math.pi / 180))
+                  ..rotateY(_rotateY * (math.pi / 180))
+                  ..rotateY(_flipAnimation.value * math.pi)
+                  ..scale(
+                    _isHovering ? 1.05 : 1.0,
+                    _isHovering ? 1.05 : 1.0,
+                  ),
+                child: Container(
+                  width: widget.width,
+                  height: widget.height,
+                  decoration: widget.enableShadow
+                      ? BoxDecoration(
+                          borderRadius:
+                              BorderRadius.circular(widget.borderRadius),
+                          boxShadow: [
+                            BoxShadow(
+                              color: widget.enableGlow &&
+                                      visualData.rarity.tier >= 3
+                                  ? Color(visualData.rarity.glowColors[0])
+                                      .withValues(
+                                          alpha:
+                                              0.3 + _glowController.value * 0.2)
+                                  : Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 20 + (_isHovering ? 10 : 0),
+                              spreadRadius: _isHovering ? 5 : 0,
+                            ),
+                          ],
+                        )
+                      : null,
+                  child: _flipAnimation.value < 0.5
+                      ? _buildCardFront(visualData)
+                      : Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()..rotateY(math.pi),
+                          child: _buildCardBack(visualData),
+                        ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -327,7 +330,7 @@ class _AdvancedCardDisplayState extends State<AdvancedCardDisplay>
         ),
         child: visualData.variation == CardVariation.frameBreak
             ? CustomPaint(
-                painter: FrameBreakPainter(),
+                painter: FrameBreakPainter(seed: 42),
               )
             : null,
       ),
@@ -782,11 +785,19 @@ class CardFramePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CardFramePainter oldDelegate) {
+    return oldDelegate.rarity != rarity ||
+        oldDelegate.variation != variation ||
+        oldDelegate.cardType != cardType;
+  }
 }
 
 /// Custom painter for frame break effect
 class FrameBreakPainter extends CustomPainter {
+  final int seed;
+
+  FrameBreakPainter({this.seed = 42});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -796,7 +807,7 @@ class FrameBreakPainter extends CustomPainter {
 
     // Draw breaking frame effect
     final path = Path();
-    final random = math.Random(42); // Fixed seed for consistent pattern
+    final random = math.Random(seed); // Fixed seed for consistent pattern
 
     for (int i = 0; i < 5; i++) {
       final startX = random.nextDouble() * size.width;
@@ -812,7 +823,9 @@ class FrameBreakPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant FrameBreakPainter oldDelegate) {
+    return oldDelegate.seed != seed;
+  }
 }
 
 /// Custom painter for foil etched pattern
@@ -890,5 +903,8 @@ class CardBackPatternPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CardBackPatternPainter oldDelegate) {
+    return oldDelegate.primaryColor != primaryColor ||
+        oldDelegate.secondaryColor != secondaryColor;
+  }
 }

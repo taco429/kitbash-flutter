@@ -5,6 +5,7 @@ import '../models/card_instance.dart';
 import '../services/game_service.dart';
 import 'advanced_card_display.dart';
 import '../models/card_drag_payload.dart';
+import 'cached_drag_feedback.dart';
 
 class AnimatedHandDisplay extends StatefulWidget {
   final List<GameCard> cards;
@@ -24,13 +25,16 @@ class AnimatedHandDisplay extends StatefulWidget {
 
 class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
     with TickerProviderStateMixin {
-  late List<AnimationController> _cardControllers;
-  late List<Animation<double>> _slideAnimations;
-  late List<Animation<double>> _fadeAnimations;
-  late List<Animation<double>> _scaleAnimations;
+  final List<AnimationController> _cardControllers = [];
+  final List<Animation<double>> _slideAnimations = [];
+  final List<Animation<double>> _fadeAnimations = [];
+  final List<Animation<double>> _scaleAnimations = [];
   List<String> _previousCardIds = [];
   List<String> _currentCardIds = [];
   bool _hasAnimatedDrawPhase = false;
+
+  // Cache for reusing animations when card count doesn't change
+  int _lastCardCount = -1;
 
   @override
   void initState() {
@@ -40,10 +44,13 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
   }
 
   void _initializeAnimations() {
-    _cardControllers = [];
-    _slideAnimations = [];
-    _fadeAnimations = [];
-    _scaleAnimations = [];
+    // Reuse existing controllers if card count is the same
+    if (_lastCardCount == widget.cards.length &&
+        _cardControllers.length == widget.cards.length) {
+      return; // Reuse existing animations
+    }
+
+    _lastCardCount = widget.cards.length;
 
     for (int i = 0; i < widget.cards.length; i++) {
       final controller = AnimationController(
@@ -131,6 +138,12 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
       controller.dispose();
     }
 
+    // IMPORTANT: Clear the lists to prevent memory leaks
+    _cardControllers.clear();
+    _slideAnimations.clear();
+    _fadeAnimations.clear();
+    _scaleAnimations.clear();
+
     // Reinitialize with new card count
     _initializeAnimations();
 
@@ -148,6 +161,8 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
   void _animateNewCards() {
     // Stagger the animations for each card
     for (int i = 0; i < _cardControllers.length; i++) {
+      if (i >= _currentCardIds.length) break; // Safety check
+
       final cardId = _currentCardIds[i];
       final isNewCard = !_previousCardIds.contains(cardId);
 
@@ -155,7 +170,7 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
         // Reset and start animation with stagger
         _cardControllers[i].reset();
         Future.delayed(Duration(milliseconds: i * 100), () {
-          if (mounted) {
+          if (mounted && i < _cardControllers.length) {
             _cardControllers[i].forward();
           }
         });
@@ -252,45 +267,49 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: needsScroll ? MainAxisSize.max : MainAxisSize.min,
               children: [
-                for (int i = 0; i < widget.cards.length; i++) ...[
-                  AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _slideAnimations[i],
-                      _fadeAnimations[i],
-                      _scaleAnimations[i],
-                    ]),
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(_slideAnimations[i].value, 0),
-                        child: Transform.scale(
-                          scale: _scaleAnimations[i].value,
-                          child: Opacity(
-                            opacity: _fadeAnimations[i].value,
-                            child: _DraggableHandCard(
-                              width: cardWidth,
-                              height: cardHeight,
-                              card: widget.cards[i],
-                              isMarkedForDiscard:
-                                  i < widget.cardInstances.length &&
-                                      gameService.isCardMarkedForDiscard(
-                                          widget.cardInstances[i].instanceId),
-                              instance: i < widget.cardInstances.length
-                                  ? widget.cardInstances[i]
-                                  : null,
-                              handIndex: i,
-                              isPlanning: isPlanning,
-                              isLocked: isLocked,
-                              onToggleDiscard: () {
-                                if (i < widget.cardInstances.length) {
-                                  gameService.toggleCardDiscard(
-                                      widget.cardInstances[i].instanceId);
-                                }
-                              },
+                for (int i = 0;
+                    i < widget.cards.length && i < _cardControllers.length;
+                    i++) ...[
+                  RepaintBoundary(
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([
+                        if (i < _slideAnimations.length) _slideAnimations[i],
+                        if (i < _fadeAnimations.length) _fadeAnimations[i],
+                        if (i < _scaleAnimations.length) _scaleAnimations[i],
+                      ]),
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(_slideAnimations[i].value, 0),
+                          child: Transform.scale(
+                            scale: _scaleAnimations[i].value,
+                            child: Opacity(
+                              opacity: _fadeAnimations[i].value,
+                              child: _DraggableHandCard(
+                                width: cardWidth,
+                                height: cardHeight,
+                                card: widget.cards[i],
+                                isMarkedForDiscard:
+                                    i < widget.cardInstances.length &&
+                                        gameService.isCardMarkedForDiscard(
+                                            widget.cardInstances[i].instanceId),
+                                instance: i < widget.cardInstances.length
+                                    ? widget.cardInstances[i]
+                                    : null,
+                                handIndex: i,
+                                isPlanning: isPlanning,
+                                isLocked: isLocked,
+                                onToggleDiscard: () {
+                                  if (i < widget.cardInstances.length) {
+                                    gameService.toggleCardDiscard(
+                                        widget.cardInstances[i].instanceId);
+                                  }
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                   if (i < widget.cards.length - 1)
                     const SizedBox(width: gapWidth),
@@ -321,7 +340,7 @@ class _AnimatedHandDisplayState extends State<AnimatedHandDisplay>
   }
 }
 
-class _DraggableHandCard extends StatelessWidget {
+class _DraggableHandCard extends StatefulWidget {
   final double width;
   final double height;
   final GameCard card;
@@ -345,20 +364,51 @@ class _DraggableHandCard extends StatelessWidget {
   });
 
   @override
+  State<_DraggableHandCard> createState() => _DraggableHandCardState();
+}
+
+class _DraggableHandCardState extends State<_DraggableHandCard> {
+  late Widget _feedbackWidget;
+
+  @override
+  void initState() {
+    super.initState();
+    _buildFeedback();
+  }
+
+  @override
+  void didUpdateWidget(_DraggableHandCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only rebuild feedback if card changed
+    if (oldWidget.card.id != widget.card.id) {
+      _buildFeedback();
+    }
+  }
+
+  void _buildFeedback() {
+    // Pre-build and cache the feedback widget
+    _feedbackWidget = DragFeedbackCache.getFeedback(
+      card: widget.card,
+      width: widget.width,
+      height: widget.height,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final payload = CardDragPayload(
-      card: card,
-      handIndex: handIndex,
-      instance: instance,
+      card: widget.card,
+      handIndex: widget.handIndex,
+      instance: widget.instance,
     );
 
     final cardWidget = MouseRegion(
       cursor: SystemMouseCursors.click,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: width,
-        height: height,
-        decoration: isMarkedForDiscard
+        width: widget.width,
+        height: widget.height,
+        decoration: widget.isMarkedForDiscard
             ? BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -368,11 +418,11 @@ class _DraggableHandCard extends StatelessWidget {
               )
             : null,
         child: Opacity(
-          opacity: isMarkedForDiscard ? 0.6 : 1.0,
+          opacity: widget.isMarkedForDiscard ? 0.6 : 1.0,
           child: AdvancedCardDisplay(
-            card: card,
-            width: width,
-            height: height,
+            card: widget.card,
+            width: widget.width,
+            height: widget.height,
             enableParallax: true,
             enableGlow: true,
             enableShadow: true,
@@ -381,14 +431,14 @@ class _DraggableHandCard extends StatelessWidget {
       ),
     );
 
-    final Widget discardButton = isPlanning && !isLocked
+    final Widget discardButton = widget.isPlanning && !widget.isLocked
         ? GestureDetector(
-            onTap: onToggleDiscard,
+            onTap: widget.onToggleDiscard,
             child: Container(
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: isMarkedForDiscard
+                color: widget.isMarkedForDiscard
                     ? Colors.red
                     : Colors.black.withValues(alpha: 0.7),
                 shape: BoxShape.circle,
@@ -406,25 +456,9 @@ class _DraggableHandCard extends StatelessWidget {
           )
         : const SizedBox.shrink();
 
-    // Feedback widget for drag
-    final feedback = Opacity(
-      opacity: 0.9,
-      child: Material(
-        type: MaterialType.transparency,
-        child: AdvancedCardDisplay(
-          card: card,
-          width: width * 1.1,
-          height: height * 1.1,
-          enableParallax: false,
-          enableGlow: true,
-          enableShadow: true,
-        ),
-      ),
-    );
-
     return Draggable<CardDragPayload>(
       data: payload,
-      feedback: feedback,
+      feedback: _feedbackWidget,
       dragAnchorStrategy: pointerDragAnchorStrategy,
       feedbackOffset: const Offset(0, -12),
       childWhenDragging: Opacity(
@@ -451,9 +485,9 @@ class _DraggableHandCard extends StatelessWidget {
   void _showCardPreview(BuildContext context) {
     final gameService = Provider.of<GameService>(context, listen: false);
     gameService.showCardPreview(CardDragPayload(
-      card: card,
-      handIndex: handIndex,
-      instance: instance,
+      card: widget.card,
+      handIndex: widget.handIndex,
+      instance: widget.instance,
     ));
   }
 }

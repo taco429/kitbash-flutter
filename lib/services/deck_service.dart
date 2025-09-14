@@ -10,6 +10,10 @@ class DeckService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  // Cache for deck lookups by ID
+  final Map<String, Deck> _deckCache = {};
+  bool _cacheValid = false;
+
   // Backend API base URL - should be configurable
   static const String _baseUrl = 'http://192.168.4.156:8080/api';
 
@@ -20,6 +24,21 @@ class DeckService extends ChangeNotifier {
 
   DeckService() {
     _loadDecksFromBackend();
+  }
+
+  void _rebuildCache() {
+    _deckCache.clear();
+    for (final deck in _availableDecks) {
+      _deckCache[deck.id] = deck;
+    }
+    _cacheValid = true;
+  }
+
+  Deck? getDeckById(String deckId) {
+    if (!_cacheValid) {
+      _rebuildCache();
+    }
+    return _deckCache[deckId];
   }
 
   /// Load decks from the backend API
@@ -45,6 +64,10 @@ class DeckService extends ChangeNotifier {
           final deck = _parseDeckFromBackend(deckJson as Map<String, dynamic>);
           _availableDecks.add(deck);
         }
+
+        // Rebuild cache after loading decks
+        _cacheValid = false;
+        _rebuildCache();
 
         // Select the first deck by default
         if (_availableDecks.isNotEmpty && _selectedDeck == null) {
@@ -111,10 +134,10 @@ class DeckService extends ChangeNotifier {
   }
 
   void selectDeckById(String deckId) {
-    try {
-      final deck = _availableDecks.firstWhere((d) => d.id == deckId);
+    final deck = getDeckById(deckId);
+    if (deck != null) {
       selectDeck(deck);
-    } catch (e) {
+    } else {
       debugPrint('Deck with id $deckId not found');
     }
   }
@@ -136,10 +159,10 @@ class DeckService extends ChangeNotifier {
 
   /// Get all cards in a specific deck
   List<DeckCard> getDeckCards(String deckId) {
-    try {
-      final deck = _availableDecks.firstWhere((d) => d.id == deckId);
+    final deck = getDeckById(deckId);
+    if (deck != null) {
       return deck.allCards;
-    } catch (e) {
+    } else {
       debugPrint('Deck with id $deckId not found');
       return [];
     }
@@ -147,10 +170,10 @@ class DeckService extends ChangeNotifier {
 
   /// Get the total card count for a deck
   int getDeckCardCount(String deckId) {
-    try {
-      final deck = _availableDecks.firstWhere((d) => d.id == deckId);
+    final deck = getDeckById(deckId);
+    if (deck != null) {
       return deck.cardCount;
-    } catch (e) {
+    } else {
       debugPrint('Deck with id $deckId not found');
       return 0;
     }
