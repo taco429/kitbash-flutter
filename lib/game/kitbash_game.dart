@@ -43,7 +43,7 @@ class KitbashGame extends FlameGame with TapCallbacks {
 
     _grid = isoGrid;
     add(isoGrid);
-    
+
     // Add FPS counter to the top-right corner
     _fpsCounter = FpsCounter(
       position: Vector2(size.x - 10, 10),

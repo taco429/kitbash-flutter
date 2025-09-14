@@ -1,17 +1,16 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 
 /// A component that displays the current FPS (frames per second) on screen.
-class FpsCounter extends PositionComponent with HasGameRef {
+class FpsCounter extends PositionComponent with HasGameReference {
   late TextComponent _fpsText;
   double _elapsedTime = 0;
   int _frameCount = 0;
   double _currentFps = 0;
-  
+
   // Update interval in seconds
   static const double _updateInterval = 0.5;
-  
+
   FpsCounter({
     super.position,
     super.anchor = Anchor.topRight,
@@ -38,12 +37,12 @@ class FpsCounter extends PositionComponent with HasGameRef {
       ),
       anchor: anchor,
     );
-    
+
     // Add background for better visibility
     final backgroundPaint = Paint()
-      ..color = Colors.black.withOpacity(0.6)
+      ..color = Colors.black.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
-    
+
     add(
       RectangleComponent(
         size: Vector2(80, 25),
@@ -52,7 +51,7 @@ class FpsCounter extends PositionComponent with HasGameRef {
         children: [_fpsText],
       ),
     );
-    
+
     // Position the text with some padding
     _fpsText.position = Vector2(5, 3);
     _fpsText.anchor = Anchor.topLeft;
@@ -61,24 +60,24 @@ class FpsCounter extends PositionComponent with HasGameRef {
   @override
   void update(double dt) {
     super.update(dt);
-    
+
     _elapsedTime += dt;
     _frameCount++;
-    
+
     // Update FPS display at intervals
     if (_elapsedTime >= _updateInterval) {
       _currentFps = _frameCount / _elapsedTime;
       _fpsText.text = 'FPS: ${_currentFps.toStringAsFixed(1)}';
-      
+
       // Reset counters
       _elapsedTime = 0;
       _frameCount = 0;
-      
+
       // Change color based on FPS performance
       _updateFpsColor();
     }
   }
-  
+
   void _updateFpsColor() {
     Color fpsColor;
     if (_currentFps >= 55) {
@@ -88,7 +87,7 @@ class FpsCounter extends PositionComponent with HasGameRef {
     } else {
       fpsColor = Colors.redAccent; // Poor performance
     }
-    
+
     _fpsText.textRenderer = TextPaint(
       style: TextStyle(
         color: fpsColor,
