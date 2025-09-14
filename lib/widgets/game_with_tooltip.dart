@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 import '../services/game_service.dart';
 import 'package:flutter/services.dart';
 import 'card_preview_panel.dart';
+import 'turn_indicator.dart';
+import 'opponent_indicator.dart';
 
 /// A widget that wraps the KitbashGame with tooltip functionality
 class GameWithTooltip extends StatefulWidget {
@@ -287,21 +289,67 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             position: _hoverPosition,
             isVisible: _showTooltip && !_isDragActive,
           ),
-          // Zoom toggle button overlay (top-left)
+          // Top-left overlay: Turn indicator above zoom button
           Positioned(
             left: 12,
             top: 12,
             child: SafeArea(
-              child: FloatingActionButton.small(
-                heroTag: 'zoom_toggle',
-                tooltip: _isZoomedIn ? 'Zoom out' : 'Zoom in',
-                onPressed: () {
-                  setState(() {
-                    _isZoomedIn = !_isZoomedIn;
-                  });
-                  widget.game.setZoomLevel(_isZoomedIn);
+              child: Consumer<GameService>(
+                builder: (context, gs, _) {
+                  final state = gs.gameState;
+                  if (state == null) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TurnIndicator(
+                        turnNumber: state.currentTurn,
+                        player1Locked: state.isPlayerLocked(0),
+                        player2Locked: state.isPlayerLocked(1),
+                        currentPhase: state.currentPhase,
+                        phaseStartTime: state.phaseStartTime,
+                      ),
+                      const SizedBox(height: 8),
+                      FloatingActionButton.small(
+                        heroTag: 'zoom_toggle',
+                        tooltip: _isZoomedIn ? 'Zoom out' : 'Zoom in',
+                        onPressed: () {
+                          setState(() {
+                            _isZoomedIn = !_isZoomedIn;
+                          });
+                          widget.game.setZoomLevel(_isZoomedIn);
+                        },
+                        child:
+                            Icon(_isZoomedIn ? Icons.zoom_out : Icons.zoom_in),
+                      ),
+                    ],
+                  );
                 },
-                child: Icon(_isZoomedIn ? Icons.zoom_out : Icons.zoom_in),
+              ),
+            ),
+          ),
+          // Top-right overlay: Opponent indicator above FPS (FPS drawn by Flame is positioned lower)
+          Positioned(
+            right: 12,
+            top: 12,
+            child: SafeArea(
+              child: Consumer<GameService>(
+                builder: (context, gs, _) {
+                  final state = gs.gameState;
+                  if (state == null) return const SizedBox.shrink();
+                  final int myIndex = gs.currentPlayerIndex;
+                  final int oppIndex = 1 - myIndex;
+                  final opponentState = state.playerStates.firstWhere(
+                    (ps) => ps.playerIndex == oppIndex,
+                    orElse: () => PlayerBattleState(
+                      playerIndex: oppIndex,
+                      deckId: '',
+                      hand: const [],
+                      deckCount: 0,
+                    ),
+                  );
+                  return OpponentIndicator(opponentState: opponentState);
+                },
               ),
             ),
           ),

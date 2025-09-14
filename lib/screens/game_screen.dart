@@ -5,7 +5,7 @@ import '../services/game_service.dart';
 import '../services/card_service.dart';
 import '../services/deck_service.dart';
 import '../widgets/game_with_tooltip.dart';
-import '../widgets/turn_indicator.dart';
+// import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart';
 import '../widgets/discard_pile.dart';
 import '../widgets/hero_display.dart';
@@ -15,7 +15,7 @@ import '../widgets/animated_hand_display.dart';
 import '../models/card.dart';
 import 'game_over_screen.dart';
 import '../widgets/game_log.dart';
-import '../widgets/opponent_indicator.dart';
+// import '../widgets/opponent_indicator.dart';
 
 class GameScreen extends StatefulWidget {
   final String gameId;
@@ -64,16 +64,7 @@ class _GameScreenState extends State<GameScreen> {
             deckCount: 0,
           ),
         );
-        final int oppIndex = 1 - myIndex;
-        final opponentState = gameState?.playerStates.firstWhere(
-          (ps) => ps.playerIndex == oppIndex,
-          orElse: () => PlayerBattleState(
-            playerIndex: oppIndex,
-            deckId: '',
-            hand: const [],
-            deckCount: 0,
-          ),
-        );
+        // Opponent state now consumed in overlay inside GameWithTooltip
 
         final int playerDeckCount = playerState?.deckCount ?? 0;
 
@@ -130,41 +121,6 @@ class _GameScreenState extends State<GameScreen> {
           ),
           body: Column(
             children: [
-              // Game status bar with turn indicator
-              Container(
-                padding: const EdgeInsets.all(8),
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Text(
-                            'Status: ${gameService.gameState?.status ?? 'Loading...'}',
-                          ),
-                          const SizedBox(width: 12),
-                          // Turn indicator with phase display
-                          if (gameService.gameState != null)
-                            TurnIndicator(
-                              turnNumber: gameService.gameState!.currentTurn,
-                              player1Locked:
-                                  gameService.gameState!.isPlayerLocked(0),
-                              player2Locked:
-                                  gameService.gameState!.isPlayerLocked(1),
-                              currentPhase: gameService.gameState!.currentPhase,
-                              phaseStartTime:
-                                  gameService.gameState!.phaseStartTime,
-                            ),
-                        ],
-                      ),
-                    ),
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: OpponentIndicator(opponentState: opponentState),
-                    ),
-                  ],
-                ),
-              ),
               // Game area taking full width (deck panels removed)
               Expanded(
                 child: ClipRRect(
