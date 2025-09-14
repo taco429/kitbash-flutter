@@ -15,6 +15,7 @@ import '../widgets/animated_hand_display.dart';
 import '../models/card.dart';
 import 'game_over_screen.dart';
 import '../widgets/game_log.dart';
+import '../widgets/opponent_indicator.dart';
 
 class GameScreen extends StatefulWidget {
   final String gameId;
@@ -58,6 +59,16 @@ class _GameScreenState extends State<GameScreen> {
           (ps) => ps.playerIndex == myIndex,
           orElse: () => PlayerBattleState(
             playerIndex: myIndex,
+            deckId: '',
+            hand: const [],
+            deckCount: 0,
+          ),
+        );
+        final int oppIndex = 1 - myIndex;
+        final opponentState = gameState?.playerStates.firstWhere(
+          (ps) => ps.playerIndex == oppIndex,
+          orElse: () => PlayerBattleState(
+            playerIndex: oppIndex,
             deckId: '',
             hand: const [],
             deckCount: 0,
@@ -176,6 +187,7 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
               ),
+              OpponentIndicator(opponentState: opponentState),
               // Game area taking full width (deck panels removed)
               Expanded(
                 child: ClipRRect(
