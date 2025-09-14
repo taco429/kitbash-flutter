@@ -9,7 +9,6 @@ import '../widgets/game_with_tooltip.dart';
 import '../widgets/lock_in_button.dart';
 import '../widgets/discard_pile.dart';
 import '../widgets/hero_display.dart';
-import '../widgets/reset_button.dart';
 import '../widgets/player_deck_display.dart';
 import '../widgets/animated_hand_display.dart';
 import '../models/card.dart';
@@ -151,48 +150,6 @@ class _GameScreenState extends State<GameScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
-                          // Left side: Lock-in and Reset buttons
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (gameService.gameState != null)
-                                LockInButton(
-                                  isLocked:
-                                      gameService.gameState!.isPlayerLocked(
-                                    gameService.currentPlayerIndex,
-                                  ),
-                                  isOpponentLocked:
-                                      gameService.gameState!.isPlayerLocked(
-                                    1 - gameService.currentPlayerIndex,
-                                  ),
-                                  playerIndex: gameService.currentPlayerIndex,
-                                  onLockIn: () {
-                                    gameService.lockPlayerChoice(
-                                      widget.gameId,
-                                      gameService.currentPlayerIndex,
-                                    );
-                                  },
-                                ),
-                              const SizedBox(height: 8),
-                              ResetButton(
-                                onReset: () {
-                                  // TODO: Implement reset functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Reset functionality coming soon'),
-                                    ),
-                                  );
-                                },
-                                isEnabled: gameService.gameState != null &&
-                                    !gameService.gameState!.isPlayerLocked(
-                                      gameService.currentPlayerIndex,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 16),
                           // Hero display
                           Consumer<DeckService>(
                             builder: (context, deckService, child) {
@@ -232,29 +189,59 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                           ),
                           // Right side: Discard pile and deck
-                          PlayerDeckDisplay(
-                            remainingCards: playerDeckCount,
-                            label: 'Deck',
-                            accentColor: Colors.green,
-                            deckCards: playerState?.drawPile
-                                    .map((instance) => cardService
-                                        .getCardById(instance.cardId))
-                                    .whereType<GameCard>()
-                                    .toList() ??
-                                [],
-                            deckInstances: playerState?.drawPile,
-                          ),
-                          const SizedBox(width: 12),
-                          DiscardPile(
-                            discardedCards: playerState?.discardPile
-                                    .map((instance) => cardService
-                                        .getCardById(instance.cardId))
-                                    .whereType<GameCard>()
-                                    .toList() ??
-                                [],
-                            discardInstances: playerState?.discardPile,
-                            label: 'Discard',
-                            accentColor: Colors.green,
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              if (gameService.gameState != null)
+                                LockInButton(
+                                  isLocked:
+                                      gameService.gameState!.isPlayerLocked(
+                                    gameService.currentPlayerIndex,
+                                  ),
+                                  isOpponentLocked:
+                                      gameService.gameState!.isPlayerLocked(
+                                    1 - gameService.currentPlayerIndex,
+                                  ),
+                                  playerIndex: gameService.currentPlayerIndex,
+                                  onLockIn: () {
+                                    gameService.lockPlayerChoice(
+                                      widget.gameId,
+                                      gameService.currentPlayerIndex,
+                                    );
+                                  },
+                                ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PlayerDeckDisplay(
+                                    remainingCards: playerDeckCount,
+                                    label: 'Deck',
+                                    accentColor: Colors.green,
+                                    deckCards: playerState?.drawPile
+                                            .map((instance) => cardService
+                                                .getCardById(instance.cardId))
+                                            .whereType<GameCard>()
+                                            .toList() ??
+                                        [],
+                                    deckInstances: playerState?.drawPile,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  DiscardPile(
+                                    discardedCards: playerState?.discardPile
+                                            .map((instance) => cardService
+                                                .getCardById(instance.cardId))
+                                            .whereType<GameCard>()
+                                            .toList() ??
+                                        [],
+                                    discardInstances: playerState?.discardPile,
+                                    label: 'Discard',
+                                    accentColor: Colors.green,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ),

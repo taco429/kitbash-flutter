@@ -118,15 +118,6 @@ class _LockInButtonState extends State<LockInButton>
                         color: Colors.white,
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.isLocked ? 'Locked In' : 'Lock In Choice',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
                     ],
                   ),
                 ),
