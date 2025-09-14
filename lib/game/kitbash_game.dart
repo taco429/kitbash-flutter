@@ -11,7 +11,7 @@ import '../models/tile_data.dart';
 import 'components/fps_counter.dart';
 import 'enhanced_grid_component.dart';
 
-class KitbashGame extends FlameGame with TapCallbacks, HasGameRef {
+class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
   final String gameId;
   final GameService gameService;
   PositionComponent? _grid;
@@ -27,7 +27,8 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameRef {
   KitbashGame({required this.gameId, required this.gameService});
 
   @override
-  Color backgroundColor() => const Color(0xFF1A1A1A); // Darker background for better contrast
+  Color backgroundColor() =>
+      const Color(0xFF1A1A1A); // Darker background for better contrast
 
   @override
   Future<void> onLoad() async {
@@ -36,7 +37,7 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameRef {
     // Add an enhanced isometric grid to the scene
     const int rows = 12;
     const int cols = 12;
-    
+
     if (useEnhancedGrid) {
       final EnhancedIsometricGrid enhancedGrid = EnhancedIsometricGrid(
         rows: rows,
@@ -122,7 +123,7 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameRef {
 
     final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
     final Vector2 gridLocal = grid.parentToLocal(parentLocal);
-    
+
     if (grid is EnhancedIsometricGrid) {
       return grid.handleHover(gridLocal);
     } else if (grid is IsometricGridComponent) {
@@ -148,7 +149,7 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameRef {
 
     final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
     final Vector2 gridLocal = grid.parentToLocal(parentLocal);
-    
+
     if (grid is EnhancedIsometricGrid) {
       grid.handleTap(gridLocal);
     } else if (grid is IsometricGridComponent) {
