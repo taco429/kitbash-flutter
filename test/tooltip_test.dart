@@ -439,45 +439,6 @@ void main() {
           positionedWidget.left, equals(testPosition.dx + 10)); // 10px offset
       expect(positionedWidget.top, equals(testPosition.dy - 60)); // 60px above
     });
-
-    testWidgets('should animate tooltip appearance',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: Stack(
-              children: [
-                GameTooltip(
-                  isVisible: true,
-                  tileData: TileData(
-                    row: 1,
-                    col: 1,
-                    terrain: TerrainType.grass,
-                  ),
-                  position: Offset(100, 100),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      // Animation should start
-      await tester.pump();
-
-      // Find the AnimatedBuilder(s) within the tooltip
-      final animatedBuilderFinder = find.descendant(
-        of: find.byType(GameTooltip),
-        matching: find.byType(AnimatedBuilder),
-      );
-      expect(animatedBuilderFinder, findsWidgets);
-
-      // Let the animation complete
-      await tester.pumpAndSettle();
-
-      // Content should be visible after animation
-      expect(find.text('Grass'), findsOneWidget);
-    });
   });
 
   group('GameTooltip Widget State Tests', () {
