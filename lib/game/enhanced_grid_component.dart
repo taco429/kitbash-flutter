@@ -32,8 +32,7 @@ class EnhancedIsometricGrid extends PositionComponent {
   late List<List<double>> _moistureMap;
   late List<List<int>> _rockSeeds; // For consistent rock placement
 
-  // Particle system for ambient effects
-  final List<Particle> _particles = [];
+  // Removed particle system for cleaner visuals
 
   EnhancedIsometricGrid({
     required this.rows,
@@ -105,42 +104,6 @@ class EnhancedIsometricGrid extends PositionComponent {
     _time += dt;
     _pulseAnimation = (math.sin(_time * 2) + 1) / 2;
     _floatAnimation = math.sin(_time * 1.5) * 2;
-
-    // Update particles
-    _updateParticles(dt);
-
-    // Occasionally spawn new particles
-    if (_particles.length < 20 && math.Random().nextDouble() < 0.1) {
-      _spawnParticle();
-    }
-  }
-
-  void _updateParticles(double dt) {
-    _particles.removeWhere((particle) => particle.life <= 0);
-    for (final particle in _particles) {
-      particle.update(dt);
-    }
-  }
-
-  void _spawnParticle() {
-    final random = math.Random();
-    _particles.add(Particle(
-      position: Vector2(
-        random.nextDouble() * size.x,
-        random.nextDouble() * size.y,
-      ),
-      velocity: Vector2(
-        (random.nextDouble() - 0.5) * 20,
-        -random.nextDouble() * 30 - 10,
-      ),
-      life: 3.0 + random.nextDouble() * 2.0,
-      color: Color.lerp(
-        const Color(0xFFFFE082),
-        const Color(0xFFFFF59D),
-        random.nextDouble(),
-      )!
-          .withOpacity(0.6),
-    ));
   }
 
   @override
@@ -165,10 +128,7 @@ class EnhancedIsometricGrid extends PositionComponent {
     // Third pass: render command centers with unique 3D structures
     _renderCommandCenters(canvas, originX, originY);
 
-    // Fourth pass: render particles and effects
-    _renderParticles(canvas);
-
-    // Fifth pass: render overlays (hover, selection)
+    // Fourth pass: render overlays (hover, selection)
     _renderOverlays(canvas, originX, originY);
   }
 
@@ -573,11 +533,6 @@ class EnhancedIsometricGrid extends PositionComponent {
     // Draw main structure - futuristic pyramid/tower design
     _drawCommandCenterStructure(canvas, topCenter, baseCenter, primaryColor,
         secondaryColor, glowColor, cc);
-
-    // Draw energy shield effect if not destroyed
-    if (!cc.isDestroyed) {
-      _drawEnergyShield(canvas, topCenter, cc.healthPercentage, glowColor);
-    }
 
     // Draw health bar
     if (!cc.isDestroyed) {
@@ -1013,60 +968,6 @@ class EnhancedIsometricGrid extends PositionComponent {
     }
   }
 
-  void _drawEnergyShield(
-      ui.Canvas canvas, Vector2 center, double healthPercent, Color color) {
-    if (healthPercent <= 0) return;
-
-    // Draw hexagonal energy shield
-    final shieldRadius = 35.0 + _pulseAnimation * 3;
-    final shieldPaint = ui.Paint()
-      ..color = color.withOpacity(0.1 + _pulseAnimation * 0.1)
-      ..style = ui.PaintingStyle.fill;
-
-    final shieldPath = _createHexagon(center, shieldRadius);
-    canvas.drawPath(shieldPath, shieldPaint);
-
-    // Shield border
-    final borderPaint = ui.Paint()
-      ..color = color.withOpacity(0.3 + _pulseAnimation * 0.2)
-      ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawPath(shieldPath, borderPaint);
-
-    // Energy particles around shield
-    for (int i = 0; i < 6; i++) {
-      final angle = (i * math.pi / 3) + _time;
-      final particleX = center.x + math.cos(angle) * shieldRadius;
-      final particleY = center.y + math.sin(angle) * shieldRadius * 0.5;
-
-      final particlePaint = ui.Paint()
-        ..color = color.withOpacity(0.6 + _pulseAnimation * 0.4)
-        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
-
-      canvas.drawCircle(
-        ui.Offset(particleX, particleY),
-        2,
-        particlePaint,
-      );
-    }
-  }
-
-  ui.Path _createHexagon(Vector2 center, double radius) {
-    final path = ui.Path();
-    for (int i = 0; i < 6; i++) {
-      final angle = (i * math.pi / 3) - math.pi / 6;
-      final x = center.x + math.cos(angle) * radius;
-      final y = center.y + math.sin(angle) * radius * 0.5;
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    return path;
-  }
 
   void _drawEnhancedHealthBar(
       ui.Canvas canvas, Vector2 center, double healthPercent, Color glowColor) {
@@ -1143,11 +1044,6 @@ class EnhancedIsometricGrid extends PositionComponent {
     );
   }
 
-  void _renderParticles(ui.Canvas canvas) {
-    for (final particle in _particles) {
-      particle.render(canvas);
-    }
-  }
 
   void _renderOverlays(ui.Canvas canvas, double originX, double originY) {
     // Render hover effect
@@ -1435,42 +1331,5 @@ class EnhancedIsometricGrid extends PositionComponent {
         maxHealth: 100,
       ),
     ];
-  }
-}
-
-/// Simple particle class for ambient effects
-class Particle {
-  Vector2 position;
-  Vector2 velocity;
-  double life;
-  Color color;
-  double maxLife;
-
-  Particle({
-    required this.position,
-    required this.velocity,
-    required this.life,
-    required this.color,
-  }) : maxLife = life;
-
-  void update(double dt) {
-    position += velocity * dt;
-    velocity.y += 20 * dt; // Gravity
-    life -= dt;
-  }
-
-  void render(ui.Canvas canvas) {
-    if (life <= 0) return;
-
-    final opacity = (life / maxLife).clamp(0.0, 1.0);
-    final paint = ui.Paint()
-      ..color = color.withOpacity(opacity * 0.6)
-      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2);
-
-    canvas.drawCircle(
-      ui.Offset(position.x, position.y),
-      2 + (1 - opacity) * 3,
-      paint,
-    );
   }
 }
