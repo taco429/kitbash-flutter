@@ -16,6 +16,7 @@ import '../models/card_instance.dart';
 import 'game_over_screen.dart';
 import '../widgets/game_log.dart';
 import '../widgets/waiting_indicator.dart';
+import '../widgets/cached_drag_feedback.dart';
 // import '../widgets/opponent_indicator.dart';
 
 class GameScreen extends StatefulWidget {
@@ -46,6 +47,8 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     // Clean up the game instance
     _game.onRemove();
+    // Clear drag feedback cache to free memory
+    DragFeedbackCache.clearCache();
     super.dispose();
   }
 
