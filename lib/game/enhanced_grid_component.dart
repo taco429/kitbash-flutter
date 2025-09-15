@@ -1,5 +1,7 @@
 import 'dart:ui' as ui;
 import 'dart:math' as math;
+import 'dart:async';
+import 'package:flame/flame.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -32,6 +34,11 @@ class EnhancedIsometricGrid extends PositionComponent {
 
   // Removed particle system for cleaner visuals
 
+  // Optional sprite for red deck command center
+  static const String redCcSpritePath =
+      'assets/images/command_centers/red_command_center.png';
+  ui.Image? _redCcImage;
+
   EnhancedIsometricGrid({
     required this.rows,
     required this.cols,
@@ -45,6 +52,17 @@ class EnhancedIsometricGrid extends PositionComponent {
     );
     _initializeTileData();
     _initializeVariationMaps();
+  }
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    // Try to load the red command center sprite; if missing, fall back gracefully
+    try {
+      _redCcImage = await Flame.images.load(redCcSpritePath);
+    } catch (_) {
+      _redCcImage = null;
+    }
   }
 
   void _initializeTileData() {
@@ -531,7 +549,17 @@ class EnhancedIsometricGrid extends PositionComponent {
     // Draw base platform (2x2 tiles)
     _drawCommandCenterBase(canvas, r0, c0, originX, originY, primaryColor);
 
-    // Draw main structure - futuristic pyramid/tower design
+    // If red deck and sprite is available, render sprite instead of vector structure
+    if (cc.playerIndex == 1 && _redCcImage != null) {
+      _drawRedCommandCenterSprite(canvas, baseCenter);
+      if (!cc.isDestroyed) {
+        _drawEnhancedHealthBar(
+            canvas, topCenter, cc.healthPercentage, glowColor);
+      }
+      return;
+    }
+
+    // Draw main structure - medieval castle design
     _drawCommandCenterStructure(canvas, topCenter, baseCenter, primaryColor,
         secondaryColor, glowColor, cc);
 
@@ -539,6 +567,27 @@ class EnhancedIsometricGrid extends PositionComponent {
     if (!cc.isDestroyed) {
       _drawEnhancedHealthBar(canvas, topCenter, cc.healthPercentage, glowColor);
     }
+  }
+
+  void _drawRedCommandCenterSprite(ui.Canvas canvas, Vector2 baseCenter) {
+    final ui.Image? img = _redCcImage;
+    if (img == null) return;
+
+    final double imgW = img.width.toDouble();
+    final double imgH = img.height.toDouble();
+
+    // Scale sprite to roughly cover the 2x2 tile footprint
+    final double destWidth = tileSize.x * 2.2;
+    final double destHeight = destWidth * (imgH / imgW);
+
+    final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
+    // Slight upward offset so the base sits nicely on the tiles
+    final ui.Rect dst = ui.Rect.fromCenter(
+      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
+      width: destWidth,
+      height: destHeight,
+    );
+    canvas.drawImageRect(img, src, dst, ui.Paint());
   }
 
   void _drawCommandCenterBase(ui.Canvas canvas, int row, int col,
