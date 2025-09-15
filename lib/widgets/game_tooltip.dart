@@ -4,13 +4,11 @@ import '../models/tile_data.dart';
 /// A custom tooltip widget for displaying tile information in the game
 class GameTooltip extends StatefulWidget {
   final TileData? tileData;
-  final Offset? position;
   final bool isVisible;
 
   const GameTooltip({
     super.key,
     this.tileData,
-    this.position,
     required this.isVisible,
   });
 
@@ -23,32 +21,26 @@ class _GameTooltipState extends State<GameTooltip> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.isVisible ||
-        widget.tileData == null ||
-        widget.position == null) {
+    if (!widget.isVisible || widget.tileData == null) {
       return const SizedBox.shrink();
     }
 
-    return Positioned(
-      left: widget.position!.dx + 10, // Slight offset from cursor
-      top: widget.position!.dy - 60, // Above the cursor
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(8),
-        color: Colors.black87,
-        child: Container(
-          constraints: const BoxConstraints(
-            maxWidth: 200,
-            minWidth: 120,
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTooltipContent(),
-            ],
-          ),
+    return Material(
+      elevation: 8,
+      borderRadius: BorderRadius.circular(8),
+      color: Colors.black87,
+      child: Container(
+        constraints: const BoxConstraints(
+          maxWidth: 200,
+          minWidth: 120,
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildTooltipContent(),
+          ],
         ),
       ),
     );
