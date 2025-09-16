@@ -21,8 +21,8 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
   bool useEnhancedGrid = true; // Toggle this to switch between grids
 
   // Two-level zoom support
-  static const double zoomedOutScale = 0.9;
-  static const double zoomedInScale = 1.35;
+  static const double zoomedOutScale = 1.35;
+  static const double zoomedInScale = 2.2;
   bool _isZoomedIn = false;
   double _currentScale = zoomedOutScale;
 
