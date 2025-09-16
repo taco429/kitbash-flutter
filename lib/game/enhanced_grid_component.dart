@@ -37,13 +37,11 @@ class EnhancedIsometricGrid extends PositionComponent {
   // Removed particle system for cleaner visuals
 
   // Optional sprite for red deck command center
-  static const String redCcSpritePath =
-      'orc_command_center.png';
+  static const String redCcSpritePath = 'orc_command_center.png';
   ui.Image? _redCcImage;
 
   // sprite for purple deck command center
-  static const String purpleCcSpritePath =
-      'spirit_command_center.png';
+  static const String purpleCcSpritePath = 'spirit_command_center.png';
   ui.Image? _purpleCcImage;
 
   EnhancedIsometricGrid({
@@ -570,7 +568,8 @@ class EnhancedIsometricGrid extends PositionComponent {
     final String? deckId = _getDeckIdForPlayer(cc.playerIndex);
     final bool deckIsPurple =
         deckId != null && deckId.toLowerCase().contains('purple');
-    final bool deckIsRed = deckId != null && deckId.toLowerCase().contains('red');
+    final bool deckIsRed =
+        deckId != null && deckId.toLowerCase().contains('red');
 
     // If purple deck and sprite is available, render sprite instead of vector structure
     if (deckIsPurple && _purpleCcImage != null) {
@@ -593,8 +592,8 @@ class EnhancedIsometricGrid extends PositionComponent {
     }
 
     // Draw main structure - medieval castle design
-    _drawCommandCenterStructure(canvas, topCenter, structureBaseCenter, primaryColor,
-        secondaryColor, glowColor, cc);
+    _drawCommandCenterStructure(canvas, topCenter, structureBaseCenter,
+        primaryColor, secondaryColor, glowColor, cc);
 
     // Draw health bar
     if (!cc.isDestroyed) {
