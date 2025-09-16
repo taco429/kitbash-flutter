@@ -1,5 +1,7 @@
 import 'dart:ui' as ui;
 import 'dart:math' as math;
+import 'dart:async';
+import 'package:flame/flame.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -21,6 +23,8 @@ class EnhancedIsometricGrid extends PositionComponent {
 
   // Visual enhancement properties
   final double commandCenterHeight = 40.0;
+  // Slight upward offset to prevent clipping into tiles
+  final double commandCenterYOffset = 4.0;
 
   // Animation properties removed for performance
   // All animations are now static
@@ -31,6 +35,14 @@ class EnhancedIsometricGrid extends PositionComponent {
   late List<List<int>> _rockSeeds; // For consistent rock placement
 
   // Removed particle system for cleaner visuals
+
+  // Optional sprite for red deck command center
+  static const String redCcSpritePath = 'orc_command_center.png';
+  ui.Image? _redCcImage;
+
+  // sprite for purple deck command center
+  static const String purpleCcSpritePath = 'spirit_command_center.png';
+  ui.Image? _purpleCcImage;
 
   EnhancedIsometricGrid({
     required this.rows,
@@ -45,6 +57,22 @@ class EnhancedIsometricGrid extends PositionComponent {
     );
     _initializeTileData();
     _initializeVariationMaps();
+  }
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    // Try to load the red command center sprite; if missing, fall back gracefully
+    try {
+      _redCcImage = await Flame.images.load(redCcSpritePath);
+    } catch (_) {
+      _redCcImage = null;
+    }
+    try {
+      _purpleCcImage = await Flame.images.load(purpleCcSpritePath);
+    } catch (_) {
+      _purpleCcImage = null;
+    }
   }
 
   void _initializeTileData() {
@@ -502,9 +530,14 @@ class EnhancedIsometricGrid extends PositionComponent {
 
     final Vector2 baseCenter =
         isoToScreen(centerRow, centerCol, originX, originY);
+    // Keep platform on tiles, lift structure slightly
+    final Vector2 structureBaseCenter = Vector2(
+      baseCenter.x,
+      baseCenter.y - commandCenterYOffset,
+    );
     final Vector2 topCenter = Vector2(
       baseCenter.x,
-      baseCenter.y - commandCenterHeight, // Removed floating animation
+      baseCenter.y - commandCenterHeight - commandCenterYOffset, // Static lift
     );
 
     // Determine colors based on player and health
@@ -531,14 +564,83 @@ class EnhancedIsometricGrid extends PositionComponent {
     // Draw base platform (2x2 tiles)
     _drawCommandCenterBase(canvas, r0, c0, originX, originY, primaryColor);
 
-    // Draw main structure - futuristic pyramid/tower design
-    _drawCommandCenterStructure(canvas, topCenter, baseCenter, primaryColor,
-        secondaryColor, glowColor, cc);
+    // Determine deck/faction from player state
+    final String? deckId = _getDeckIdForPlayer(cc.playerIndex);
+    final bool deckIsPurple =
+        deckId != null && deckId.toLowerCase().contains('purple');
+    final bool deckIsRed =
+        deckId != null && deckId.toLowerCase().contains('red');
+
+    // If purple deck and sprite is available, render sprite instead of vector structure
+    if (deckIsPurple && _purpleCcImage != null) {
+      _drawPurpleCommandCenterSprite(canvas, structureBaseCenter);
+      if (!cc.isDestroyed) {
+        _drawEnhancedHealthBar(
+            canvas, topCenter, cc.healthPercentage, glowColor);
+      }
+      return;
+    }
+
+    // If red deck and sprite is available, render sprite instead of vector structure
+    if (deckIsRed && _redCcImage != null) {
+      _drawRedCommandCenterSprite(canvas, structureBaseCenter);
+      if (!cc.isDestroyed) {
+        _drawEnhancedHealthBar(
+            canvas, topCenter, cc.healthPercentage, glowColor);
+      }
+      return;
+    }
+
+    // Draw main structure - medieval castle design
+    _drawCommandCenterStructure(canvas, topCenter, structureBaseCenter,
+        primaryColor, secondaryColor, glowColor, cc);
 
     // Draw health bar
     if (!cc.isDestroyed) {
       _drawEnhancedHealthBar(canvas, topCenter, cc.healthPercentage, glowColor);
     }
+  }
+
+  void _drawRedCommandCenterSprite(ui.Canvas canvas, Vector2 baseCenter) {
+    final ui.Image? img = _redCcImage;
+    if (img == null) return;
+
+    final double imgW = img.width.toDouble();
+    final double imgH = img.height.toDouble();
+
+    // Scale sprite to roughly cover the 2x2 tile footprint
+    final double destWidth = tileSize.x * 2.2;
+    final double destHeight = destWidth * (imgH / imgW);
+
+    final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
+    // Slight upward offset so the base sits nicely on the tiles
+    final ui.Rect dst = ui.Rect.fromCenter(
+      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
+      width: destWidth,
+      height: destHeight,
+    );
+    canvas.drawImageRect(img, src, dst, ui.Paint());
+  }
+
+  void _drawPurpleCommandCenterSprite(ui.Canvas canvas, Vector2 baseCenter) {
+    final ui.Image? img = _purpleCcImage;
+    if (img == null) return;
+
+    final double imgW = img.width.toDouble();
+    final double imgH = img.height.toDouble();
+
+    // Scale sprite to roughly cover the 2x2 tile footprint
+    final double destWidth = tileSize.x * 2.2;
+    final double destHeight = destWidth * (imgH / imgW);
+
+    final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
+    // Slight upward offset so the base sits nicely on the tiles
+    final ui.Rect dst = ui.Rect.fromCenter(
+      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
+      width: destWidth,
+      height: destHeight,
+    );
+    canvas.drawImageRect(img, src, dst, ui.Paint());
   }
 
   void _drawCommandCenterBase(ui.Canvas canvas, int row, int col,
@@ -1269,6 +1371,18 @@ class EnhancedIsometricGrid extends PositionComponent {
         row < cc.topLeftRow + 2 &&
         col >= cc.topLeftCol &&
         col < cc.topLeftCol + 2;
+  }
+
+  String? _getDeckIdForPlayer(int playerIndex) {
+    final gs = gameService.gameState;
+    if (gs == null) return null;
+    for (final ps in gs.playerStates) {
+      if (ps.playerIndex == playerIndex) {
+        final id = ps.deckId;
+        if (id.isNotEmpty) return id;
+      }
+    }
+    return null;
   }
 
   Vector2? _pickTileAt(Vector2 localPoint) {
