@@ -17,7 +17,6 @@ void main() {
                 col: 1,
                 terrain: TerrainType.grass,
               ),
-              position: Offset(100, 100),
             ),
           ),
         ),
@@ -36,7 +35,6 @@ void main() {
             body: GameTooltip(
               isVisible: true,
               tileData: null,
-              position: Offset(100, 100),
             ),
           ),
         ),
@@ -46,27 +44,7 @@ void main() {
       expect(find.text('Grass'), findsNothing);
     });
 
-    testWidgets('should not display when position is null',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: GameTooltip(
-              isVisible: true,
-              tileData: TileData(
-                row: 1,
-                col: 1,
-                terrain: TerrainType.grass,
-              ),
-              position: null,
-            ),
-          ),
-        ),
-      );
-
-      expect(find.byType(GameTooltip), findsOneWidget);
-      expect(find.text('Grass'), findsNothing);
-    });
+    // Positioning is no longer cursor-relative; tooltip is anchored.
 
     testWidgets('should display basic tile information',
         (WidgetTester tester) async {
@@ -82,7 +60,6 @@ void main() {
                     col: 3,
                     terrain: TerrainType.forest,
                   ),
-                  position: Offset(150, 200),
                 ),
               ],
             ),
@@ -122,7 +99,6 @@ void main() {
                       col: 0,
                       terrain: terrain,
                     ),
-                    position: const Offset(100, 100),
                   ),
                 ],
               ),
@@ -164,7 +140,6 @@ void main() {
                       type: UnitType.archer,
                     ),
                   ),
-                  position: Offset(100, 100),
                 ),
               ],
             ),
@@ -203,7 +178,6 @@ void main() {
                       type: BuildingType.commandCenter,
                     ),
                   ),
-                  position: Offset(200, 150),
                 ),
               ],
             ),
@@ -247,7 +221,6 @@ void main() {
                       type: BuildingType.barracks,
                     ),
                   ),
-                  position: Offset(250, 300),
                 ),
               ],
             ),
@@ -302,7 +275,6 @@ void main() {
                         type: unitType,
                       ),
                     ),
-                    position: const Offset(100, 100),
                   ),
                 ],
               ),
@@ -343,7 +315,6 @@ void main() {
                       type: UnitType.infantry,
                     ),
                   ),
-                  position: Offset(100, 100),
                 ),
               ],
             ),
@@ -384,7 +355,6 @@ void main() {
                       type: UnitType.infantry,
                     ),
                   ),
-                  position: Offset(100, 100),
                 ),
               ],
             ),
@@ -405,40 +375,7 @@ void main() {
       expect(lowHealthBarWidget.widthFactor, equals(0.2)); // 20/100 = 0.2
     });
 
-    testWidgets('should position tooltip correctly relative to cursor',
-        (WidgetTester tester) async {
-      const testPosition = Offset(300, 400);
-
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: Stack(
-              children: [
-                GameTooltip(
-                  isVisible: true,
-                  tileData: TileData(
-                    row: 1,
-                    col: 1,
-                    terrain: TerrainType.grass,
-                  ),
-                  position: testPosition,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      final positionedFinder = find.byType(Positioned);
-      expect(positionedFinder, findsOneWidget);
-
-      final positionedWidget = tester.widget<Positioned>(positionedFinder);
-      expect(
-          positionedWidget.left, equals(testPosition.dx + 10)); // 10px offset
-      expect(positionedWidget.top, equals(testPosition.dy - 60)); // 60px above
-    });
+    // Removed cursor-relative positioning test; tooltip is anchored.
   });
 
   group('GameTooltip Widget State Tests', () {
@@ -457,7 +394,6 @@ void main() {
                     col: 1,
                     terrain: TerrainType.grass,
                   ),
-                  position: Offset(100, 100),
                 ),
               ],
             ),
@@ -481,7 +417,6 @@ void main() {
                     col: 1,
                     terrain: TerrainType.grass,
                   ),
-                  position: Offset(100, 100),
                 ),
               ],
             ),
@@ -515,7 +450,6 @@ void main() {
                       col: 1,
                       terrain: TerrainType.grass,
                     ),
-                    position: const Offset(100, 100),
                   ),
                 ],
               ),
