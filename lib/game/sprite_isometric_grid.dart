@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'dart:async';
 
 import 'package:flame/components.dart';
+import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
@@ -28,6 +30,14 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
 
   TileSpriteManager? _tileSprites;
 
+  // Command center visuals
+  final double commandCenterHeight = 40.0;
+  final double commandCenterYOffset = 4.0;
+  static const String redCcSpritePath = 'orc_command_center.png';
+  ui.Image? _redCcImage;
+  static const String purpleCcSpritePath = 'spirit_command_center.png';
+  ui.Image? _purpleCcImage;
+
   SpriteIsometricGrid({
     required this.rows,
     required this.cols,
@@ -49,6 +59,18 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
     await super.onLoad();
     // Load sprites lazily; if none present, we still render via fallback.
     _tileSprites = await TileSpriteManager.load(images: gameRef.images);
+
+    // Load command center sprites (graceful fallback if missing)
+    try {
+      _redCcImage = await Flame.images.load(redCcSpritePath);
+    } catch (_) {
+      _redCcImage = null;
+    }
+    try {
+      _purpleCcImage = await Flame.images.load(purpleCcSpritePath);
+    } catch (_) {
+      _purpleCcImage = null;
+    }
   }
 
   void _initializeTileData() {
@@ -146,35 +168,73 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
   }
 
   void _renderCommandCenters(ui.Canvas canvas, double originX, double originY) {
-    final ui.Paint ccPaintP0 = ui.Paint()..color = const Color(0xCC8BC34A);
-    final ui.Paint ccPaintP1 = ui.Paint()..color = const Color(0xCCE91E63);
-    final ui.Paint gridLinePaint = ui.Paint()
-      ..color = const Color(0xFF565D6D)
-      ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = 1;
-
     for (final CommandCenter cc in _commandCenters) {
       final int r0 = cc.topLeftRow.clamp(0, rows - 1);
       final int c0 = cc.topLeftCol.clamp(0, cols - 1);
-      final List<Vector2> centers = <Vector2>[
-        isoToScreen(r0, c0, originX, originY),
-        if (c0 + 1 < cols) isoToScreen(r0, c0 + 1, originX, originY),
-        if (r0 + 1 < rows) isoToScreen(r0 + 1, c0, originX, originY),
-        if (r0 + 1 < rows && c0 + 1 < cols)
-          isoToScreen(r0 + 1, c0 + 1, originX, originY),
-      ];
 
-      ui.Paint paint;
-      if (cc.isDestroyed) {
-        paint = ui.Paint()..color = const Color(0xCC666666);
-      } else {
-        paint = cc.playerIndex == 0 ? ccPaintP0 : ccPaintP1;
+      // Calculate center position for 2x2 command center using fractional coords
+      final double centerRow = r0 + 0.5;
+      final double centerCol = c0 + 0.5;
+      final Vector2 baseCenter = isoToScreen(centerRow, centerCol, originX, originY);
+      final Vector2 structureBaseCenter = Vector2(
+        baseCenter.x,
+        baseCenter.y - commandCenterYOffset,
+      );
+      final Vector2 topCenter = Vector2(
+        baseCenter.x,
+        baseCenter.y - commandCenterHeight - commandCenterYOffset,
+      );
+
+      // Always draw platform under command center
+      _drawCommandCenterBase(canvas, r0, c0, originX, originY,
+          cc.playerIndex == 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828));
+
+      // Determine deck/faction
+      final String? deckId = _getDeckIdForPlayer(cc.playerIndex);
+      final bool deckIsPurple = deckId != null && deckId.toLowerCase().contains('purple');
+      final bool deckIsRed = deckId != null && deckId.toLowerCase().contains('red');
+
+      bool drewSprite = false;
+      if (!cc.isDestroyed && deckIsPurple && _purpleCcImage != null) {
+        _drawPurpleCommandCenterSprite(canvas, structureBaseCenter);
+        drewSprite = true;
+      } else if (!cc.isDestroyed && deckIsRed && _redCcImage != null) {
+        _drawRedCommandCenterSprite(canvas, structureBaseCenter);
+        drewSprite = true;
       }
 
-      for (final Vector2 center in centers) {
-        final ui.Path diamond = _tileDiamond(center, 1.0);
-        canvas.drawPath(diamond, paint);
-        canvas.drawPath(diamond, gridLinePaint);
+      // Fallback: if no sprite drawn, keep simple overlay diamonds (legacy)
+      if (!drewSprite) {
+        final ui.Paint paint = ui.Paint()
+          ..color = cc.isDestroyed
+              ? const Color(0xCC666666)
+              : (cc.playerIndex == 0
+                  ? const Color(0xCC8BC34A)
+                  : const Color(0xCCE91E63));
+        final ui.Paint gridLinePaint = ui.Paint()
+          ..color = const Color(0xFF565D6D)
+          ..style = ui.PaintingStyle.stroke
+          ..strokeWidth = 1;
+        final List<Vector2> centers = <Vector2>[
+          isoToScreen(r0, c0, originX, originY),
+          if (c0 + 1 < cols) isoToScreen(r0, c0 + 1, originX, originY),
+          if (r0 + 1 < rows) isoToScreen(r0 + 1, c0, originX, originY),
+          if (r0 + 1 < rows && c0 + 1 < cols)
+            isoToScreen(r0 + 1, c0 + 1, originX, originY),
+        ];
+        for (final Vector2 center in centers) {
+          final ui.Path diamond = _tileDiamond(center, 1.0);
+          canvas.drawPath(diamond, paint);
+          canvas.drawPath(diamond, gridLinePaint);
+        }
+      }
+
+      // Draw health bar if alive
+      if (!cc.isDestroyed) {
+        final Color glowColor = cc.playerIndex == 0
+            ? const Color(0xFF4CAF50)
+            : const Color(0xFFEF5350);
+        _drawEnhancedHealthBar(canvas, topCenter, cc.healthPercentage, glowColor);
       }
     }
   }
@@ -294,9 +354,11 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
     return null;
   }
 
-  Vector2 isoToScreen(int row, int col, double originX, double originY) {
-    final double screenX = (col - row) * (tileSize.x / 2) + originX;
-    final double screenY = (col + row) * (tileSize.y / 2) + originY;
+  Vector2 isoToScreen(num row, num col, double originX, double originY) {
+    final double r = row.toDouble();
+    final double c = col.toDouble();
+    final double screenX = (c - r) * (tileSize.x / 2) + originX;
+    final double screenY = (c + r) * (tileSize.y / 2) + originY;
     return Vector2(screenX, screenY);
   }
 
@@ -326,6 +388,168 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
       case TerrainType.mountain:
         return const Color(0xFF4A3728);
     }
+  }
+
+  // Command center helpers (mirroring EnhancedIsometricGrid behavior)
+
+  String? _getDeckIdForPlayer(int playerIndex) {
+    final gs = gameService.gameState;
+    if (gs == null) return null;
+    for (final ps in gs.playerStates) {
+      if (ps.playerIndex == playerIndex) {
+        final id = ps.deckId;
+        if (id.isNotEmpty) return id;
+      }
+    }
+    return null;
+  }
+
+  void _drawRedCommandCenterSprite(ui.Canvas canvas, Vector2 baseCenter) {
+    final ui.Image? img = _redCcImage;
+    if (img == null) return;
+    final double imgW = img.width.toDouble();
+    final double imgH = img.height.toDouble();
+    final double destWidth = tileSize.x * 2.2;
+    final double destHeight = destWidth * (imgH / imgW);
+    final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
+    final ui.Rect dst = ui.Rect.fromCenter(
+      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
+      width: destWidth,
+      height: destHeight,
+    );
+    canvas.drawImageRect(img, src, dst, ui.Paint());
+  }
+
+  void _drawPurpleCommandCenterSprite(ui.Canvas canvas, Vector2 baseCenter) {
+    final ui.Image? img = _purpleCcImage;
+    if (img == null) return;
+    final double imgW = img.width.toDouble();
+    final double imgH = img.height.toDouble();
+    final double destWidth = tileSize.x * 2.2;
+    final double destHeight = destWidth * (imgH / imgW);
+    final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
+    final ui.Rect dst = ui.Rect.fromCenter(
+      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
+      width: destWidth,
+      height: destHeight,
+    );
+    canvas.drawImageRect(img, src, dst, ui.Paint());
+  }
+
+  void _drawCommandCenterBase(ui.Canvas canvas, int row, int col,
+      double originX, double originY, Color color) {
+    for (int dr = 0; dr < 2; dr++) {
+      for (int dc = 0; dc < 2; dc++) {
+        final r = row + dr;
+        final c = col + dc;
+        if (r < rows && c < cols) {
+          final Vector2 center = isoToScreen(r, c, originX, originY);
+          final platformPath = _tileDiamond(center, 1.0);
+          final platformPaint = ui.Paint()
+            ..color = color.withOpacity(0.8)
+            ..style = ui.PaintingStyle.fill;
+          canvas.drawPath(platformPath, platformPaint);
+          final edgePaint = ui.Paint()
+            ..color = const Color(0xFF000000).withOpacity(0.3)
+            ..style = ui.PaintingStyle.stroke
+            ..strokeWidth = 2;
+          canvas.drawPath(platformPath, edgePaint);
+        }
+      }
+    }
+  }
+
+  void _drawEnhancedHealthBar(
+      ui.Canvas canvas, Vector2 center, double healthPercent, Color glowColor) {
+    const double barWidth = 50.0;
+    const double barHeight = 8.0;
+    const double barOffsetY = -50.0;
+
+    final double barX = center.x - barWidth / 2;
+    final double barY = center.y + barOffsetY;
+
+    final bgRect = ui.Rect.fromLTWH(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+    final bgPaint = ui.Paint()
+      ..color = const Color(0x80000000)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
+    canvas.drawRRect(
+      ui.RRect.fromRectAndRadius(bgRect, const ui.Radius.circular(4)),
+      bgPaint,
+    );
+
+    final fillWidth = barWidth * healthPercent;
+    final fillRect = ui.Rect.fromLTWH(barX, barY, fillWidth, barHeight);
+
+    Color healthColor;
+    if (healthPercent > 0.6) {
+      healthColor = const Color(0xFF4CAF50);
+    } else if (healthPercent > 0.3) {
+      healthColor = const Color(0xFFFFC107);
+    } else {
+      healthColor = const Color(0xFFF44336);
+    }
+
+    final fillPaint = ui.Paint()
+      ..shader = ui.Gradient.linear(
+        ui.Offset(barX, barY),
+        ui.Offset(barX + fillWidth, barY),
+        [
+          _brightenColor(healthColor, 0.3),
+          healthColor,
+          _darkenColor(healthColor, 0.2),
+        ],
+        [0.0, 0.5, 1.0],
+      );
+    canvas.drawRRect(
+      ui.RRect.fromRectAndRadius(fillRect, const ui.Radius.circular(3)),
+      fillPaint,
+    );
+
+    if (healthPercent > 0 && healthPercent < 1) {
+      final glowPaint = ui.Paint()
+        ..color = glowColor.withOpacity(0.15)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2);
+      canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(fillRect, const ui.Radius.circular(3)),
+        glowPaint,
+      );
+    }
+
+    final borderPaint = ui.Paint()
+      ..color = Colors.white.withOpacity(0.8)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawRRect(
+      ui.RRect.fromRectAndRadius(
+        ui.Rect.fromLTWH(barX, barY, barWidth, barHeight),
+        const ui.Radius.circular(3),
+      ),
+      borderPaint,
+    );
+  }
+
+  Color _brightenColor(Color color, double factor) {
+    return Color.fromARGB(
+      (color.a * 255.0).round() & 0xff,
+      ((color.r * 255.0).round() + ((255 - (color.r * 255.0).round()) * factor))
+          .round()
+          .clamp(0, 255),
+      ((color.g * 255.0).round() + ((255 - (color.g * 255.0).round()) * factor))
+          .round()
+          .clamp(0, 255),
+      ((color.b * 255.0).round() + ((255 - (color.b * 255.0).round()) * factor))
+          .round()
+          .clamp(0, 255),
+    );
+  }
+
+  Color _darkenColor(Color color, double factor) {
+    return Color.fromARGB(
+      (color.a * 255.0).round() & 0xff,
+      ((color.r * 255.0).round() * (1 - factor)).round().clamp(0, 255),
+      ((color.g * 255.0).round() * (1 - factor)).round().clamp(0, 255),
+      ((color.b * 255.0).round() * (1 - factor)).round().clamp(0, 255),
+    );
   }
 
   static List<CommandCenter> computeDefaultCommandCenters(int rows, int cols) {
