@@ -505,49 +505,55 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
 
     final bool showDiscard = widget.isPlanning && !widget.isLocked;
 
-    final Widget detailsButton = GestureDetector(
-      onTap: () => _showCardPreview(context),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white,
-            width: 1.5,
+    final Widget detailsButton = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _showCardPreview(context),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.7),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 1.5,
+            ),
           ),
-        ),
-        child: const Icon(
-          Icons.info_outline,
-          size: 16,
-          color: Colors.white,
+          child: const Icon(
+            Icons.info_outline,
+            size: 16,
+            color: Colors.white,
+          ),
         ),
       ),
     );
 
     final Widget discardButton = showDiscard
-        ? GestureDetector(
-            onTap: widget.onToggleDiscard,
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: widget.isMarkedForDiscard
-                    ? Colors.red
-                    : Colors.black.withValues(alpha: 0.7),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white,
-                  width: 1.5,
+        ? MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: widget.onToggleDiscard,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: widget.isMarkedForDiscard
+                      ? Colors.red
+                      : Colors.black.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1.5,
+                  ),
                 ),
-              ),
-              child: const Icon(
-                Icons.close,
-                size: 16,
-                color: Colors.white,
+                child: const Icon(
+                  Icons.close,
+                  size: 16,
+                  color: Colors.white,
+                ),
               ),
             ),
           )
