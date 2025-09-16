@@ -450,7 +450,6 @@ void main() {
                       col: 1,
                       terrain: TerrainType.grass,
                     ),
-                    position: const Offset(100, 100),
                   ),
                 ],
               ),

@@ -173,7 +173,6 @@ class ExampleTooltipUsage extends StatelessWidget {
   Widget build(BuildContext context) {
     return const GameTooltip(
       isVisible: true,
-      position: Offset(100, 100),
       tileData: TileData(
         row: 1,
         col: 1,
