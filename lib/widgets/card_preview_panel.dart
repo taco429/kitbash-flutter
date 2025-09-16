@@ -23,107 +23,114 @@ class CardPreviewPanel extends StatelessWidget {
         const double aspectRatio = 160.0 / 110.0;
         final double cardHeight = cardWidth * aspectRatio;
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            border: Border(
-                left: BorderSide(
-                    color: Colors.black.withValues(alpha: 0.2), width: 1)),
-            boxShadow: const [
-              BoxShadow(
-                  color: Colors.black26, blurRadius: 8, offset: Offset(-2, 0)),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header with title and close
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  border: Border(
-                      bottom: BorderSide(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          width: 1)),
+        return Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          clipBehavior: Clip.antiAlias,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                  color: Colors.black26,
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.visibility, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Card Preview',
-                        style: Theme.of(context).textTheme.titleSmall,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        context.read<GameService>().clearCardPreview();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header with title and close
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    border: Border(
+                        bottom: BorderSide(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            width: 1)),
+                  ),
+                  child: Row(
                     children: [
-                      // Card on top
-                      Center(
-                        child: AdvancedCardDisplay(
-                          card: card,
-                          width: cardWidth,
-                          height: cardHeight,
-                          enableParallax: true,
-                          enableGlow: true,
-                          enableShadow: true,
+                      const Icon(Icons.visibility, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Card Preview',
+                          style: Theme.of(context).textTheme.titleSmall,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      // Details below
-                      _DetailsSection(card: card),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          context.read<GameService>().clearCardPreview();
+                        },
+                      ),
                     ],
                   ),
                 ),
-              ),
-              // Play button
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final gs = context.read<GameService>();
-                      gs.beginCardPlacement(payload);
-                      gs.clearCardPreview();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Select a tile on the board to play this card'),
-                          duration: Duration(seconds: 2),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Card on top
+                        Center(
+                          child: AdvancedCardDisplay(
+                            card: card,
+                            width: cardWidth,
+                            height: cardHeight,
+                            enableParallax: true,
+                            enableGlow: true,
+                            enableShadow: true,
+                          ),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Play This Card'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.greenAccent.shade400,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        const SizedBox(height: 12),
+                        // Details below
+                        _DetailsSection(card: card),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ],
+                // Play button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final gs = context.read<GameService>();
+                        gs.beginCardPlacement(payload);
+                        gs.clearCardPreview();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Select a tile on the board to play this card'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: const Text('Play This Card'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.greenAccent.shade400,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

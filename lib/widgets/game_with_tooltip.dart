@@ -119,24 +119,7 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
             key: ValueKey(widget.game),
             game: widget.game,
           ),
-          // Right-side card preview panel that doesn't cover the game canvas
-          Positioned(
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: 320,
-            child: Consumer<GameService>(
-              builder: (context, gs, _) {
-                return ValueListenableBuilder<CardDragPayload?>(
-                  valueListenable: gs.cardPreview,
-                  builder: (context, preview, _) {
-                    if (preview == null) return const SizedBox.shrink();
-                    return CardPreviewPanel(payload: preview);
-                  },
-                );
-              },
-            ),
-          ),
+          // Right-side card preview panel moved to floating overlay at top-right
           // Tap-to-place overlay when a card is staged via preview
           Positioned.fill(
             child: Consumer<GameService>(
@@ -180,48 +163,77 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                           }
                           return KeyEventResult.ignored;
                         },
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onSecondaryTap: () {
-                            gameService.clearCardPlacement();
-                            widget.game.clearHover();
-                            _onTileHover(null, null);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Placement canceled'),
-                                duration: Duration(milliseconds: 800),
-                              ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Reserve bottom area for the player controls so the overlay doesn't block it.
+                            const double controlHeight = 260.0;
+                            final double overlayHeight =
+                                (constraints.maxHeight - controlHeight)
+                                    .clamp(0, constraints.maxHeight);
+
+                            return Column(
+                              children: [
+                                SizedBox(
+                                  height: overlayHeight,
+                                  width: double.infinity,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.translucent,
+                                    onSecondaryTap: () {
+                                      gameService.clearCardPlacement();
+                                      widget.game.clearHover();
+                                      _onTileHover(null, null);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Placement canceled'),
+                                          duration: Duration(milliseconds: 800),
+                                        ),
+                                      );
+                                    },
+                                    onTapDown: (details) {
+                                      final local = details.localPosition;
+                                      final tile =
+                                          widget.game.resolveHoverAt(local);
+                                      if (tile != null &&
+                                          pending.instance != null) {
+                                        widget.game.selectAt(local);
+                                        widget.game.gameService.stagePlayCard(
+                                          widget.game.gameId,
+                                          widget.game.gameService
+                                              .currentPlayerIndex,
+                                          pending.instance!.instanceId,
+                                          tile.row,
+                                          tile.col,
+                                        );
+                                        gameService.clearCardPlacement();
+                                        _onTileHover(null, null);
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
+                                            duration:
+                                                const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: Container(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.02),
+                                    ),
+                                  ),
+                                ),
+                                // Bottom spacer: let events pass through to controls/hand.
+                                const Expanded(
+                                  child: IgnorePointer(
+                                    ignoring: true,
+                                    child: SizedBox.expand(),
+                                  ),
+                                ),
+                              ],
                             );
                           },
-                          onTapDown: (details) {
-                            final local = details.localPosition;
-                            final tile = widget.game.resolveHoverAt(local);
-                            if (tile != null && pending.instance != null) {
-                              widget.game.selectAt(local);
-                              widget.game.gameService.stagePlayCard(
-                                widget.game.gameId,
-                                widget.game.gameService.currentPlayerIndex,
-                                pending.instance!.instanceId,
-                                tile.row,
-                                tile.col,
-                              );
-                              gameService.clearCardPlacement();
-                              _onTileHover(null, null);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Played ${pending.card.name} at (${tile.row}, ${tile.col})'),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          },
-                          child: IgnorePointer(
-                            ignoring: false,
-                            child: Container(
-                              color: Colors.black.withValues(alpha: 0.02),
-                            ),
-                          ),
                         ),
                       ),
                     );
@@ -358,6 +370,33 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                     ),
                   );
                   return OpponentIndicator(opponentState: opponentState);
+                },
+              ),
+            ),
+          ),
+          // Floating card preview overlay (rendered above opponent indicator)
+          Positioned(
+            right: 12,
+            top: 12,
+            child: SafeArea(
+              child: Consumer<GameService>(
+                builder: (context, gs, _) {
+                  return ValueListenableBuilder<CardDragPayload?>(
+                    valueListenable: gs.cardPreview,
+                    builder: (context, preview, _) {
+                      if (preview == null) return const SizedBox.shrink();
+                      return ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 380,
+                          maxHeight: 640,
+                        ),
+                        child: SizedBox(
+                          width: 360,
+                          child: CardPreviewPanel(payload: preview),
+                        ),
+                      );
+                    },
+                  );
                 },
               ),
             ),
