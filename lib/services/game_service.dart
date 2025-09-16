@@ -253,10 +253,17 @@ class GameService extends ChangeNotifier {
 
     // Listen to gameStateNotifier changes and propagate them
     gameStateNotifier.addListener(_onGameStateChanged);
+    // Also listen to discard selection changes so hand UI updates immediately
+    discardSelection.addListener(_onDiscardSelectionChanged);
   }
 
   void _onGameStateChanged() {
     // Notify GameService listeners when game state changes
+    notifyListeners();
+  }
+
+  void _onDiscardSelectionChanged() {
+    // Rebuild dependents (e.g., hand UI) when discard selection changes
     notifyListeners();
   }
 
@@ -816,6 +823,7 @@ class GameService extends ChangeNotifier {
   @override
   void dispose() {
     gameStateNotifier.removeListener(_onGameStateChanged);
+    discardSelection.removeListener(_onDiscardSelectionChanged);
     disconnect();
     super.dispose();
   }
