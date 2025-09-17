@@ -127,14 +127,17 @@ func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *Ga
 // computeDefaultCommandCenters creates the default command center positions.
 func computeDefaultCommandCenters(rows, cols int) []*CommandCenter {
 	centerCol := cols / 2
-	topLeftCol := max(0, min(centerCol-2, cols-2))
+	// Align southern-most tile positions for each 2x2 CC footprint.
+	// Player 0 (index 0): southern tile at row rows-1 => top-left row = rows-2
+	// Player 1 (index 1): southern tile at row 1       => top-left row = 0
+	topLeftCol := max(0, min(centerCol, cols-2))
 
-	topPlayerRow := max(0, min(1, rows-2))
-	bottomPlayerRow := max(0, min(rows-3, rows-2))
+	player0TopLeftRow := max(0, min(rows-2, rows-2))
+	player1TopLeftRow := max(0, min(0, rows-2))
 
 	return []*CommandCenter{
-		NewCommandCenter(0, topPlayerRow, topLeftCol),
-		NewCommandCenter(1, bottomPlayerRow, topLeftCol),
+		NewCommandCenter(0, player0TopLeftRow, topLeftCol),
+		NewCommandCenter(1, player1TopLeftRow, topLeftCol),
 	}
 }
 
