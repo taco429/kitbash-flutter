@@ -10,6 +10,7 @@ import '../services/game_service.dart';
 import '../models/tile_data.dart';
 import 'components/fps_counter.dart';
 import 'enhanced_grid_component.dart';
+import 'sprite_isometric_grid.dart';
 
 class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
   final String gameId;
@@ -18,7 +19,8 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
   FpsCounter? _fpsCounter;
   // Vertical offset for FPS counter to sit below the opponent overlay
   final double _fpsTopOffset = 200.0;
-  bool useEnhancedGrid = true; // Toggle this to switch between grids
+  bool useSpriteGrid = true; // Toggle: sprite-based tiles when available
+  bool useEnhancedGrid = true; // Else fallback between enhanced/basic
 
   // Two-level zoom support
   static const double zoomedOutScale = 1.35;
@@ -40,7 +42,27 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
     const int rows = 12;
     const int cols = 12;
 
-    if (useEnhancedGrid) {
+    if (useSpriteGrid) {
+      final SpriteIsometricGrid spriteGrid = SpriteIsometricGrid(
+        rows: rows,
+        cols: cols,
+        tileSize: Vector2(64, 32),
+        commandCenters:
+            SpriteIsometricGrid.computeDefaultCommandCenters(rows, cols),
+        gameService: gameService,
+        // Enable native-aspect rendering to test unskewed PNGs
+        renderSpritesAtNativeAspect: true,
+        // Force all tiles to grass for now
+        fillTerrain: TerrainType.grass,
+      );
+
+      spriteGrid.anchor = Anchor.center;
+      spriteGrid.position = size / 2;
+      spriteGrid.scale = Vector2.all(_currentScale);
+
+      _grid = spriteGrid;
+      add(spriteGrid);
+    } else if (useEnhancedGrid) {
       final EnhancedIsometricGrid enhancedGrid = EnhancedIsometricGrid(
         rows: rows,
         cols: cols,
@@ -50,7 +72,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
         gameService: gameService,
       );
 
-      // Center the grid in the current viewport
       enhancedGrid.anchor = Anchor.center;
       enhancedGrid.position = size / 2;
       enhancedGrid.scale = Vector2.all(_currentScale);
@@ -67,7 +88,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
         gameService: gameService,
       );
 
-      // Center the grid in the current viewport
       isoGrid.anchor = Anchor.center;
       isoGrid.position = size / 2;
       isoGrid.scale = Vector2.all(_currentScale);
@@ -104,7 +124,9 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
     final PositionComponent? grid = _grid;
     if (grid != null) {
       final Vector2 localPoint = grid.parentToLocal(event.localPosition);
-      if (grid is EnhancedIsometricGrid) {
+      if (grid is SpriteIsometricGrid) {
+        grid.handleTap(localPoint);
+      } else if (grid is EnhancedIsometricGrid) {
         grid.handleTap(localPoint);
       } else if (grid is IsometricGridComponent) {
         grid.handleTap(localPoint);
@@ -126,7 +148,9 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
     final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
     final Vector2 gridLocal = grid.parentToLocal(parentLocal);
 
-    if (grid is EnhancedIsometricGrid) {
+    if (grid is SpriteIsometricGrid) {
+      return grid.handleHover(gridLocal);
+    } else if (grid is EnhancedIsometricGrid) {
       return grid.handleHover(gridLocal);
     } else if (grid is IsometricGridComponent) {
       return grid.handleHover(gridLocal);
@@ -137,7 +161,9 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
   /// Clears any active hover highlight in the grid
   void clearHover() {
     final PositionComponent? grid = _grid;
-    if (grid is EnhancedIsometricGrid) {
+    if (grid is SpriteIsometricGrid) {
+      grid.clearHover();
+    } else if (grid is EnhancedIsometricGrid) {
       grid.clearHover();
     } else if (grid is IsometricGridComponent) {
       grid.clearHover();
@@ -152,7 +178,9 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
     final Vector2 parentLocal = Vector2(localOffset.dx, localOffset.dy);
     final Vector2 gridLocal = grid.parentToLocal(parentLocal);
 
-    if (grid is EnhancedIsometricGrid) {
+    if (grid is SpriteIsometricGrid) {
+      grid.handleTap(gridLocal);
+    } else if (grid is EnhancedIsometricGrid) {
       grid.handleTap(gridLocal);
     } else if (grid is IsometricGridComponent) {
       grid.handleTap(gridLocal);

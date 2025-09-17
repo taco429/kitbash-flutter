@@ -524,20 +524,20 @@ class EnhancedIsometricGrid extends PositionComponent {
     final int r0 = cc.topLeftRow.clamp(0, rows - 1);
     final int c0 = cc.topLeftCol.clamp(0, cols - 1);
 
-    // Calculate center position for the 2x2 command center
-    final centerRow = r0 + 0.5;
-    final centerCol = c0 + 0.5;
+    // Anchor at the bottom-middle of the 2x2 footprint (midpoint between the two bottom tiles)
+    final double anchorRow = r0 + 1.0;
+    final double anchorCol = c0 + 0.5;
 
-    final Vector2 baseCenter =
-        isoToScreen(centerRow, centerCol, originX, originY);
-    // Keep platform on tiles, lift structure slightly
+    final Vector2 footprintBottomCenter =
+        isoToScreen(anchorRow, anchorCol, originX, originY);
+    // Slight upward offset to prevent clipping into tiles
     final Vector2 structureBaseCenter = Vector2(
-      baseCenter.x,
-      baseCenter.y - commandCenterYOffset,
+      footprintBottomCenter.x,
+      footprintBottomCenter.y - commandCenterYOffset,
     );
     final Vector2 topCenter = Vector2(
-      baseCenter.x,
-      baseCenter.y - commandCenterHeight - commandCenterYOffset, // Static lift
+      structureBaseCenter.x,
+      structureBaseCenter.y - commandCenterHeight,
     );
 
     // Determine colors based on player and health
@@ -605,41 +605,32 @@ class EnhancedIsometricGrid extends PositionComponent {
     final ui.Image? img = _redCcImage;
     if (img == null) return;
 
-    final double imgW = img.width.toDouble();
-    final double imgH = img.height.toDouble();
-
-    // Scale sprite to roughly cover the 2x2 tile footprint
-    final double destWidth = tileSize.x * 2.2;
-    final double destHeight = destWidth * (imgH / imgW);
-
-    final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
-    // Slight upward offset so the base sits nicely on the tiles
-    final ui.Rect dst = ui.Rect.fromCenter(
-      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
-      width: destWidth,
-      height: destHeight,
-    );
-    canvas.drawImageRect(img, src, dst, ui.Paint());
+    _drawCommandCenterSpriteScaled(canvas, img, baseCenter);
   }
 
   void _drawPurpleCommandCenterSprite(ui.Canvas canvas, Vector2 baseCenter) {
     final ui.Image? img = _purpleCcImage;
     if (img == null) return;
 
+    _drawCommandCenterSpriteScaled(canvas, img, baseCenter);
+  }
+
+  // Draws a command center sprite scaled to a 2x2 tile footprint, anchored at bottom-center
+  void _drawCommandCenterSpriteScaled(
+      ui.Canvas canvas, ui.Image img, Vector2 baseCenter) {
     final double imgW = img.width.toDouble();
     final double imgH = img.height.toDouble();
 
-    // Scale sprite to roughly cover the 2x2 tile footprint
-    final double destWidth = tileSize.x * 2.2;
+    // Exact 2x2 tile footprint width; preserve image aspect ratio
+    final double destWidth = tileSize.x * 2.0;
     final double destHeight = destWidth * (imgH / imgW);
 
+    // Anchor bottom-center of the sprite to the baseCenter (which is slightly lifted already)
+    final double left = baseCenter.x - destWidth / 2.0;
+    final double top = baseCenter.y - destHeight;
+
     final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
-    // Slight upward offset so the base sits nicely on the tiles
-    final ui.Rect dst = ui.Rect.fromCenter(
-      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
-      width: destWidth,
-      height: destHeight,
-    );
+    final ui.Rect dst = ui.Rect.fromLTWH(left, top, destWidth, destHeight);
     canvas.drawImageRect(img, src, dst, ui.Paint());
   }
 
