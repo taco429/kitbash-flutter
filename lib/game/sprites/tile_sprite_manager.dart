@@ -33,7 +33,7 @@ class TileSpriteManager {
   /// Attempts to load sprites from common naming patterns.
   static Future<TileSpriteManager> load({
     required Images images,
-    String rootPath = 'assets/images/tiles',
+    String rootPath = 'tiles',
     int maxVariantsToProbe = 16,
   }) async {
     final Map<TerrainType, List<Sprite>> mapping = {
@@ -91,4 +91,3 @@ class TileSpriteManager {
     return TileSpriteManager._(mapping, loaded);
   }
 }
-

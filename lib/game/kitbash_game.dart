@@ -50,6 +50,10 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
         commandCenters:
             SpriteIsometricGrid.computeDefaultCommandCenters(rows, cols),
         gameService: gameService,
+        // Enable native-aspect rendering to test unskewed PNGs
+        renderSpritesAtNativeAspect: true,
+        // Force all tiles to grass for now
+        fillTerrain: TerrainType.grass,
       );
 
       spriteGrid.anchor = Anchor.center;

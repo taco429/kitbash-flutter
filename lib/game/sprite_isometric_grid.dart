@@ -20,6 +20,14 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
   final GameService gameService;
   List<CommandCenter> _commandCenters;
 
+  /// When true, render tile sprites keeping their native aspect ratio
+  /// (no isometric vertical compression). Useful for testing assets
+  /// that were authored already in isometric perspective.
+  final bool renderSpritesAtNativeAspect;
+
+  /// If provided, force all tiles to this terrain type.
+  final TerrainType? fillTerrain;
+
   int? highlightedRow;
   int? highlightedCol;
   int? hoveredRow;
@@ -44,6 +52,8 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
     required this.tileSize,
     required this.gameService,
     List<CommandCenter>? commandCenters,
+    this.renderSpritesAtNativeAspect = false,
+    this.fillTerrain,
   }) : _commandCenters = commandCenters ?? <CommandCenter>[] {
     // Bounding size of an isometric diamond grid
     size = Vector2(
@@ -74,21 +84,31 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
   }
 
   void _initializeTileData() {
+    final TerrainType? forceTerrain = fillTerrain;
     _tileData = List.generate(rows, (row) {
       return List.generate(cols, (col) {
-        // Simple terrain distribution resembling earlier components
         TerrainType terrain;
-        final distance = ((row - rows / 2).abs() + (col - cols / 2).abs()) / 2;
-        if (distance < 2) {
-          terrain = TerrainType.grass;
-        } else if (distance < 4) {
-          terrain = (row + col) % 3 == 0 ? TerrainType.forest : TerrainType.grass;
-        } else if (distance < 6) {
-          terrain = (row + col) % 4 == 0 ? TerrainType.stone : TerrainType.grass;
-        } else if ((row + col) % 5 == 0) {
-          terrain = TerrainType.desert;
+        if (forceTerrain != null) {
+          terrain = forceTerrain;
         } else {
-          terrain = TerrainType.mountain;
+          // Simple terrain distribution resembling earlier components
+          final distance =
+              ((row - rows / 2).abs() + (col - cols / 2).abs()) / 2;
+          if (distance < 2) {
+            terrain = TerrainType.grass;
+          } else if (distance < 4) {
+            terrain = (row + col) % 3 == 0
+                ? TerrainType.forest
+                : TerrainType.grass;
+          } else if (distance < 6) {
+            terrain = (row + col) % 4 == 0
+                ? TerrainType.stone
+                : TerrainType.grass;
+          } else if ((row + col) % 5 == 0) {
+            terrain = TerrainType.desert;
+          } else {
+            terrain = TerrainType.mountain;
+          }
         }
         return TileData(row: row, col: col, terrain: terrain);
       });
@@ -135,18 +155,38 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
         final terrain = _tileData[r][c].terrain;
 
         if (useSprites) {
-          final sprite = sprites.getSpriteForTerrain(terrain, _variantSeeds[r][c]);
+          final sprite =
+              sprites.getSpriteForTerrain(terrain, _variantSeeds[r][c]);
           if (sprite != null) {
-            // Render sprite centered on the tile center
-            final topLeft = Vector2(
-              tileCenter.x - tileSize.x / 2,
-              tileCenter.y - tileSize.y / 2,
-            );
-            sprite.render(
-              canvas,
-              position: topLeft,
-              size: tileSize,
-            );
+            if (renderSpritesAtNativeAspect) {
+              // Keep native aspect ratio; use tile width as baseline
+              final double imgW = sprite.image.width.toDouble();
+              final double imgH = sprite.image.height.toDouble();
+              final double aspect = imgW > 0 ? (imgH / imgW) : 1.0;
+              final double destW = tileSize.x;
+              final double destH = destW * aspect;
+              final Vector2 destSize = Vector2(destW, destH);
+              final Vector2 topLeft = Vector2(
+                tileCenter.x - destW / 2,
+                tileCenter.y - destH / 2,
+              );
+              sprite.render(
+                canvas,
+                position: topLeft,
+                size: destSize,
+              );
+            } else {
+              // Render sprite centered on the tile center with isometric compression
+              final topLeft = Vector2(
+                tileCenter.x - tileSize.x / 2,
+                tileCenter.y - tileSize.y / 2,
+              );
+              sprite.render(
+                canvas,
+                position: topLeft,
+                size: tileSize,
+              );
+            }
           } else {
             _renderFallbackDiamond(canvas, tileCenter, terrain);
           }
@@ -154,9 +194,11 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
           _renderFallbackDiamond(canvas, tileCenter, terrain);
         }
 
-        // Outline for readability
-        final diamond = _tileDiamond(tileCenter, 1.0);
-        canvas.drawPath(diamond, gridLinePaint);
+        // Outline for readability (skip if drawing at native aspect to reduce visual confusion)
+        if (!useSprites || !renderSpritesAtNativeAspect) {
+          final diamond = _tileDiamond(tileCenter, 1.0);
+          canvas.drawPath(diamond, gridLinePaint);
+        }
       }
     }
   }
@@ -172,27 +214,37 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
       final int r0 = cc.topLeftRow.clamp(0, rows - 1);
       final int c0 = cc.topLeftCol.clamp(0, cols - 1);
 
-      // Calculate center position for 2x2 command center using fractional coords
-      final double centerRow = r0 + 0.5;
-      final double centerCol = c0 + 0.5;
-      final Vector2 baseCenter = isoToScreen(centerRow, centerCol, originX, originY);
+      // Anchor at the bottom-middle of the 2x2 footprint (midpoint between the two bottom tiles)
+      final double anchorRow = r0   + 1.75;
+      final double anchorCol = c0   + 1.75;
+      final Vector2 footprintBottomCenter =
+          isoToScreen(anchorRow, anchorCol, originX, originY);
       final Vector2 structureBaseCenter = Vector2(
-        baseCenter.x,
-        baseCenter.y - commandCenterYOffset,
+        footprintBottomCenter.x,
+        footprintBottomCenter.y - commandCenterYOffset,
       );
       final Vector2 topCenter = Vector2(
-        baseCenter.x,
-        baseCenter.y - commandCenterHeight - commandCenterYOffset,
+        structureBaseCenter.x,
+        structureBaseCenter.y - commandCenterHeight,
       );
 
       // Always draw platform under command center
-      _drawCommandCenterBase(canvas, r0, c0, originX, originY,
-          cc.playerIndex == 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828));
+      _drawCommandCenterBase(
+          canvas,
+          r0,
+          c0,
+          originX,
+          originY,
+          cc.playerIndex == 0
+              ? const Color(0xFF2E7D32)
+              : const Color(0xFFC62828));
 
       // Determine deck/faction
       final String? deckId = _getDeckIdForPlayer(cc.playerIndex);
-      final bool deckIsPurple = deckId != null && deckId.toLowerCase().contains('purple');
-      final bool deckIsRed = deckId != null && deckId.toLowerCase().contains('red');
+      final bool deckIsPurple =
+          deckId != null && deckId.toLowerCase().contains('purple');
+      final bool deckIsRed =
+          deckId != null && deckId.toLowerCase().contains('red');
 
       bool drewSprite = false;
       if (!cc.isDestroyed && deckIsPurple && _purpleCcImage != null) {
@@ -234,14 +286,16 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
         final Color glowColor = cc.playerIndex == 0
             ? const Color(0xFF4CAF50)
             : const Color(0xFFEF5350);
-        _drawEnhancedHealthBar(canvas, topCenter, cc.healthPercentage, glowColor);
+        _drawEnhancedHealthBar(
+            canvas, topCenter, cc.healthPercentage, glowColor);
       }
     }
   }
 
   void _renderOverlays(ui.Canvas canvas, double originX, double originY) {
     if (hoveredRow != null && hoveredCol != null) {
-      final Vector2 center = isoToScreen(hoveredRow!, hoveredCol!, originX, originY);
+      final Vector2 center =
+          isoToScreen(hoveredRow!, hoveredCol!, originX, originY);
       final hoverPath = _tileDiamond(center, 1.05);
       final hoverPaint = ui.Paint()
         ..color = Colors.white.withValues(alpha: 0.25)
@@ -250,7 +304,8 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
     }
 
     if (highlightedRow != null && highlightedCol != null) {
-      final Vector2 center = isoToScreen(highlightedRow!, highlightedCol!, originX, originY);
+      final Vector2 center =
+          isoToScreen(highlightedRow!, highlightedCol!, originX, originY);
       final selectionPath = _tileDiamond(center, 1.1);
       final selectionPaint = ui.Paint()
         ..color = const Color(0xFF54C7EC).withValues(alpha: 0.3)
@@ -407,43 +462,64 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
   void _drawRedCommandCenterSprite(ui.Canvas canvas, Vector2 baseCenter) {
     final ui.Image? img = _redCcImage;
     if (img == null) return;
-    final double imgW = img.width.toDouble();
-    final double imgH = img.height.toDouble();
-    final double destWidth = tileSize.x * 2.2;
-    final double destHeight = destWidth * (imgH / imgW);
-    final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
-    final ui.Rect dst = ui.Rect.fromCenter(
-      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
-      width: destWidth,
-      height: destHeight,
-    );
-    canvas.drawImageRect(img, src, dst, ui.Paint());
+    _drawCommandCenterSpriteScaled(canvas, img, baseCenter);
   }
 
   void _drawPurpleCommandCenterSprite(ui.Canvas canvas, Vector2 baseCenter) {
     final ui.Image? img = _purpleCcImage;
     if (img == null) return;
+    _drawCommandCenterSpriteScaled(canvas, img, baseCenter);
+  }
+
+  // Draws a command center sprite scaled to a 2x2 tile footprint, anchored at bottom-center
+  void _drawCommandCenterSpriteScaled(
+      ui.Canvas canvas, ui.Image img, Vector2 baseCenter) {
     final double imgW = img.width.toDouble();
     final double imgH = img.height.toDouble();
-    final double destWidth = tileSize.x * 2.2;
+
+    final double destWidth = tileSize.x * 2.0;
     final double destHeight = destWidth * (imgH / imgW);
+
+    final double left = baseCenter.x - destWidth / 2.0;
+    final double top = baseCenter.y - destHeight;
+
     final ui.Rect src = ui.Rect.fromLTWH(0, 0, imgW, imgH);
-    final ui.Rect dst = ui.Rect.fromCenter(
-      center: ui.Offset(baseCenter.x, baseCenter.y - tileSize.y * 0.3),
-      width: destWidth,
-      height: destHeight,
-    );
+    final ui.Rect dst = ui.Rect.fromLTWH(left, top, destWidth, destHeight);
     canvas.drawImageRect(img, src, dst, ui.Paint());
   }
 
   void _drawCommandCenterBase(ui.Canvas canvas, int row, int col,
       double originX, double originY, Color color) {
+    // Prefer rendering with grass tile sprites when available; fallback to vector platform
+    final TileSpriteManager? sprites = _tileSprites;
+    final bool useSprites = sprites != null && sprites.totalLoadedCount > 0;
+
     for (int dr = 0; dr < 2; dr++) {
       for (int dc = 0; dc < 2; dc++) {
         final r = row + dr;
         final c = col + dc;
         if (r < rows && c < cols) {
           final Vector2 center = isoToScreen(r, c, originX, originY);
+
+          if (useSprites) {
+            // Always use a grass tile under command centers for now
+            final sprite = sprites.getSpriteForTerrain(
+                TerrainType.grass, _variantSeeds[r][c]);
+            if (sprite != null) {
+              final Vector2 topLeft = Vector2(
+                center.x - tileSize.x / 2,
+                center.y - tileSize.y / 2,
+              );
+              sprite.render(
+                canvas,
+                position: topLeft,
+                size: tileSize,
+              );
+              continue;
+            }
+          }
+
+          // Fallback vector platform if no sprites available
           final platformPath = _tileDiamond(center, 1.0);
           final platformPaint = ui.Paint()
             ..color = color.withOpacity(0.8)
@@ -468,7 +544,8 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
     final double barX = center.x - barWidth / 2;
     final double barY = center.y + barOffsetY;
 
-    final bgRect = ui.Rect.fromLTWH(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+    final bgRect =
+        ui.Rect.fromLTWH(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
     final bgPaint = ui.Paint()
       ..color = const Color(0x80000000)
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
@@ -577,4 +654,3 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
     ];
   }
 }
-
