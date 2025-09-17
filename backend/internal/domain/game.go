@@ -126,16 +126,43 @@ func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *Ga
 
 // computeDefaultCommandCenters creates the default command center positions.
 func computeDefaultCommandCenters(rows, cols int) []*CommandCenter {
-	centerCol := cols / 2
-	topLeftCol := max(0, min(centerCol-2, cols-2))
+    // Desired bottom-center (southern) tile positions for a 2x2 footprint:
+    // Player 0 (top side):    (row=11, col=6)
+    // Player 1 (bottom side): (row=1,  col=6)
+    // Given a 2x2 footprint, the bottom-center anchor is at (topLeftRow+1, topLeftCol+0.5).
+    // So we compute top-left as (row-1, col-1) and clamp into the board.
 
-	topPlayerRow := max(0, min(1, rows-2))
-	bottomPlayerRow := max(0, min(rows-3, rows-2))
+    // Helper to clamp top-left from a requested bottom-center
+    clampTopLeft := func(bottomRow, bottomCol int) (int, int) {
+        tlr := bottomRow - 1
+        tlc := bottomCol - 1
+        // Ensure the 2x2 fits inside the board
+        if tlr < 0 {
+            tlr = 0
+        }
+        if tlc < 0 {
+            tlc = 0
+        }
+        if tlr > rows-2 {
+            tlr = rows - 2
+        }
+        if tlc > cols-2 {
+            tlc = cols - 2
+        }
+        return tlr, tlc
+    }
 
-	return []*CommandCenter{
-		NewCommandCenter(0, topPlayerRow, topLeftCol),
-		NewCommandCenter(1, bottomPlayerRow, topLeftCol),
-	}
+    // Target anchors
+    p0BottomRow, p0BottomCol := 11, 6
+    p1BottomRow, p1BottomCol := 1, 6
+
+    p0TLR, p0TLC := clampTopLeft(p0BottomRow, p0BottomCol)
+    p1TLR, p1TLC := clampTopLeft(p1BottomRow, p1BottomCol)
+
+    return []*CommandCenter{
+        NewCommandCenter(0, p0TLR, p0TLC),
+        NewCommandCenter(1, p1TLR, p1TLC),
+    }
 }
 
 // GetCommandCenter returns the command center for the specified player.
