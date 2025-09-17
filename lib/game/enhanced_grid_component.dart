@@ -1424,24 +1424,34 @@ class EnhancedIsometricGrid extends PositionComponent {
   }
 
   static List<CommandCenter> computeDefaultCommandCenters(int rows, int cols) {
-    final int centerCol = cols ~/ 2;
-    final int topLeftCol = (centerCol - 1).clamp(0, cols - 2);
+    // We want the bottom-left tile (southern-most left tile) of the 2x2 footprint to be:
+    // Player 0: (11,6)
+    // Player 1: (1,6)
+    int clampTopLeftRowFromBottomLeft(int bottomLeftRow) {
+      return (bottomLeftRow - 1).clamp(0, rows - 2);
+    }
 
-    final int topPlayerRow = 1.clamp(0, rows - 2);
-    final int bottomPlayerRow = (rows - 3).clamp(0, rows - 2);
+    int clampTopLeftColFromBottomLeft(int bottomLeftCol) {
+      return bottomLeftCol.clamp(0, cols - 2);
+    }
+
+    final int p0TLR = clampTopLeftRowFromBottomLeft(11);
+    final int p0TLC = clampTopLeftColFromBottomLeft(6);
+    final int p1TLR = clampTopLeftRowFromBottomLeft(1);
+    final int p1TLC = clampTopLeftColFromBottomLeft(6);
 
     return <CommandCenter>[
       CommandCenter(
         playerIndex: 0,
-        topLeftRow: topPlayerRow,
-        topLeftCol: topLeftCol,
+        topLeftRow: p0TLR,
+        topLeftCol: p0TLC,
         health: 100,
         maxHealth: 100,
       ),
       CommandCenter(
         playerIndex: 1,
-        topLeftRow: bottomPlayerRow,
-        topLeftCol: topLeftCol,
+        topLeftRow: p1TLR,
+        topLeftCol: p1TLC,
         health: 100,
         maxHealth: 100,
       ),
