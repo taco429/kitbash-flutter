@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
 import 'components/fps_counter.dart';
-import 'enhanced_grid_component.dart';
 import 'sprite_isometric_grid.dart';
 
 class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
@@ -20,7 +19,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
   // Vertical offset for FPS counter to sit below the opponent overlay
   final double _fpsTopOffset = 200.0;
   bool useSpriteGrid = true; // Toggle: sprite-based tiles when available
-  bool useEnhancedGrid = true; // Else fallback between enhanced/basic
 
   // Two-level zoom support
   static const double zoomedOutScale = 1.35;
@@ -62,22 +60,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
 
       _grid = spriteGrid;
       add(spriteGrid);
-    } else if (useEnhancedGrid) {
-      final EnhancedIsometricGrid enhancedGrid = EnhancedIsometricGrid(
-        rows: rows,
-        cols: cols,
-        tileSize: Vector2(64, 32),
-        commandCenters:
-            EnhancedIsometricGrid.computeDefaultCommandCenters(rows, cols),
-        gameService: gameService,
-      );
-
-      enhancedGrid.anchor = Anchor.center;
-      enhancedGrid.position = size / 2;
-      enhancedGrid.scale = Vector2.all(_currentScale);
-
-      _grid = enhancedGrid;
-      add(enhancedGrid);
     } else {
       final IsometricGridComponent isoGrid = IsometricGridComponent(
         rows: rows,
@@ -126,8 +108,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
       final Vector2 localPoint = grid.parentToLocal(event.localPosition);
       if (grid is SpriteIsometricGrid) {
         grid.handleTap(localPoint);
-      } else if (grid is EnhancedIsometricGrid) {
-        grid.handleTap(localPoint);
       } else if (grid is IsometricGridComponent) {
         grid.handleTap(localPoint);
       }
@@ -150,8 +130,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
 
     if (grid is SpriteIsometricGrid) {
       return grid.handleHover(gridLocal);
-    } else if (grid is EnhancedIsometricGrid) {
-      return grid.handleHover(gridLocal);
     } else if (grid is IsometricGridComponent) {
       return grid.handleHover(gridLocal);
     }
@@ -162,8 +140,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
   void clearHover() {
     final PositionComponent? grid = _grid;
     if (grid is SpriteIsometricGrid) {
-      grid.clearHover();
-    } else if (grid is EnhancedIsometricGrid) {
       grid.clearHover();
     } else if (grid is IsometricGridComponent) {
       grid.clearHover();
@@ -179,8 +155,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
     final Vector2 gridLocal = grid.parentToLocal(parentLocal);
 
     if (grid is SpriteIsometricGrid) {
-      grid.handleTap(gridLocal);
-    } else if (grid is EnhancedIsometricGrid) {
       grid.handleTap(gridLocal);
     } else if (grid is IsometricGridComponent) {
       grid.handleTap(gridLocal);
