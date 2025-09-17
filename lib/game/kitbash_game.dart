@@ -194,6 +194,7 @@ class IsometricGridComponent extends PositionComponent {
   // Hover state
   int? hoveredRow;
   int? hoveredCol;
+  bool _hoverInvalid = false;
 
   // Debug overlay state
   bool debugHoverOverlay = false;
@@ -297,12 +298,44 @@ class IsometricGridComponent extends PositionComponent {
 
         // Apply hover highlight
         if (hoveredRow == r && hoveredCol == c) {
-          canvas.drawPath(diamond, hoverPaint);
+          final ui.Paint hoverPaintDyn = ui.Paint()
+            ..color = (_hoverInvalid
+                    ? const Color(0xFF8B0000)
+                    : const Color(0x66FFFFFF));
+          canvas.drawPath(diamond, hoverPaintDyn);
         }
 
         // Apply selection highlight (higher priority than hover)
         if (highlightedRow == r && highlightedCol == c) {
           canvas.drawPath(diamond, highlightPaint);
+        }
+      }
+    }
+
+    // Render planned play indicators
+    final gs = gameService.gameState;
+    if (gs != null && gs.plannedPlays.isNotEmpty) {
+      for (final entry in gs.plannedPlays.entries) {
+        final playerIdx = entry.key;
+        for (final p in entry.value) {
+          if (p.row < 0 || p.col < 0 || p.row >= rows || p.col >= cols) continue;
+          final Vector2 center = isoToScreen(p.row, p.col, originX, originY);
+          final ui.Path indicator = _tileDiamond(center);
+          final ui.Path inner = _tileDiamond(Vector2(center.x, center.y));
+          final ui.Paint fill = ui.Paint()
+            ..color = (playerIdx == 0
+                    ? const Color(0xFF54C7EC)
+                    : const Color(0xFFE91E63))
+                .withValues(alpha: 0.25)
+            ..style = ui.PaintingStyle.fill;
+          final ui.Paint border = ui.Paint()
+            ..color = playerIdx == 0
+                ? const Color(0xFF54C7EC)
+                : const Color(0xFFE91E63)
+            ..style = ui.PaintingStyle.stroke
+            ..strokeWidth = 1.5;
+          canvas.drawPath(indicator, fill);
+          canvas.drawPath(inner, border);
         }
       }
     }
@@ -427,6 +460,7 @@ class IsometricGridComponent extends PositionComponent {
 
       hoveredRow = row;
       hoveredCol = col;
+      _hoverInvalid = _computeHoverInvalid(row, col);
 
       // Get enhanced tile data with command center info if present
       TileData tileData = _tileData[row][col];
@@ -453,6 +487,7 @@ class IsometricGridComponent extends PositionComponent {
     // Clear hover if outside grid
     hoveredRow = null;
     hoveredCol = null;
+    _hoverInvalid = false;
     return null;
   }
 
@@ -461,6 +496,38 @@ class IsometricGridComponent extends PositionComponent {
         row < cc.topLeftRow + 2 &&
         col >= cc.topLeftCol &&
         col < cc.topLeftCol + 2;
+  }
+
+  bool _computeHoverInvalid(int row, int col) {
+    // Prefer backend validation
+    final validation = gameService.targetValidation.value;
+    final preview = gameService.cardPreview.value ?? gameService.pendingPlacement;
+    if (validation != null && preview?.instance != null) {
+      if (validation.row == row && validation.col == col &&
+          validation.cardInstanceId == preview!.instance!.instanceId) {
+        return !validation.valid;
+      }
+    }
+    final isUnit = preview?.card.isUnit == true;
+    if (!isUnit) {
+      return false;
+    }
+    // Command center check
+    for (final CommandCenter cc in _commandCenters) {
+      if (_isTileInCommandCenter(row, col, cc)) {
+        return true;
+      }
+    }
+    // Planned plays occupancy check
+    final gs = gameService.gameState;
+    if (gs != null) {
+      for (final entry in gs.plannedPlays.entries) {
+        for (final p in entry.value) {
+          if (p.row == row && p.col == col) return true;
+        }
+      }
+    }
+    return false;
   }
 
   Color getTerrainColor(TerrainType terrain) {

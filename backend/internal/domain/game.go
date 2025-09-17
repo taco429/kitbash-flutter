@@ -26,6 +26,15 @@ const (
 	PhaseCleanup      GamePhase = "cleanup"        // Cleanup phase
 )
 
+// PlannedPlay represents a staged intention to play a card at a specific tile
+// during the current Planning phase. The card remains in hand until resolution.
+type PlannedPlay struct {
+    PlayerIndex   int             `json:"playerIndex"`
+    CardInstance  CardInstanceID  `json:"cardInstanceId"`
+    CardID        CardID          `json:"cardId"`
+    Position      Point           `json:"position"`
+}
+
 // PlayerBattleState represents per-player runtime state such as deck/hand.
 type PlayerBattleState struct {
 	PlayerIndex int        `json:"playerIndex"`
@@ -97,6 +106,8 @@ type GameState struct {
 	BoardCols           int              `json:"boardCols"`
 	PlayerChoicesLocked map[int]bool     `json:"playerChoicesLocked"`
 	PendingActions      map[int]ActionQueue `json:"-"`
+    // PlannedPlays are the staged plays during Planning phase, exposed to clients
+    PlannedPlays        map[int][]PlannedPlay `json:"plannedPlays"`
 	CreatedAt           time.Time        `json:"createdAt"`
 	UpdatedAt           time.Time        `json:"updatedAt"`
 }
@@ -119,6 +130,7 @@ func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *Ga
 		BoardCols:           boardCols,
 		PlayerChoicesLocked: map[int]bool{0: false, 1: false},
 		PendingActions:      map[int]ActionQueue{0: {}, 1: {}},
+        PlannedPlays:        map[int][]PlannedPlay{0: []PlannedPlay{}, 1: []PlannedPlay{}},
 		CreatedAt:           time.Now(),
 		UpdatedAt:           time.Now(),
 	}
@@ -266,6 +278,13 @@ func (gs *GameState) AdvanceTurn() {
 		gs.PendingActions[0] = ActionQueue{}
 		gs.PendingActions[1] = ActionQueue{}
 	}
+    // Clear planned plays
+    if gs.PlannedPlays == nil {
+        gs.PlannedPlays = map[int][]PlannedPlay{0: {}, 1: {}}
+    } else {
+        gs.PlannedPlays[0] = []PlannedPlay{}
+        gs.PlannedPlays[1] = []PlannedPlay{}
+    }
 	gs.UpdatedAt = time.Now()
 }
 
@@ -313,6 +332,58 @@ func (gs *GameState) DiscardCards(playerIndex int, instanceIDs []CardInstanceID)
 	}
 	
 	gs.UpdatedAt = time.Now()
+}
+
+// IsTileOccupied returns true if the given tile currently contains a structure
+// that occupies the space. For now, only Command Centers occupy tiles.
+func (gs *GameState) IsTileOccupied(row, col int) bool {
+    for _, cc := range gs.CommandCenters {
+        if row >= cc.TopLeftRow && row < cc.TopLeftRow+2 &&
+            col >= cc.TopLeftCol && col < cc.TopLeftCol+2 {
+            return true
+        }
+    }
+    // Also treat any existing planned play position as occupied to avoid conflicts
+    if gs.PlannedPlays != nil {
+        for _, plays := range gs.PlannedPlays {
+            for _, p := range plays {
+                if p.Position.Row == row && p.Position.Col == col {
+                    return true
+                }
+            }
+        }
+    }
+    return false
+}
+
+// AddPlannedPlay stages a planned play for a player, replacing any existing
+// plan for the same card instance.
+func (gs *GameState) AddPlannedPlay(play PlannedPlay) {
+    if gs.PlannedPlays == nil {
+        gs.PlannedPlays = map[int][]PlannedPlay{0: {}, 1: {}}
+    }
+    // Remove any existing plan with the same instance id for that player
+    existing := gs.PlannedPlays[play.PlayerIndex]
+    filtered := make([]PlannedPlay, 0, len(existing))
+    for _, p := range existing {
+        if p.CardInstance != play.CardInstance {
+            filtered = append(filtered, p)
+        }
+    }
+    filtered = append(filtered, play)
+    gs.PlannedPlays[play.PlayerIndex] = filtered
+    gs.UpdatedAt = time.Now()
+}
+
+// ClearPlannedPlays removes all planned plays for both players.
+func (gs *GameState) ClearPlannedPlays() {
+    if gs.PlannedPlays == nil {
+        gs.PlannedPlays = map[int][]PlannedPlay{0: {}, 1: {}}
+        return
+    }
+    gs.PlannedPlays[0] = []PlannedPlay{}
+    gs.PlannedPlays[1] = []PlannedPlay{}
+    gs.UpdatedAt = time.Now()
 }
 
 func max(a, b int) int {

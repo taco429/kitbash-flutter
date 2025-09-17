@@ -35,6 +35,10 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
   final GlobalKey _dropOverlayKey = GlobalKey();
   final FocusNode _placeFocusNode = FocusNode();
 
+  int? _lastValidatedRow;
+  int? _lastValidatedCol;
+  DateTime _lastValidationAt = DateTime.fromMillisecondsSinceEpoch(0);
+
   static const Duration _tooltipDelay = Duration(milliseconds: 500);
 
   @override
@@ -57,6 +61,31 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
     setState(() {
       _hoveredTile = tileData;
     });
+
+    // While dragging a card, request backend validation for dynamic feedback
+    if (_isDragActive && tileData != null) {
+      final now = DateTime.now();
+      // Throttle to every 50ms and avoid duplicate tile validations
+      if (_lastValidatedRow == tileData.row && _lastValidatedCol == tileData.col &&
+          now.difference(_lastValidationAt).inMilliseconds < 50) {
+        return;
+      }
+      _lastValidatedRow = tileData.row;
+      _lastValidatedCol = tileData.col;
+      _lastValidationAt = now;
+
+      final gs = context.read<GameService>();
+      final payload = gs.cardPreview.value ?? gs.pendingPlacement;
+      if (payload != null && payload.instance != null) {
+        gs.validateTarget(
+          playerIndex: gs.currentPlayerIndex,
+          cardInstanceId: payload.instance!.instanceId,
+          row: tileData.row,
+          col: tileData.col,
+          cardId: payload.card.id,
+        );
+      }
+    }
 
     // If cursor left the board or position is invalid -> hide immediately
     if (tileData == null) {

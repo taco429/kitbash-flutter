@@ -33,6 +33,7 @@ class SpriteIsometricGrid extends PositionComponent
   int? highlightedCol;
   int? hoveredRow;
   int? hoveredCol;
+  bool _hoverInvalid = false;
 
   late List<List<TileData>> _tileData;
   late List<List<int>> _variantSeeds;
@@ -297,7 +298,10 @@ class SpriteIsometricGrid extends PositionComponent
           isoToScreen(hoveredRow!, hoveredCol!, originX, originY);
       final hoverPath = _tileDiamond(center, 1.05);
       final hoverPaint = ui.Paint()
-        ..color = Colors.white.withValues(alpha: 0.25)
+        ..color = (_hoverInvalid
+                ? const Color(0xFF8B0000) // dark red
+                : Colors.white)
+            .withValues(alpha: 0.25)
         ..style = ui.PaintingStyle.fill;
       canvas.drawPath(hoverPath, hoverPaint);
     }
@@ -315,6 +319,31 @@ class SpriteIsometricGrid extends PositionComponent
         ..strokeWidth = 2;
       canvas.drawPath(selectionPath, selectionPaint);
       canvas.drawPath(selectionPath, selectionBorder);
+    }
+
+    // Render planned plays indicators
+    final gs = gameService.gameState;
+    if (gs != null && gs.plannedPlays.isNotEmpty) {
+      gs.plannedPlays.forEach((playerIdx, plays) {
+        for (final p in plays) {
+          final Vector2 center = isoToScreen(p.row, p.col, originX, originY);
+          final ui.Path indicator = _tileDiamond(center, 0.5);
+          final ui.Paint paint = ui.Paint()
+            ..color = (playerIdx == 0
+                    ? const Color(0xFF54C7EC)
+                    : const Color(0xFFE91E63))
+                .withValues(alpha: 0.35)
+            ..style = ui.PaintingStyle.fill;
+          final ui.Paint border = ui.Paint()
+            ..color = playerIdx == 0
+                ? const Color(0xFF54C7EC)
+                : const Color(0xFFE91E63)
+            ..style = ui.PaintingStyle.stroke
+            ..strokeWidth = 1.5;
+          canvas.drawPath(indicator, paint);
+          canvas.drawPath(indicator, border);
+        }
+      });
     }
   }
 
@@ -334,6 +363,7 @@ class SpriteIsometricGrid extends PositionComponent
       final int col = picked.x.toInt();
       hoveredRow = row;
       hoveredCol = col;
+      _hoverInvalid = _computeHoverInvalid(row, col);
 
       TileData tileData = _tileData[row][col];
       for (final CommandCenter cc in _commandCenters) {
@@ -354,12 +384,48 @@ class SpriteIsometricGrid extends PositionComponent
     }
     hoveredRow = null;
     hoveredCol = null;
+    _hoverInvalid = false;
     return null;
   }
 
   void clearHover() {
     hoveredRow = null;
     hoveredCol = null;
+  }
+
+  bool _computeHoverInvalid(int row, int col) {
+    // Prefer backend validation result when available
+    final validation = gameService.targetValidation.value;
+    final preview = gameService.cardPreview.value ?? gameService.pendingPlacement;
+    if (validation != null && preview?.instance != null) {
+      if (validation.row == row && validation.col == col &&
+          validation.cardInstanceId == preview!.instance!.instanceId) {
+        return !validation.valid;
+      }
+    }
+    final isUnit = preview?.card.isUnit == true;
+    if (!isUnit) {
+      // If not placing a unit, assume valid unless server says otherwise
+      return false;
+    }
+    // Use planned plays and command centers to determine occupancy only for dynamic feedback.
+    // Backed by server validation; this is a fast client-side best-effort.
+    // Occupied if on command center footprint
+    for (final cc in _commandCenters) {
+      if (_isTileInCommandCenter(row, col, cc)) {
+        return true;
+      }
+    }
+    // Occupied if any planned play already targets this tile
+    final gs = gameService.gameState;
+    if (gs != null) {
+      for (final entry in gs.plannedPlays.entries) {
+        for (final p in entry.value) {
+          if (p.row == row && p.col == col) return true;
+        }
+      }
+    }
+    return false;
   }
 
   bool _isTileInCommandCenter(int row, int col, CommandCenter cc) {

@@ -27,6 +27,7 @@ type GameClient struct {
 type GameHub struct {
 	mu         sync.RWMutex
 	gameRepo   repository.GameRepository
+    cardRepo   domain.CardRepository
 	deckRepo   domain.DeckRepository
 	clients    map[domain.GameID]map[*websocket.Conn]*GameClient
 	upgrader   websocket.Upgrader
@@ -53,9 +54,10 @@ func NewGameHub(gameRepo repository.GameRepository, log *logger.Logger, cfg conf
 }
 
 // NewGameHubWithRepos creates a new game hub with both game and deck repositories.
-func NewGameHubWithRepos(gameRepo repository.GameRepository, deckRepo domain.DeckRepository, log *logger.Logger, cfg config.Config) *GameHub {
+func NewGameHubWithRepos(gameRepo repository.GameRepository, deckRepo domain.DeckRepository, cardRepo domain.CardRepository, log *logger.Logger, cfg config.Config) *GameHub {
 	hub := NewGameHub(gameRepo, log, cfg)
 	hub.deckRepo = deckRepo
+    hub.cardRepo = cardRepo
 	return hub
 }
 
@@ -262,11 +264,189 @@ func (h *GameHub) handleGameMessage(ctx context.Context, client *GameClient, msg
 		return h.handleSubmitActions(ctx, client, message)
 	case "advance_phase":
 		return h.handleAdvancePhase(ctx, client)
+    case "validate_target":
+        return h.handleValidateTarget(ctx, client, message)
+    case "stage_play_card":
+        return h.handleStagePlayCard(ctx, client, message)
 	default:
 		h.log.WithContext(ctx).Debug("Unknown message type", "type", msgType)
 	}
 
 	return nil
+}
+
+// handleValidateTarget checks if a proposed target tile is valid for the given card.
+// Rules: A target is valid unless it is a unit card attempting to be played on an occupied space.
+func (h *GameHub) handleValidateTarget(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+    gameState, err := h.gameRepo.Get(ctx, client.GameID)
+    if err != nil {
+        return err
+    }
+
+    // Extract params
+    var playerIndex int
+    if v, ok := message["playerIndex"].(float64); ok {
+        playerIndex = int(v)
+    }
+    var row, col int
+    if v, ok := message["row"].(float64); ok {
+        row = int(v)
+    }
+    if v, ok := message["col"].(float64); ok {
+        col = int(v)
+    }
+    cardInstanceID, _ := message["cardInstanceId"].(string)
+    cardIDStr, _ := message["cardId"].(string)
+
+    resp := map[string]interface{}{
+        "type":           "target_validation",
+        "playerIndex":    playerIndex,
+        "row":            row,
+        "col":            col,
+        "cardInstanceId": cardInstanceID,
+        "cardId":         cardIDStr,
+        "valid":          false,
+    }
+
+    // Bounds check
+    if row < 0 || col < 0 || row >= gameState.BoardRows || col >= gameState.BoardCols {
+        resp["reason"] = "out_of_bounds"
+        return client.Conn.WriteJSON(resp)
+    }
+
+    // Determine cardID and card type
+    var cardID domain.CardID
+    if cardIDStr != "" {
+        cardID = domain.CardID(cardIDStr)
+    } else {
+        // Lookup by instance ID in player's hand
+        if playerIndex >= 0 && playerIndex < len(gameState.PlayerStates) {
+            for _, inst := range gameState.PlayerStates[playerIndex].Hand {
+                if string(inst.InstanceID) == cardInstanceID {
+                    cardID = inst.CardID
+                    resp["cardId"] = string(cardID)
+                    break
+                }
+            }
+        }
+    }
+
+    // If we couldn't determine card, mark invalid
+    if cardID == "" {
+        resp["reason"] = "card_not_found"
+        return client.Conn.WriteJSON(resp)
+    }
+
+    // If cardRepo is present, get type to check if unit
+    isUnit := false
+    if h.cardRepo != nil {
+        card, err := h.cardRepo.GetCard(ctx, cardID)
+        if err == nil && card != nil {
+            isUnit = card.IsUnit()
+        }
+    }
+
+    if isUnit && gameState.IsTileOccupied(row, col) {
+        resp["reason"] = "occupied"
+        return client.Conn.WriteJSON(resp)
+    }
+
+    // Valid if not a unit or tile not occupied
+    resp["valid"] = true
+    return client.Conn.WriteJSON(resp)
+}
+
+// handleStagePlayCard records the player's intention to play a card at a tile during Planning.
+func (h *GameHub) handleStagePlayCard(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+    gameState, err := h.gameRepo.Get(ctx, client.GameID)
+    if err != nil {
+        return err
+    }
+
+    // Only allow staging during Planning phase
+    if gameState.CurrentPhase != domain.PhasePlanning {
+        return nil
+    }
+
+    var playerIndex int
+    if v, ok := message["playerIndex"].(float64); ok {
+        playerIndex = int(v)
+    }
+    var row, col int
+    if v, ok := message["row"].(float64); ok {
+        row = int(v)
+    }
+    if v, ok := message["col"].(float64); ok {
+        col = int(v)
+    }
+    cardInstanceID, _ := message["cardInstanceId"].(string)
+
+    // Verify player index and instance exist in hand, and determine cardId
+    if playerIndex < 0 || playerIndex >= len(gameState.PlayerStates) {
+        return nil
+    }
+    ps := &gameState.PlayerStates[playerIndex]
+    var cardID domain.CardID
+    found := false
+    for _, inst := range ps.Hand {
+        if string(inst.InstanceID) == cardInstanceID {
+            cardID = inst.CardID
+            found = true
+            break
+        }
+    }
+    if !found {
+        return nil
+    }
+
+    // Validate target according to rules
+    validateMsg := map[string]interface{}{
+        "type":           "target_validation",
+        "playerIndex":    playerIndex,
+        "row":            row,
+        "col":            col,
+        "cardInstanceId": cardInstanceID,
+        "cardId":         string(cardID),
+        "valid":          false,
+    }
+
+    // Bounds check
+    if row < 0 || col < 0 || row >= gameState.BoardRows || col >= gameState.BoardCols {
+        validateMsg["reason"] = "out_of_bounds"
+        client.Conn.WriteJSON(validateMsg)
+        return nil
+    }
+
+    isUnit := false
+    if h.cardRepo != nil {
+        if card, err := h.cardRepo.GetCard(ctx, cardID); err == nil && card != nil {
+            isUnit = card.IsUnit()
+        }
+    }
+    if isUnit && gameState.IsTileOccupied(row, col) {
+        validateMsg["reason"] = "occupied"
+        client.Conn.WriteJSON(validateMsg)
+        return nil
+    }
+
+    // Record planned play
+    gameState.AddPlannedPlay(domain.PlannedPlay{
+        PlayerIndex:  playerIndex,
+        CardInstance: domain.CardInstanceID(cardInstanceID),
+        CardID:       cardID,
+        Position:     domain.Point{Row: row, Col: col},
+    })
+
+    if err := h.gameRepo.Update(ctx, gameState); err != nil {
+        return err
+    }
+
+    // Acknowledge success to the requester
+    validateMsg["valid"] = true
+    client.Conn.WriteJSON(validateMsg)
+
+    // Broadcast updated game state with planned plays
+    return h.broadcastGameState(ctx, client.GameID)
 }
 
 // handleDealDamage processes damage dealing actions.

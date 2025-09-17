@@ -84,6 +84,41 @@ func ExecuteUpkeepPhase(gameState *GameState) *EventLog {
 func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, player2Actions ActionQueue) *EventLog {
     evtLog := NewEventLog(gameState.CurrentTurn)
 
+    // 0) Reveal & resolve planned plays for this round
+    // For now, only log the play and move the card from hand to discard.
+    if gameState != nil && gameState.PlannedPlays != nil {
+        for playerIndex, plays := range gameState.PlannedPlays {
+            // Defensive bounds check
+            if playerIndex < 0 || playerIndex >= len(gameState.PlayerStates) {
+                continue
+            }
+            ps := &gameState.PlayerStates[playerIndex]
+            for _, p := range plays {
+                // Log reveal/play event with target tile
+                evtLog.AddSimple(EventTypeEffect, "reveal", map[string]any{
+                    "playerIndex":    playerIndex,
+                    "action":         string(ActionTypePlayCard),
+                    "cardId":         p.CardID,
+                    "cardInstanceId": p.CardInstance,
+                    "row":            p.Position.Row,
+                    "col":            p.Position.Col,
+                })
+                // Move card instance from hand to discard if present
+                for h := 0; h < len(ps.Hand); h++ {
+                    if ps.Hand[h].InstanceID == p.CardInstance {
+                        card := ps.Hand[h]
+                        ps.Hand = append(ps.Hand[:h], ps.Hand[h+1:]...)
+                        ps.DiscardPile = append(ps.DiscardPile, card)
+                        h--
+                        break
+                    }
+                }
+            }
+        }
+        // Clear planned plays after processing
+        gameState.ClearPlannedPlays()
+    }
+
     // Helper: combine two queues with player attribution already set in Action
     allActions := append(ActionQueue{}, player1Actions...)
     allActions = append(allActions, player2Actions...)
