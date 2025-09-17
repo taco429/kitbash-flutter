@@ -13,7 +13,8 @@ import 'sprites/tile_sprite_manager.dart';
 
 /// Isometric grid that renders each tile using sprites when available,
 /// with graceful fallback to vector drawing if sprites are missing.
-class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
+class SpriteIsometricGrid extends PositionComponent
+    with HasGameReference<FlameGame> {
   final int rows;
   final int cols;
   final Vector2 tileSize;
@@ -68,7 +69,7 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
   Future<void> onLoad() async {
     await super.onLoad();
     // Load sprites lazily; if none present, we still render via fallback.
-    _tileSprites = await TileSpriteManager.load(images: gameRef.images);
+    _tileSprites = await TileSpriteManager.load(images: game.images);
 
     // Load command center sprites (graceful fallback if missing)
     try {
@@ -97,13 +98,11 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
           if (distance < 2) {
             terrain = TerrainType.grass;
           } else if (distance < 4) {
-            terrain = (row + col) % 3 == 0
-                ? TerrainType.forest
-                : TerrainType.grass;
+            terrain =
+                (row + col) % 3 == 0 ? TerrainType.forest : TerrainType.grass;
           } else if (distance < 6) {
-            terrain = (row + col) % 4 == 0
-                ? TerrainType.stone
-                : TerrainType.grass;
+            terrain =
+                (row + col) % 4 == 0 ? TerrainType.stone : TerrainType.grass;
           } else if ((row + col) % 5 == 0) {
             terrain = TerrainType.desert;
           } else {
@@ -215,8 +214,8 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
       final int c0 = cc.topLeftCol.clamp(0, cols - 1);
 
       // Anchor at the bottom-middle of the 2x2 footprint (midpoint between the two bottom tiles)
-      final double anchorRow = r0   + 1.75;
-      final double anchorCol = c0   + 1.75;
+      final double anchorRow = r0 + 1.75;
+      final double anchorCol = c0 + 1.75;
       final Vector2 footprintBottomCenter =
           isoToScreen(anchorRow, anchorCol, originX, originY);
       final Vector2 structureBaseCenter = Vector2(
@@ -522,11 +521,11 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
           // Fallback vector platform if no sprites available
           final platformPath = _tileDiamond(center, 1.0);
           final platformPaint = ui.Paint()
-            ..color = color.withOpacity(0.8)
+            ..color = color.withValues(alpha: 0.8)
             ..style = ui.PaintingStyle.fill;
           canvas.drawPath(platformPath, platformPaint);
           final edgePaint = ui.Paint()
-            ..color = const Color(0xFF000000).withOpacity(0.3)
+            ..color = const Color(0xFF000000).withValues(alpha: 0.3)
             ..style = ui.PaintingStyle.stroke
             ..strokeWidth = 2;
           canvas.drawPath(platformPath, edgePaint);
@@ -584,7 +583,7 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
 
     if (healthPercent > 0 && healthPercent < 1) {
       final glowPaint = ui.Paint()
-        ..color = glowColor.withOpacity(0.15)
+        ..color = glowColor.withValues(alpha: 0.15)
         ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2);
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(fillRect, const ui.Radius.circular(3)),
@@ -593,7 +592,7 @@ class SpriteIsometricGrid extends PositionComponent with HasGameRef<FlameGame> {
     }
 
     final borderPaint = ui.Paint()
-      ..color = Colors.white.withOpacity(0.8)
+      ..color = Colors.white.withValues(alpha: 0.8)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawRRect(
