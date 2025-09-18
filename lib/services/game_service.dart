@@ -262,8 +262,8 @@ class PlayerBattleState {
 
 class GameService extends ChangeNotifier {
   // Change this to your backend server IP address
-  static const String baseUrl = 'http://192.168.4.156:8080';
-  static const String wsUrl = 'ws://192.168.4.156:8080';
+  static const String baseUrl = 'http://localhost:8080';
+  static const String wsUrl = 'ws://localhost:8080';
   WebSocketChannel? _channel;
 
   // Granular notifiers for specific state aspects
