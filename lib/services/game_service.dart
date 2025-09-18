@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../models/card_instance.dart';
 import '../models/card_drag_payload.dart';
 import 'granular_game_state.dart';
+import '../models/planned_play.dart';
 
 class RoundDiscardSummary {
   final int roundNumber;
@@ -66,6 +67,7 @@ class GameState {
   final int turnCount;
   final int? winnerPlayerIndex;
   final Map<int, bool> playerChoicesLocked;
+  final Map<int, List<PlannedPlay>> plannedPlays;
 
   GameState({
     required this.id,
@@ -78,7 +80,9 @@ class GameState {
     required this.turnCount,
     this.winnerPlayerIndex,
     Map<int, bool>? playerChoicesLocked,
-  }) : playerChoicesLocked = playerChoicesLocked ?? {0: false, 1: false};
+    Map<int, List<PlannedPlay>>? plannedPlays,
+  })  : playerChoicesLocked = playerChoicesLocked ?? {0: false, 1: false},
+        plannedPlays = plannedPlays ?? {0: const [], 1: const []};
 
   factory GameState.fromJson(Map<String, dynamic> json) {
     // Parse player choices locked state
@@ -122,7 +126,37 @@ class GameState {
       turnCount: json['turnCount'] ?? 0,
       winnerPlayerIndex: json['winnerPlayerIndex'],
       playerChoicesLocked: playerChoicesLocked,
+      plannedPlays: _parsePlannedPlays(json['plannedPlays']),
     );
+  }
+
+  static Map<int, List<PlannedPlay>> _parsePlannedPlays(dynamic value) {
+    final Map<int, List<PlannedPlay>> result = {0: const [], 1: const []};
+    if (value is Map) {
+      value.forEach((k, v) {
+        int? idx;
+        if (k is int) {
+          idx = k;
+        } else if (k is String) {
+          idx = int.tryParse(k);
+        }
+        if (idx == null) {
+          return;
+        }
+        if (v is List) {
+          final list = <PlannedPlay>[];
+          for (final e in v) {
+            if (e is Map<String, dynamic>) {
+              list.add(PlannedPlay.fromJson(e));
+            } else if (e is Map) {
+              list.add(PlannedPlay.fromJson(e.cast<String, dynamic>()));
+            }
+          }
+          result[idx] = list;
+        }
+      });
+    }
+    return result;
   }
 
   /// Determines if the game is over (one player has won)
@@ -246,6 +280,8 @@ class GameService extends ChangeNotifier {
   final cardPlacement = CardPlacementNotifier();
   final lockState = LockStateNotifier();
   final discardLog = DiscardLogNotifier();
+  final targetValidation = TargetValidationNotifier();
+  final playLog = PlayLogNotifier();
 
   GameService() {
     connectionState = ConnectionStateNotifier();
@@ -506,6 +542,19 @@ class GameService extends ChangeNotifier {
                 'Player ${ps.playerIndex}: hand=${ps.hand.length}, deck=${ps.deckCount}');
           }
         }
+      } else if (messageType == 'target_validation') {
+        final result = TargetValidationResult(
+          row: (data['row'] is int)
+              ? data['row']
+              : (data['row'] as num?)?.toInt() ?? 0,
+          col: (data['col'] is int)
+              ? data['col']
+              : (data['col'] as num?)?.toInt() ?? 0,
+          cardInstanceId: (data['cardInstanceId'] ?? '').toString(),
+          valid: data['valid'] == true,
+          reason: data['reason']?.toString(),
+        );
+        targetValidation.setResult(result);
       } else if (messageType == 'player_locked') {
         // Handle player lock update
         final playerIndex = data['playerIndex'];
@@ -608,6 +657,28 @@ class GameService extends ChangeNotifier {
                     _recordDiscardEvent(
                         round: round, playerIndex: playerIdx, count: count);
                   }
+                } else if (type == 'effect') {
+                  final evtData = evt['data'];
+                  if (evtData is Map) {
+                    final action = evtData['action'];
+                    if (action == 'play_card' || evtData['cardId'] != null) {
+                      final playerIdx =
+                          (evtData['playerIndex'] as num?)?.toInt() ?? 0;
+                      final cardId = (evtData['cardId'] ?? '').toString();
+                      final instanceId =
+                          (evtData['cardInstanceId'] ?? '').toString();
+                      final row = (evtData['row'] as num?)?.toInt() ?? 0;
+                      final col = (evtData['col'] as num?)?.toInt() ?? 0;
+                      playLog.add(PlayEventEntry(
+                        round: round,
+                        playerIndex: playerIdx,
+                        cardId: cardId,
+                        cardInstanceId: instanceId,
+                        row: row,
+                        col: col,
+                      ));
+                    }
+                  }
                 }
               }
             }
@@ -641,6 +712,24 @@ class GameService extends ChangeNotifier {
     if (_channel != null && isConnected) {
       _channel!.sink.add(json.encode(action));
     }
+  }
+
+  // Validate a target tile for a card via WS
+  void validateTarget({
+    required int playerIndex,
+    required String cardInstanceId,
+    required int row,
+    required int col,
+    String? cardId,
+  }) {
+    sendAction({
+      'type': 'validate_target',
+      'playerIndex': playerIndex,
+      'cardInstanceId': cardInstanceId,
+      'row': row,
+      'col': col,
+      if (cardId != null) 'cardId': cardId,
+    });
   }
 
   // Deal damage to a command center

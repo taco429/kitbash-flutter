@@ -428,6 +428,18 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
       instance: widget.instance,
     );
 
+    final gameService = Provider.of<GameService>(context, listen: false);
+    bool isPlanned = false;
+    if (widget.instance != null) {
+      final gs = gameService.gameState;
+      if (gs != null) {
+        final myIdx = gameService.currentPlayerIndex;
+        final plans = gs.plannedPlays[myIdx] ?? const [];
+        isPlanned =
+            plans.any((p) => p.cardInstanceId == widget.instance!.instanceId);
+      }
+    }
+
     final Widget cardSurface = MouseRegion(
       cursor:
           _isDragging ? SystemMouseCursors.grabbing : SystemMouseCursors.grab,
@@ -470,7 +482,12 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
                           color: Colors.red.withValues(alpha: 0.6),
                           width: 2,
                         )
-                      : null,
+                      : (isPlanned
+                          ? Border.all(
+                              color: Colors.cyanAccent.withValues(alpha: 0.8),
+                              width: 2,
+                            )
+                          : null),
                   boxShadow: _isPressed
                       ? [
                           BoxShadow(
@@ -581,6 +598,12 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
           delay: const Duration(milliseconds: 100),
           dragAnchorStrategy: pointerDragAnchorStrategy,
           feedbackOffset: const Offset(0, -20),
+          onDragUpdate: (details) {
+            // Hint the preview panel to show when dragging
+            final gameService =
+                Provider.of<GameService>(context, listen: false);
+            gameService.showCardPreview(payload);
+          },
           onDragStarted: () {
             HapticFeedback.mediumImpact();
             setState(() {
@@ -593,11 +616,18 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
             setState(() {
               _isDragging = false;
             });
+            // Clear preview after drag ends
+            final gameService =
+                Provider.of<GameService>(context, listen: false);
+            gameService.clearCardPreview();
           },
           onDraggableCanceled: (_, __) {
             setState(() {
               _isDragging = false;
             });
+            final gameService =
+                Provider.of<GameService>(context, listen: false);
+            gameService.clearCardPreview();
           },
           childWhenDragging: Opacity(
             opacity: 0.3,

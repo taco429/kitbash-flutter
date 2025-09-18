@@ -150,3 +150,75 @@ class DiscardLogNotifier extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+/// Represents a backend target validation response
+class TargetValidationResult {
+  final int row;
+  final int col;
+  final String cardInstanceId;
+  final bool valid;
+  final String? reason;
+
+  const TargetValidationResult({
+    required this.row,
+    required this.col,
+    required this.cardInstanceId,
+    required this.valid,
+    this.reason,
+  });
+}
+
+/// Notifier for latest target validation result
+class TargetValidationNotifier extends ValueNotifier<TargetValidationResult?> {
+  TargetValidationNotifier() : super(null);
+
+  void setResult(TargetValidationResult? result) {
+    value = result;
+  }
+
+  void clear() {
+    if (value != null) value = null;
+  }
+}
+
+/// Play event log entry
+class PlayEventEntry {
+  final int round;
+  final int playerIndex;
+  final String cardId;
+  final String cardInstanceId;
+  final int row;
+  final int col;
+
+  const PlayEventEntry({
+    required this.round,
+    required this.playerIndex,
+    required this.cardId,
+    required this.cardInstanceId,
+    required this.row,
+    required this.col,
+  });
+}
+
+/// Notifier to accumulate play events per round
+class PlayLogNotifier extends ChangeNotifier {
+  final List<PlayEventEntry> _entries = [];
+
+  List<PlayEventEntry> get entries => List.unmodifiable(_entries);
+
+  void add(PlayEventEntry e) {
+    _entries.add(e);
+    // Bound log size
+    if (_entries.length > 100) {
+      _entries.removeRange(0, _entries.length - 100);
+    }
+    notifyListeners();
+  }
+
+  void clear() {
+    if (_entries.isNotEmpty) {
+      _entries.clear();
+      notifyListeners();
+    }
+  }
+}

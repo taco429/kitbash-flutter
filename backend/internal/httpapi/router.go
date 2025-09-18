@@ -61,7 +61,7 @@ func NewRouter(cfg config.Config) http.Handler {
 	}
 
 	hub := ws.NewHub(log, cfg)
-	gameHub := ws.NewGameHubWithRepos(a.gameRepo, a.deckRepo, log, cfg)
+    gameHub := ws.NewGameHubWithRepos(a.gameRepo, a.deckRepo, a.cardRepo, log, cfg)
 
 	// GET /healthz: liveness probe for container/orchestrator.
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {

@@ -3,9 +3,9 @@ package ws
 import (
 	"context"
 	"encoding/json"
+	"math/rand"
 	"net/http"
 	"sync"
-	"math/rand"
 	"time"
 
 	"kitbash/backend/internal/config"
@@ -18,20 +18,22 @@ import (
 
 // GameClient represents a connected client for a specific game.
 type GameClient struct {
-	Conn     *websocket.Conn
-	GameID   domain.GameID
-	PlayerID domain.PlayerID
+	Conn       *websocket.Conn
+	GameID     domain.GameID
+	PlayerID   domain.PlayerID
+	writeMutex sync.Mutex // Protects websocket writes
 }
 
 // GameHub manages WebSocket connections for game instances.
 type GameHub struct {
-	mu         sync.RWMutex
-	gameRepo   repository.GameRepository
-	deckRepo   domain.DeckRepository
-	clients    map[domain.GameID]map[*websocket.Conn]*GameClient
-	upgrader   websocket.Upgrader
-	log        *logger.Logger
-	cfg        config.Config
+	mu          sync.RWMutex
+	gameRepo    repository.GameRepository
+	cardRepo    domain.CardRepository
+	deckRepo    domain.DeckRepository
+	clients     map[domain.GameID]map[*websocket.Conn]*GameClient
+	upgrader    websocket.Upgrader
+	log         *logger.Logger
+	cfg         config.Config
 	phaseTimers map[domain.GameID]*time.Timer
 }
 
@@ -46,16 +48,17 @@ func NewGameHub(gameRepo repository.GameRepository, log *logger.Logger, cfg conf
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool { return true },
 		},
-		log: log,
-		cfg: cfg,
+		log:         log,
+		cfg:         cfg,
 		phaseTimers: make(map[domain.GameID]*time.Timer),
 	}
 }
 
 // NewGameHubWithRepos creates a new game hub with both game and deck repositories.
-func NewGameHubWithRepos(gameRepo repository.GameRepository, deckRepo domain.DeckRepository, log *logger.Logger, cfg config.Config) *GameHub {
+func NewGameHubWithRepos(gameRepo repository.GameRepository, deckRepo domain.DeckRepository, cardRepo domain.CardRepository, log *logger.Logger, cfg config.Config) *GameHub {
 	hub := NewGameHub(gameRepo, log, cfg)
 	hub.deckRepo = deckRepo
+	hub.cardRepo = cardRepo
 	return hub
 }
 
@@ -195,13 +198,23 @@ func (h *GameHub) getOrCreateGameState(ctx context.Context, gameID string) (*dom
 	return gameState, nil
 }
 
+// WriteJSON safely writes a JSON message to the client's websocket connection.
+func (c *GameClient) WriteJSON(v interface{}) error {
+	c.writeMutex.Lock()
+	defer c.writeMutex.Unlock()
+
+	// Set write deadline to prevent blocking forever
+	c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	return c.Conn.WriteJSON(v)
+}
+
 // sendGameState sends the current game state to a client.
 func (h *GameHub) sendGameState(client *GameClient, gameState *domain.GameState) error {
 	message := map[string]interface{}{
 		"type":      "game_state",
 		"gameState": gameState,
 	}
-	return client.Conn.WriteJSON(message)
+	return client.WriteJSON(message)
 }
 
 // broadcastGameState sends the game state to all clients in a game.
@@ -231,7 +244,7 @@ func (h *GameHub) broadcastGameState(ctx context.Context, gameID domain.GameID) 
 	}
 
 	for _, client := range clients {
-		if err := client.Conn.WriteJSON(message); err != nil {
+		if err := client.WriteJSON(message); err != nil {
 			h.log.LogError(ctx, err, "Failed to send game state to client")
 		}
 	}
@@ -262,11 +275,189 @@ func (h *GameHub) handleGameMessage(ctx context.Context, client *GameClient, msg
 		return h.handleSubmitActions(ctx, client, message)
 	case "advance_phase":
 		return h.handleAdvancePhase(ctx, client)
+	case "validate_target":
+		return h.handleValidateTarget(ctx, client, message)
+	case "stage_play_card":
+		return h.handleStagePlayCard(ctx, client, message)
 	default:
 		h.log.WithContext(ctx).Debug("Unknown message type", "type", msgType)
 	}
 
 	return nil
+}
+
+// handleValidateTarget checks if a proposed target tile is valid for the given card.
+// Rules: A target is valid unless it is a unit card attempting to be played on an occupied space.
+func (h *GameHub) handleValidateTarget(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+	gameState, err := h.gameRepo.Get(ctx, client.GameID)
+	if err != nil {
+		return err
+	}
+
+	// Extract params
+	var playerIndex int
+	if v, ok := message["playerIndex"].(float64); ok {
+		playerIndex = int(v)
+	}
+	var row, col int
+	if v, ok := message["row"].(float64); ok {
+		row = int(v)
+	}
+	if v, ok := message["col"].(float64); ok {
+		col = int(v)
+	}
+	cardInstanceID, _ := message["cardInstanceId"].(string)
+	cardIDStr, _ := message["cardId"].(string)
+
+	resp := map[string]interface{}{
+		"type":           "target_validation",
+		"playerIndex":    playerIndex,
+		"row":            row,
+		"col":            col,
+		"cardInstanceId": cardInstanceID,
+		"cardId":         cardIDStr,
+		"valid":          false,
+	}
+
+	// Bounds check
+	if row < 0 || col < 0 || row >= gameState.BoardRows || col >= gameState.BoardCols {
+		resp["reason"] = "out_of_bounds"
+		return client.WriteJSON(resp)
+	}
+
+	// Determine cardID and card type
+	var cardID domain.CardID
+	if cardIDStr != "" {
+		cardID = domain.CardID(cardIDStr)
+	} else {
+		// Lookup by instance ID in player's hand
+		if playerIndex >= 0 && playerIndex < len(gameState.PlayerStates) {
+			for _, inst := range gameState.PlayerStates[playerIndex].Hand {
+				if string(inst.InstanceID) == cardInstanceID {
+					cardID = inst.CardID
+					resp["cardId"] = string(cardID)
+					break
+				}
+			}
+		}
+	}
+
+	// If we couldn't determine card, mark invalid
+	if cardID == "" {
+		resp["reason"] = "card_not_found"
+		return client.WriteJSON(resp)
+	}
+
+	// If cardRepo is present, get type to check if unit
+	isUnit := false
+	if h.cardRepo != nil {
+		card, err := h.cardRepo.GetCard(ctx, cardID)
+		if err == nil && card != nil {
+			isUnit = card.IsUnit()
+		}
+	}
+
+	if isUnit && gameState.IsTileOccupied(row, col) {
+		resp["reason"] = "occupied"
+		return client.WriteJSON(resp)
+	}
+
+	// Valid if not a unit or tile not occupied
+	resp["valid"] = true
+	return client.WriteJSON(resp)
+}
+
+// handleStagePlayCard records the player's intention to play a card at a tile during Planning.
+func (h *GameHub) handleStagePlayCard(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+	gameState, err := h.gameRepo.Get(ctx, client.GameID)
+	if err != nil {
+		return err
+	}
+
+	// Only allow staging during Planning phase
+	if gameState.CurrentPhase != domain.PhasePlanning {
+		return nil
+	}
+
+	var playerIndex int
+	if v, ok := message["playerIndex"].(float64); ok {
+		playerIndex = int(v)
+	}
+	var row, col int
+	if v, ok := message["row"].(float64); ok {
+		row = int(v)
+	}
+	if v, ok := message["col"].(float64); ok {
+		col = int(v)
+	}
+	cardInstanceID, _ := message["cardInstanceId"].(string)
+
+	// Verify player index and instance exist in hand, and determine cardId
+	if playerIndex < 0 || playerIndex >= len(gameState.PlayerStates) {
+		return nil
+	}
+	ps := &gameState.PlayerStates[playerIndex]
+	var cardID domain.CardID
+	found := false
+	for _, inst := range ps.Hand {
+		if string(inst.InstanceID) == cardInstanceID {
+			cardID = inst.CardID
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+
+	// Validate target according to rules
+	validateMsg := map[string]interface{}{
+		"type":           "target_validation",
+		"playerIndex":    playerIndex,
+		"row":            row,
+		"col":            col,
+		"cardInstanceId": cardInstanceID,
+		"cardId":         string(cardID),
+		"valid":          false,
+	}
+
+	// Bounds check
+	if row < 0 || col < 0 || row >= gameState.BoardRows || col >= gameState.BoardCols {
+		validateMsg["reason"] = "out_of_bounds"
+		client.WriteJSON(validateMsg)
+		return nil
+	}
+
+	isUnit := false
+	if h.cardRepo != nil {
+		if card, err := h.cardRepo.GetCard(ctx, cardID); err == nil && card != nil {
+			isUnit = card.IsUnit()
+		}
+	}
+	if isUnit && gameState.IsTileOccupied(row, col) {
+		validateMsg["reason"] = "occupied"
+		client.WriteJSON(validateMsg)
+		return nil
+	}
+
+	// Record planned play
+	gameState.AddPlannedPlay(domain.PlannedPlay{
+		PlayerIndex:  playerIndex,
+		CardInstance: domain.CardInstanceID(cardInstanceID),
+		CardID:       cardID,
+		Position:     domain.Point{Row: row, Col: col},
+	})
+
+	if err := h.gameRepo.Update(ctx, gameState); err != nil {
+		return err
+	}
+
+	// Acknowledge success to the requester
+	validateMsg["valid"] = true
+	client.WriteJSON(validateMsg)
+
+	// Broadcast updated game state with planned plays
+	return h.broadcastGameState(ctx, client.GameID)
 }
 
 // handleDealDamage processes damage dealing actions.
@@ -449,7 +640,7 @@ func (h *GameHub) broadcastPlayerLocked(ctx context.Context, gameID domain.GameI
 	}
 
 	for _, client := range clients {
-		if err := client.Conn.WriteJSON(message); err != nil {
+		if err := client.WriteJSON(message); err != nil {
 			h.log.LogError(ctx, err, "Failed to send player locked notification")
 		}
 	}
@@ -476,7 +667,7 @@ func (h *GameHub) broadcastTurnAdvanced(ctx context.Context, gameID domain.GameI
 	}
 
 	for _, client := range clients {
-		if err := client.Conn.WriteJSON(message); err != nil {
+		if err := client.WriteJSON(message); err != nil {
 			h.log.LogError(ctx, err, "Failed to send turn advanced notification")
 		}
 	}
@@ -615,12 +806,12 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 					"pending_discards", ps.PendingDiscards)
 			}
 		}
-		
+
 		// Resolve actions deterministically
 		p1 := gameState.PendingActions[0]
 		p2 := gameState.PendingActions[1]
 		resolutionLog := domain.ExecuteResolutionPhase(gameState, p1, p2)
-		
+
 		// Log discards after resolution
 		for i, ps := range gameState.PlayerStates {
 			h.log.WithContext(ctx).Info("Player state after resolution",
@@ -630,7 +821,7 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 				"discard_count", len(ps.DiscardPile),
 				"pending_discards", ps.PendingDiscards)
 		}
-		
+
 		// Clear pending actions after resolution
 		gameState.PendingActions[0] = domain.ActionQueue{}
 		gameState.PendingActions[1] = domain.ActionQueue{}
@@ -703,13 +894,13 @@ func (h *GameHub) broadcastResolutionTimeline(ctx context.Context, gameID domain
 	h.mu.RUnlock()
 
 	message := map[string]interface{}{
-		"type":  "resolution_timeline",
-		"round": log.RoundNumber,
+		"type":   "resolution_timeline",
+		"round":  log.RoundNumber,
 		"events": log.Events,
 	}
 
 	for _, client := range clients {
-		if err := client.Conn.WriteJSON(message); err != nil {
+		if err := client.WriteJSON(message); err != nil {
 			h.log.LogError(ctx, err, "Failed to send resolution timeline to client")
 		}
 	}
@@ -746,7 +937,7 @@ func (h *GameHub) broadcastPhaseChange(ctx context.Context, gameID domain.GameID
 	}
 
 	for _, client := range clients {
-		if err := client.Conn.WriteJSON(message); err != nil {
+		if err := client.WriteJSON(message); err != nil {
 			h.log.LogError(ctx, err, "Failed to send phase change notification")
 		}
 	}
