@@ -435,7 +435,8 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
       if (gs != null) {
         final myIdx = gameService.currentPlayerIndex;
         final plans = gs.plannedPlays[myIdx] ?? const [];
-        isPlanned = plans.any((p) => p.cardInstanceId == widget.instance!.instanceId);
+        isPlanned =
+            plans.any((p) => p.cardInstanceId == widget.instance!.instanceId);
       }
     }
 
@@ -599,7 +600,8 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
           feedbackOffset: const Offset(0, -20),
           onDragUpdate: (details) {
             // Hint the preview panel to show when dragging
-            final gameService = Provider.of<GameService>(context, listen: false);
+            final gameService =
+                Provider.of<GameService>(context, listen: false);
             gameService.showCardPreview(payload);
           },
           onDragStarted: () {
@@ -615,14 +617,16 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
               _isDragging = false;
             });
             // Clear preview after drag ends
-            final gameService = Provider.of<GameService>(context, listen: false);
+            final gameService =
+                Provider.of<GameService>(context, listen: false);
             gameService.clearCardPreview();
           },
           onDraggableCanceled: (_, __) {
             setState(() {
               _isDragging = false;
             });
-            final gameService = Provider.of<GameService>(context, listen: false);
+            final gameService =
+                Provider.of<GameService>(context, listen: false);
             gameService.clearCardPreview();
           },
           childWhenDragging: Opacity(

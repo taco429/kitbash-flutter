@@ -66,7 +66,8 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
     if (_isDragActive && tileData != null) {
       final now = DateTime.now();
       // Throttle to every 50ms and avoid duplicate tile validations
-      if (_lastValidatedRow == tileData.row && _lastValidatedCol == tileData.col &&
+      if (_lastValidatedRow == tileData.row &&
+          _lastValidatedCol == tileData.col &&
           now.difference(_lastValidationAt).inMilliseconds < 50) {
         return;
       }

@@ -135,8 +135,14 @@ class GameState {
     if (value is Map) {
       value.forEach((k, v) {
         int? idx;
-        if (k is int) idx = k; else if (k is String) idx = int.tryParse(k);
-        if (idx == null) return;
+        if (k is int) {
+          idx = k;
+        } else if (k is String) {
+          idx = int.tryParse(k);
+        }
+        if (idx == null) {
+          return;
+        }
         if (v is List) {
           final list = <PlannedPlay>[];
           for (final e in v) {
@@ -262,8 +268,8 @@ class PlayerBattleState {
 
 class GameService extends ChangeNotifier {
   // Change this to your backend server IP address
-  static const String baseUrl = 'http://localhost:8080';
-  static const String wsUrl = 'ws://localhost:8080';
+  static const String baseUrl = 'http://192.168.4.156:8080';
+  static const String wsUrl = 'ws://192.168.4.156:8080';
   WebSocketChannel? _channel;
 
   // Granular notifiers for specific state aspects
@@ -538,8 +544,12 @@ class GameService extends ChangeNotifier {
         }
       } else if (messageType == 'target_validation') {
         final result = TargetValidationResult(
-          row: (data['row'] is int) ? data['row'] : (data['row'] as num?)?.toInt() ?? 0,
-          col: (data['col'] is int) ? data['col'] : (data['col'] as num?)?.toInt() ?? 0,
+          row: (data['row'] is int)
+              ? data['row']
+              : (data['row'] as num?)?.toInt() ?? 0,
+          col: (data['col'] is int)
+              ? data['col']
+              : (data['col'] as num?)?.toInt() ?? 0,
           cardInstanceId: (data['cardInstanceId'] ?? '').toString(),
           valid: data['valid'] == true,
           reason: data['reason']?.toString(),
@@ -652,9 +662,11 @@ class GameService extends ChangeNotifier {
                   if (evtData is Map) {
                     final action = evtData['action'];
                     if (action == 'play_card' || evtData['cardId'] != null) {
-                      final playerIdx = (evtData['playerIndex'] as num?)?.toInt() ?? 0;
+                      final playerIdx =
+                          (evtData['playerIndex'] as num?)?.toInt() ?? 0;
                       final cardId = (evtData['cardId'] ?? '').toString();
-                      final instanceId = (evtData['cardInstanceId'] ?? '').toString();
+                      final instanceId =
+                          (evtData['cardInstanceId'] ?? '').toString();
                       final row = (evtData['row'] as num?)?.toInt() ?? 0;
                       final col = (evtData['col'] as num?)?.toInt() ?? 0;
                       playLog.add(PlayEventEntry(

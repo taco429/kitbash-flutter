@@ -27,7 +27,8 @@ class GameLog extends StatelessWidget {
     final gameService = context.read<GameService>();
     // Listen to both discard and play logs
     return ListenableBuilder(
-      listenable: Listenable.merge([gameService.discardLog, gameService.playLog]),
+      listenable:
+          Listenable.merge([gameService.discardLog, gameService.playLog]),
       builder: (context, child) {
         final discards = gameService.discardLog.discardLog.toList()
           ..sort((a, b) => b.roundNumber.compareTo(a.roundNumber));
@@ -37,8 +38,10 @@ class GameLog extends StatelessWidget {
         // Interleave by round, show latest first
         final lines = <String>[];
         int di = 0, pi = 0;
-        while ((di < discards.length || pi < plays.length) && lines.length < maxRows) {
-          final nextDiscardRound = di < discards.length ? discards[di].roundNumber : -1;
+        while ((di < discards.length || pi < plays.length) &&
+            lines.length < maxRows) {
+          final nextDiscardRound =
+              di < discards.length ? discards[di].roundNumber : -1;
           final nextPlayRound = pi < plays.length ? plays[pi].round : -1;
           if (nextPlayRound >= nextDiscardRound) {
             lines.add(_formatPlay(context, plays[pi++]));

@@ -271,7 +271,6 @@ class IsometricGridComponent extends PositionComponent {
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1;
     final ui.Paint highlightPaint = ui.Paint()..color = const Color(0x8854C7EC);
-    final ui.Paint hoverPaint = ui.Paint()..color = const Color(0x66FFFFFF);
     final ui.Paint ccPaintP0 = ui.Paint()..color = const Color(0xCC8BC34A);
     final ui.Paint ccPaintP1 = ui.Paint()..color = const Color(0xCCE91E63);
     final ui.Paint healthBarBg = ui.Paint()..color = const Color(0xAA000000);
@@ -300,8 +299,8 @@ class IsometricGridComponent extends PositionComponent {
         if (hoveredRow == r && hoveredCol == c) {
           final ui.Paint hoverPaintDyn = ui.Paint()
             ..color = (_hoverInvalid
-                    ? const Color(0xFF8B0000)
-                    : const Color(0x66FFFFFF));
+                ? const Color(0xFF8B0000)
+                : const Color(0x66FFFFFF));
           canvas.drawPath(diamond, hoverPaintDyn);
         }
 
@@ -318,7 +317,9 @@ class IsometricGridComponent extends PositionComponent {
       for (final entry in gs.plannedPlays.entries) {
         final playerIdx = entry.key;
         for (final p in entry.value) {
-          if (p.row < 0 || p.col < 0 || p.row >= rows || p.col >= cols) continue;
+          if (p.row < 0 || p.col < 0 || p.row >= rows || p.col >= cols) {
+            continue;
+          }
           final Vector2 center = isoToScreen(p.row, p.col, originX, originY);
           final ui.Path indicator = _tileDiamond(center);
           final ui.Path inner = _tileDiamond(Vector2(center.x, center.y));
@@ -501,9 +502,11 @@ class IsometricGridComponent extends PositionComponent {
   bool _computeHoverInvalid(int row, int col) {
     // Prefer backend validation
     final validation = gameService.targetValidation.value;
-    final preview = gameService.cardPreview.value ?? gameService.pendingPlacement;
+    final preview =
+        gameService.cardPreview.value ?? gameService.pendingPlacement;
     if (validation != null && preview?.instance != null) {
-      if (validation.row == row && validation.col == col &&
+      if (validation.row == row &&
+          validation.col == col &&
           validation.cardInstanceId == preview!.instance!.instanceId) {
         return !validation.valid;
       }

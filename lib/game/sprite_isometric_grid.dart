@@ -396,9 +396,11 @@ class SpriteIsometricGrid extends PositionComponent
   bool _computeHoverInvalid(int row, int col) {
     // Prefer backend validation result when available
     final validation = gameService.targetValidation.value;
-    final preview = gameService.cardPreview.value ?? gameService.pendingPlacement;
+    final preview =
+        gameService.cardPreview.value ?? gameService.pendingPlacement;
     if (validation != null && preview?.instance != null) {
-      if (validation.row == row && validation.col == col &&
+      if (validation.row == row &&
+          validation.col == col &&
           validation.cardInstanceId == preview!.instance!.instanceId) {
         return !validation.valid;
       }
