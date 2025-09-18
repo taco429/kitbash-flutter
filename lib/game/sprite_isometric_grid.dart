@@ -696,37 +696,5 @@ class SpriteIsometricGrid extends PositionComponent
     );
   }
 
-  static List<CommandCenter> computeDefaultCommandCenters(int rows, int cols) {
-    // Set the bottom-left tile of each 2x2 command center footprint.
-    // Player 0: (11,6), Player 1: (1,6)
-    int clampTopLeftRowFromBottomLeft(int bottomLeftRow) {
-      return (bottomLeftRow - 1).clamp(0, rows - 2);
-    }
-
-    int clampTopLeftColFromBottomLeft(int bottomLeftCol) {
-      return bottomLeftCol.clamp(0, cols - 2);
-    }
-
-    final int p0TLR = clampTopLeftRowFromBottomLeft(11);
-    final int p0TLC = clampTopLeftColFromBottomLeft(6);
-    final int p1TLR = clampTopLeftRowFromBottomLeft(1);
-    final int p1TLC = clampTopLeftColFromBottomLeft(6);
-
-    return <CommandCenter>[
-      CommandCenter(
-        playerIndex: 0,
-        topLeftRow: p0TLR,
-        topLeftCol: p0TLC,
-        health: 100,
-        maxHealth: 100,
-      ),
-      CommandCenter(
-        playerIndex: 1,
-        topLeftRow: p1TLR,
-        topLeftCol: p1TLC,
-        health: 100,
-        maxHealth: 100,
-      ),
-    ];
-  }
+  // Client-side default CC calculator removed; backend is authoritative.
 }

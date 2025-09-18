@@ -45,8 +45,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
         rows: rows,
         cols: cols,
         tileSize: Vector2(64, 32),
-        commandCenters:
-            SpriteIsometricGrid.computeDefaultCommandCenters(rows, cols),
         gameService: gameService,
         // Enable native-aspect rendering to test unskewed PNGs
         renderSpritesAtNativeAspect: true,
@@ -65,8 +63,6 @@ class KitbashGame extends FlameGame with TapCallbacks, HasGameReference {
         rows: rows,
         cols: cols,
         tileSize: Vector2(64, 32),
-        commandCenters:
-            IsometricGridComponent.computeDefaultCommandCenters(rows, cols),
         gameService: gameService,
       );
 
@@ -666,38 +662,7 @@ class IsometricGridComponent extends PositionComponent {
     return null;
   }
 
-  static List<CommandCenter> computeDefaultCommandCenters(int rows, int cols) {
-    // Place bottom-left tiles at (11,6) for player 0 and (1,6) for player 1.
-    int clampTopLeftRowFromBottomLeft(int bottomLeftRow) {
-      return (bottomLeftRow - 1).clamp(0, rows - 2);
-    }
-
-    int clampTopLeftColFromBottomLeft(int bottomLeftCol) {
-      return bottomLeftCol.clamp(0, cols - 2);
-    }
-
-    final int p0TLR = clampTopLeftRowFromBottomLeft(11);
-    final int p0TLC = clampTopLeftColFromBottomLeft(6);
-    final int p1TLR = clampTopLeftRowFromBottomLeft(1);
-    final int p1TLC = clampTopLeftColFromBottomLeft(6);
-
-    return <CommandCenter>[
-      CommandCenter(
-        playerIndex: 0,
-        topLeftRow: p0TLR,
-        topLeftCol: p0TLC,
-        health: 100,
-        maxHealth: 100,
-      ),
-      CommandCenter(
-        playerIndex: 1,
-        topLeftRow: p1TLR,
-        topLeftCol: p1TLC,
-        health: 100,
-        maxHealth: 100,
-      ),
-    ];
-  }
+  // Client-side default CC calculator removed; backend is authoritative.
 }
 
 extension on IsometricGridComponent {
