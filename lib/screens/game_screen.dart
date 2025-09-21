@@ -319,7 +319,7 @@ class _GameScreenState extends State<GameScreen> {
               final currentPhase = data.$3;
               final plannedPlaysCount = data.$4;
               final isPlanning = currentPhase == 'planning';
-              
+
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -455,16 +455,16 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ],
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.refresh,
                 color: Colors.white,
                 size: 18,
               ),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 'Reset',
                 style: TextStyle(
                   color: Colors.white,

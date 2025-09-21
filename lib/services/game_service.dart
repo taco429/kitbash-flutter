@@ -390,7 +390,7 @@ class GameService extends ChangeNotifier {
 
     _channel!.sink.add(json.encode(message));
     debugPrint('Sent reset planned plays request for player $playerIndex');
-    
+
     // Also clear discard selection when resetting
     clearDiscardSelection();
   }
