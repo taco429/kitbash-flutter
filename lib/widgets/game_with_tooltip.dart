@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import '../game/kitbash_game.dart';
 import '../models/tile_data.dart';
+import '../models/resources.dart';
 import 'game_tooltip.dart';
 import '../models/card_drag_payload.dart';
 import 'package:provider/provider.dart';
@@ -402,6 +403,9 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                       deckId: '',
                       hand: const [],
                       deckCount: 0,
+                      resources: const Resources(gold: 0, mana: 0),
+                      resourceIncome:
+                          const ResourceGeneration(gold: 0, mana: 0),
                     ),
                   );
                   return OpponentIndicator(opponentState: opponentState);

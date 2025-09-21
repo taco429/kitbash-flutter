@@ -46,26 +46,27 @@ type PlayerBattleState struct {
 	// DrawPile and DiscardPile - now exposed to clients for viewing
 	DrawPile    []CardInstance   `json:"drawPile"`
 	DiscardPile []CardInstance   `json:"discardPile"`
-	// Resources and limits
-	Gold        int        `json:"gold"`
-	Mana        int        `json:"mana"`
-	ManaMax     int        `json:"manaMax"`
-	GoldIncome  int        `json:"goldIncome"`
+	// Resources - Gold accumulates, Mana is ephemeral (resets each turn)
+	Resources   Resources  `json:"resources"`
+	// Resource income per turn (from buildings)
+	ResourceIncome ResourceGeneration `json:"resourceIncome"`
+	// Limits
 	HandLimit   int        `json:"handLimit"`
 	// Queues - using instance IDs for discards
 	PendingDiscards []CardInstanceID   `json:"-"`
 }
 
-// CommandCenter represents a player's command center with health.
+// CommandCenter represents a player's command center with health and building functionality.
 type CommandCenter struct {
-	PlayerIndex int `json:"playerIndex"`
-	TopLeftRow  int `json:"topLeftRow"`
-	TopLeftCol  int `json:"topLeftCol"`
-	Health      int `json:"health"`
-	MaxHealth   int `json:"maxHealth"`
+	PlayerIndex int                `json:"playerIndex"`
+	TopLeftRow  int                `json:"topLeftRow"`
+	TopLeftCol  int                `json:"topLeftCol"`
+	Health      int                `json:"health"`
+	MaxHealth   int                `json:"maxHealth"`
+	Building    *Building          `json:"building"`
 }
 
-// NewCommandCenter creates a new command center with default health.
+// NewCommandCenter creates a new command center with default health and building.
 func NewCommandCenter(playerIndex, topLeftRow, topLeftCol int) *CommandCenter {
 	return &CommandCenter{
 		PlayerIndex: playerIndex,
@@ -73,6 +74,7 @@ func NewCommandCenter(playerIndex, topLeftRow, topLeftCol int) *CommandCenter {
 		TopLeftCol:  topLeftCol,
 		Health:      100,
 		MaxHealth:   100,
+		Building:    NewBuilding(BuildingCommandCenter, playerIndex, topLeftRow, topLeftCol),
 	}
 }
 
@@ -285,6 +287,12 @@ func (gs *GameState) AdvanceTurn() {
         gs.PlannedPlays[0] = []PlannedPlay{}
         gs.PlannedPlays[1] = []PlannedPlay{}
     }
+	
+	// Process building upgrades first, then resource generation
+	// This ensures upgraded buildings generate their new resource amounts
+	gs.ProcessBuildingUpgrades()
+	gs.ProcessResourceGeneration()
+	
 	gs.UpdatedAt = time.Now()
 }
 
@@ -398,4 +406,84 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// ProcessResourceGeneration generates resources for all players based on their buildings
+func (gs *GameState) ProcessResourceGeneration() {
+	// Process each player's resource generation
+	for i := range gs.PlayerStates {
+		if i >= len(gs.PlayerStates) {
+			continue
+		}
+		
+		playerState := &gs.PlayerStates[i]
+		
+		// Reset mana to 0 (ephemeral resource)
+		playerState.Resources.Mana = 0
+		
+		// Calculate total resource income from all buildings
+		totalIncome := ResourceGeneration{Gold: 0, Mana: 0}
+		
+		// Get resources from command center
+		cc := gs.GetCommandCenter(i)
+		if cc != nil && cc.Building != nil {
+			income := cc.Building.GetResourceGeneration()
+			totalIncome.Gold += income.Gold
+			totalIncome.Mana += income.Mana
+		}
+		
+		// Update player's resource income (for display)
+		playerState.ResourceIncome = totalIncome
+		
+		// Add gold (accumulates)
+		playerState.Resources.Gold += totalIncome.Gold
+		
+		// Set mana (ephemeral, doesn't accumulate)
+		playerState.Resources.Mana = totalIncome.Mana
+	}
+}
+
+// ProcessBuildingUpgrades checks and processes automatic building upgrades
+func (gs *GameState) ProcessBuildingUpgrades() {
+	// Process command center upgrades
+	for _, cc := range gs.CommandCenters {
+		if cc.Building != nil {
+			// Check if it should upgrade before incrementing
+			if cc.Building.ShouldUpgrade() {
+				cc.Building.Upgrade()
+			} else {
+				// Only increment if not upgrading (upgrade resets the counter)
+				cc.Building.IncrementTurnCounter()
+			}
+		}
+	}
+}
+
+// GetPlayerResources returns the resources for a specific player
+func (gs *GameState) GetPlayerResources(playerIndex int) Resources {
+	if playerIndex < 0 || playerIndex >= len(gs.PlayerStates) {
+		return Resources{Gold: 0, Mana: 0}
+	}
+	return gs.PlayerStates[playerIndex].Resources
+}
+
+// SpendResources attempts to spend resources for a player
+func (gs *GameState) SpendResources(playerIndex int, cost Resources) bool {
+	if playerIndex < 0 || playerIndex >= len(gs.PlayerStates) {
+		return false
+	}
+	
+	playerState := &gs.PlayerStates[playerIndex]
+	
+	// Check if player has enough resources
+	if playerState.Resources.Gold < cost.Gold || playerState.Resources.Mana < cost.Mana {
+		return false
+	}
+	
+	// Deduct resources
+	playerState.Resources.Gold -= cost.Gold
+	playerState.Resources.Mana -= cost.Mana
+	
+	gs.UpdatedAt = time.Now()
+	return true
 }

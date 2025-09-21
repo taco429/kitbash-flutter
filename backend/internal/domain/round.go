@@ -24,29 +24,20 @@ func ExecuteUpkeepPhase(gameState *GameState) *EventLog {
         "note": "start_of_upkeep_triggers_resolved",
     })
 
-    // 2) Generate resources and refill mana
+    // 2) Generate resources - this is now handled by ProcessResourceGeneration
+    // which is called in AdvanceTurn at the start of each turn
+    // Log the resource generation that already happened
     for i := range gameState.PlayerStates {
         ps := &gameState.PlayerStates[i]
-        // Bank Gold
-        if ps.GoldIncome > 0 {
-            ps.Gold += ps.GoldIncome
+        if ps.ResourceIncome.Gold > 0 || ps.ResourceIncome.Mana > 0 {
             evtLog.AddSimple(EventTypeResource, "upkeep", map[string]any{
                 "playerIndex": ps.PlayerIndex,
-                "goldDelta":   ps.GoldIncome,
-                "gold":        ps.Gold,
+                "goldIncome":  ps.ResourceIncome.Gold,
+                "manaIncome":  ps.ResourceIncome.Mana,
+                "gold":        ps.Resources.Gold,
+                "mana":        ps.Resources.Mana,
             })
         }
-        // Refill Mana to ManaMax
-        if ps.ManaMax < 0 {
-            ps.ManaMax = 0
-        }
-        oldMana := ps.Mana
-        ps.Mana = ps.ManaMax
-        evtLog.AddSimple(EventTypeResource, "upkeep", map[string]any{
-            "playerIndex": ps.PlayerIndex,
-            "manaDelta":   ps.Mana - oldMana,
-            "mana":        ps.Mana,
-        })
     }
 
     // 3) Draw to hand limit
@@ -175,12 +166,13 @@ func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, pl
             })
             ps.PendingDiscards = nil
         }
-        // Reset Mana to 0 (Gold persists)
-        if ps.Mana != 0 {
-            ps.Mana = 0
+        // Mana is already reset at the start of each turn by ProcessResourceGeneration
+        // Just log it if needed
+        if ps.Resources.Mana != 0 {
             evtLog.AddSimple(EventTypeResource, "end_of_round", map[string]any{
                 "playerIndex": ps.PlayerIndex,
-                "mana":        ps.Mana,
+                "mana":        0,
+                "note":        "mana_reset_end_of_round",
             })
         }
     }

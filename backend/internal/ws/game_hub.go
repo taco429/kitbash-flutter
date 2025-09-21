@@ -1040,10 +1040,8 @@ func buildPlayerStateFromDeck(playerIndex int, deck *domain.Deck) domain.PlayerB
 		DeckCount:   len(drawPile),
 		DrawPile:    drawPile,
 		DiscardPile: []domain.CardInstance{},
-		Gold:        0,
-		Mana:        0,
-		ManaMax:     3,
-		GoldIncome:  1,
+		Resources:   domain.Resources{Gold: 0, Mana: 0}, // Start with no resources
+		ResourceIncome: domain.ResourceGeneration{Gold: 0, Mana: 0}, // Will be calculated from buildings
 		HandLimit:   7,
 	}
 }
