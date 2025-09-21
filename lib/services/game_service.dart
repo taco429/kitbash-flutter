@@ -6,6 +6,7 @@ import '../models/card_instance.dart';
 import '../models/card_drag_payload.dart';
 import 'granular_game_state.dart';
 import '../models/planned_play.dart';
+import '../models/resources.dart';
 
 class RoundDiscardSummary {
   final int roundNumber;
@@ -33,6 +34,7 @@ class CommandCenter {
   final int topLeftCol;
   final int health;
   final int maxHealth;
+  final Building? building;
 
   CommandCenter({
     required this.playerIndex,
@@ -40,15 +42,22 @@ class CommandCenter {
     required this.topLeftCol,
     required this.health,
     required this.maxHealth,
+    this.building,
   });
 
   factory CommandCenter.fromJson(Map<String, dynamic> json) {
+    Building? building;
+    if (json['building'] != null && json['building'] is Map) {
+      building = Building.fromJson(json['building']);
+    }
+    
     return CommandCenter(
       playerIndex: json['playerIndex'] ?? 0,
       topLeftRow: json['topLeftRow'] ?? 0,
       topLeftCol: json['topLeftCol'] ?? 0,
       health: json['health'] ?? 100,
       maxHealth: json['maxHealth'] ?? 100,
+      building: building,
     );
   }
 
@@ -206,6 +215,9 @@ class PlayerBattleState {
   final int deckCount;
   final List<CardInstance> drawPile; // Cards remaining in deck
   final List<CardInstance> discardPile; // Cards in discard pile
+  final Resources resources; // Player's current resources
+  final ResourceGeneration resourceIncome; // Income per turn from buildings
+  final int handLimit; // Maximum hand size
 
   const PlayerBattleState({
     required this.playerIndex,
@@ -214,6 +226,9 @@ class PlayerBattleState {
     required this.deckCount,
     this.drawPile = const [],
     this.discardPile = const [],
+    required this.resources,
+    required this.resourceIncome,
+    this.handLimit = 7,
   });
 
   factory PlayerBattleState.fromJson(Map<String, dynamic> json) {
@@ -255,6 +270,18 @@ class PlayerBattleState {
       }).toList();
     }
 
+    // Parse resources
+    Resources resources = const Resources(gold: 0, mana: 0);
+    if (json['resources'] != null && json['resources'] is Map) {
+      resources = Resources.fromJson(json['resources']);
+    }
+
+    // Parse resource income
+    ResourceGeneration resourceIncome = const ResourceGeneration(gold: 0, mana: 0);
+    if (json['resourceIncome'] != null && json['resourceIncome'] is Map) {
+      resourceIncome = ResourceGeneration.fromJson(json['resourceIncome']);
+    }
+
     return PlayerBattleState(
       playerIndex: json['playerIndex'] ?? 0,
       deckId: json['deckId']?.toString() ?? '',
@@ -262,6 +289,9 @@ class PlayerBattleState {
       deckCount: json['deckCount'] ?? 0,
       drawPile: drawPileInstances,
       discardPile: discardPileInstances,
+      resources: resources,
+      resourceIncome: resourceIncome,
+      handLimit: json['handLimit'] ?? 7,
     );
   }
 }

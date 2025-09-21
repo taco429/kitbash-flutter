@@ -13,10 +13,12 @@ import '../widgets/player_deck_display.dart';
 import '../widgets/animated_hand_display.dart';
 import '../models/card.dart';
 import '../models/card_instance.dart';
+import '../models/resources.dart';
 import 'game_over_screen.dart';
 import '../widgets/game_log.dart';
 import '../widgets/waiting_indicator.dart';
 import '../widgets/cached_drag_feedback.dart';
+import '../widgets/resource_display.dart';
 // import '../widgets/opponent_indicator.dart';
 
 class GameScreen extends StatefulWidget {
@@ -160,7 +162,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildPlayerControlArea(
       BuildContext context, int myIndex, GameState? gameState) {
     return Container(
-      height: 260,
+      height: 280,
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -174,6 +176,12 @@ class _GameScreenState extends State<GameScreen> {
       ),
       child: Column(
         children: [
+          // Resource display at the top
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildResourceDisplay(context, myIndex),
+          ),
+          const SizedBox(height: 8),
           // Top row with controls and displays
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -201,6 +209,69 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   // Optimized helper methods that use Selector for granular rebuilds
+
+  Widget _buildResourceDisplay(BuildContext context, int myIndex) {
+    return Selector<GameService, PlayerBattleState?>(
+      selector: (_, service) => service.gameState?.playerStates.firstWhere(
+        (ps) => ps.playerIndex == myIndex,
+        orElse: () => PlayerBattleState(
+          playerIndex: myIndex,
+          deckId: '',
+          hand: const [],
+          deckCount: 0,
+          resources: const Resources(gold: 0, mana: 0),
+          resourceIncome: const ResourceGeneration(gold: 0, mana: 0),
+        ),
+      ),
+      builder: (context, playerState, child) {
+        if (playerState == null) {
+          return const SizedBox.shrink();
+        }
+        
+        return Row(
+          children: [
+            // Player's resources on the left
+            Expanded(
+              child: ResourceDisplay(
+                resources: playerState.resources,
+                income: playerState.resourceIncome,
+                isCurrentPlayer: true,
+                compact: true,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Opponent's resources on the right
+            Expanded(
+              child: Selector<GameService, PlayerBattleState?>(
+                selector: (_, service) => service.gameState?.playerStates.firstWhere(
+                  (ps) => ps.playerIndex == 1 - myIndex,
+                  orElse: () => PlayerBattleState(
+                    playerIndex: 1 - myIndex,
+                    deckId: '',
+                    hand: const [],
+                    deckCount: 0,
+                    resources: const Resources(gold: 0, mana: 0),
+                    resourceIncome: const ResourceGeneration(gold: 0, mana: 0),
+                  ),
+                ),
+                builder: (context, opponentState, child) {
+                  if (opponentState == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return ResourceDisplay(
+                    resources: opponentState.resources,
+                    income: opponentState.resourceIncome,
+                    isCurrentPlayer: false,
+                    compact: true,
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildHeroDisplay(BuildContext context, int myIndex) {
     return Selector<GameService, String?>(
