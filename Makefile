@@ -34,6 +34,22 @@ run-frontend: ## Run Flutter web server (flutter run -d web-server)
 	@echo "$(BLUE)Starting Flutter web server...$(NC)"
 	flutter run -d web-server
 
+.PHONY: run-frontend-remote
+run-frontend-remote: ## Run Flutter pointing to remote backend (BACKEND_URL default uses Environment)
+	@echo "$(BLUE)Starting Flutter web server (remote backend)...$(NC)"
+	flutter run -d web-server --dart-define=USE_LOCAL_BACKEND=false
+
+.PHONY: run-frontend-local
+run-frontend-local: ## Run Flutter pointing to localhost backend (override with BACKEND_URL)
+	@echo "$(BLUE)Starting Flutter web server (local backend)...$(NC)"
+	flutter run -d web-server --dart-define=USE_LOCAL_BACKEND=true
+
+.PHONY: run-frontend-url
+run-frontend-url: ## Run Flutter with custom BACKEND_URL (usage: make run-frontend-url URL=http://host:port)
+	@if [ -z "$(URL)" ]; then echo "$(RED)URL is required: make run-frontend-url URL=http://host:port$(NC)"; exit 1; fi
+	@echo "$(BLUE)Starting Flutter with BACKEND_URL=$(URL)...$(NC)"
+	flutter run -d web-server --dart-define=BACKEND_URL=$(URL)
+
 .PHONY: build-web
 build-web: ## Build Flutter for web production
 	@echo "$(BLUE)Building Flutter web app...$(NC)"
@@ -61,6 +77,11 @@ run-backend: ## Run the Go backend server
 	@echo "$(BLUE)Starting Go backend server...$(NC)"
 	@cd $(BACKEND_DIR) && go run ./cmd/server
 
+.PHONY: run-backend-port
+run-backend-port: ## Run Go backend on specific port (usage: make run-backend-port PORT=8080)
+	@if [ -z "$(PORT)" ]; then echo "$(YELLOW)PORT not set, defaulting to 8080$(NC)"; fi
+	@cd $(BACKEND_DIR) && HTTP_PORT=$${PORT:-8080} go run ./cmd/server
+
 .PHONY: backend-dev
 backend-dev: ## Run Go backend with hot reload (requires air)
 	@echo "$(BLUE)Starting Go backend with hot reload...$(NC)"
@@ -82,6 +103,28 @@ run: ## Run both frontend and backend (requires separate terminals)
 	@echo "$(YELLOW)Starting both services...$(NC)"
 	@echo "$(YELLOW)Note: This will run both in the same terminal. Consider using 'make run-dev' instead.$(NC)"
 	@make run-backend & make run-frontend
+
+.PHONY: run-local
+run-local: ## Run local backend and Flutter pointing to localhost (requires two terminals)
+	@echo "$(BLUE)Local dev: Backend on :8080 and Flutter using localhost$(NC)"
+	@echo "Open two terminals and run:"
+	@echo "  1) $(GREEN)make run-backend$(NC)"
+	@echo "  2) $(GREEN)make run-frontend-local$(NC)"
+
+.PHONY: run-remote
+run-remote: ## Run Flutter against remote backend (no local backend)
+	@echo "$(BLUE)Frontend against remote backend$(NC)"
+	@make run-frontend-remote
+
+.PHONY: run-both-here
+run-both-here: ## Run backend and Flutter in one terminal (background backend)
+	@echo "$(BLUE)Starting backend in background and Flutter (local) in foreground...$(NC)"
+	@cd $(BACKEND_DIR) && HTTP_PORT=8080 go run ./cmd/server & echo $$! > /tmp/kitbash_backend.pid
+	@sleep 1
+	@BACKEND_URL=http://localhost:8080 make run-frontend-url URL=http://localhost:8080 || true
+	@echo "$(YELLOW)Stopping background backend...$(NC)"
+	@kill $$(cat /tmp/kitbash_backend.pid) 2>/dev/null || true
+	@rm -f /tmp/kitbash_backend.pid
 
 .PHONY: run-dev
 run-dev: ## Instructions for running both services in development

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
+import '../config/environment.dart';
 import '../models/card_instance.dart';
 import '../models/card_drag_payload.dart';
 import 'granular_game_state.dart';
@@ -299,8 +300,9 @@ class PlayerBattleState {
 
 class GameService extends ChangeNotifier {
   // Change this to your backend server IP address
-  static const String baseUrl = 'http://192.168.4.156:8080';
-  static const String wsUrl = 'ws://192.168.4.156:8080';
+  // Use dynamic environment configuration for backend URLs
+  static String get baseUrl => Environment.backendUrl;
+  static String get wsUrl => Environment.wsUrl;
   WebSocketChannel? _channel;
 
   // Granular notifiers for specific state aspects

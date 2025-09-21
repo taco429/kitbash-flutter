@@ -9,6 +9,8 @@ import '../models/deck.dart';
 import '../widgets/hero_display.dart';
 import '../widgets/player_deck_display.dart';
 import '../widgets/discard_pile.dart';
+import '../widgets/resource_display.dart';
+import '../models/resources.dart';
 
 class OpponentIndicator extends StatelessWidget {
   final PlayerBattleState? opponentState;
@@ -72,28 +74,42 @@ class OpponentIndicator extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  HeroDisplay(
-                    heroCard: heroCard,
-                    playerName: 'Opponent',
-                    accentColor: Colors.pink,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      HeroDisplay(
+                        heroCard: heroCard,
+                        playerName: 'Opponent',
+                        accentColor: Colors.pink,
+                      ),
+                      const SizedBox(width: 12),
+                      PlayerDeckDisplay(
+                        remainingCards: remaining,
+                        label: 'Deck',
+                        accentColor: Colors.pink,
+                        deckCards: drawPileCards,
+                        deckInstances: opponentState?.drawPile,
+                      ),
+                      const SizedBox(width: 12),
+                      DiscardPile(
+                        discardedCards: discardCards,
+                        discardInstances: opponentState?.discardPile,
+                        label: 'Discard',
+                        accentColor: Colors.pink,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  PlayerDeckDisplay(
-                    remainingCards: remaining,
-                    label: 'Deck',
-                    accentColor: Colors.pink,
-                    deckCards: drawPileCards,
-                    deckInstances: opponentState?.drawPile,
-                  ),
-                  const SizedBox(width: 12),
-                  DiscardPile(
-                    discardedCards: discardCards,
-                    discardInstances: opponentState?.discardPile,
-                    label: 'Discard',
-                    accentColor: Colors.pink,
+                  const SizedBox(height: 8),
+                  ResourceDisplay(
+                    resources: opponentState?.resources ??
+                        const Resources(gold: 0, mana: 0),
+                    income: opponentState?.resourceIncome,
+                    isCurrentPlayer: false,
+                    compact: true,
                   ),
                 ],
               ),

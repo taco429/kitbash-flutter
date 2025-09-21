@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/deck.dart';
 import '../models/card.dart';
+import '../config/environment.dart';
 
 class DeckService extends ChangeNotifier {
   final List<Deck> _availableDecks = [];
@@ -14,8 +15,8 @@ class DeckService extends ChangeNotifier {
   final Map<String, Deck> _deckCache = {};
   bool _cacheValid = false;
 
-  // Backend API base URL - should be configurable
-  static const String _baseUrl = 'http://localhost:8080/api';
+  // Backend API base URL - read from Environment
+  static String get _baseUrl => Environment.apiUrl;
 
   List<Deck> get availableDecks => List.unmodifiable(_availableDecks);
   Deck? get selectedDeck => _selectedDeck;

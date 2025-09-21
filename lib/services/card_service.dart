@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/card.dart';
+import '../config/environment.dart';
 
 /// Service for managing the game's card collection
 class CardService extends ChangeNotifier {
@@ -9,8 +10,8 @@ class CardService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  // Backend API base URL - should be configurable
-  static const String _baseUrl = 'http://192.168.4.156:8080/api';
+  // Backend API base URL - read from Environment
+  static String get _baseUrl => Environment.apiUrl;
 
   CardService() {
     _loadCardsFromBackend();

@@ -230,42 +230,12 @@ class _GameScreenState extends State<GameScreen> {
 
         return Row(
           children: [
-            // Player's resources on the left
             Expanded(
               child: ResourceDisplay(
                 resources: playerState.resources,
                 income: playerState.resourceIncome,
                 isCurrentPlayer: true,
                 compact: true,
-              ),
-            ),
-            const SizedBox(width: 16),
-            // Opponent's resources on the right
-            Expanded(
-              child: Selector<GameService, PlayerBattleState?>(
-                selector: (_, service) =>
-                    service.gameState?.playerStates.firstWhere(
-                  (ps) => ps.playerIndex == 1 - myIndex,
-                  orElse: () => PlayerBattleState(
-                    playerIndex: 1 - myIndex,
-                    deckId: '',
-                    hand: const [],
-                    deckCount: 0,
-                    resources: const Resources(gold: 0, mana: 0),
-                    resourceIncome: const ResourceGeneration(gold: 0, mana: 0),
-                  ),
-                ),
-                builder: (context, opponentState, child) {
-                  if (opponentState == null) {
-                    return const SizedBox.shrink();
-                  }
-                  return ResourceDisplay(
-                    resources: opponentState.resources,
-                    income: opponentState.resourceIncome,
-                    isCurrentPlayer: false,
-                    compact: true,
-                  );
-                },
               ),
             ),
           ],
