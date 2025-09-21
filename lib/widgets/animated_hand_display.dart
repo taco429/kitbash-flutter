@@ -576,6 +576,43 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
           )
         : const SizedBox.shrink();
 
+    // Add unplay button for planned cards
+    final Widget unplayButton = isPlanned && widget.isPlanning && !widget.isLocked
+        ? MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () {
+                if (widget.instance != null) {
+                  gameService.unplayCard(
+                    gameService.gameState?.id ?? '',
+                    gameService.currentPlayerIndex,
+                    widget.instance!.instanceId,
+                  );
+                  HapticFeedback.lightImpact();
+                }
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.cyanAccent.withValues(alpha: 0.8),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.undo,
+                  size: 16,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -587,6 +624,10 @@ class _DraggableHandCardState extends State<_DraggableHandCard>
               if (showDiscard) ...[
                 const SizedBox(width: 8),
                 discardButton,
+              ],
+              if (isPlanned && widget.isPlanning && !widget.isLocked) ...[
+                const SizedBox(width: 8),
+                unplayButton,
               ],
             ],
           ),
