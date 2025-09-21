@@ -8,6 +8,7 @@ import '../models/card_drag_payload.dart';
 import 'granular_game_state.dart';
 import '../models/planned_play.dart';
 import '../models/resources.dart';
+import '../models/unit.dart';
 
 class RoundDiscardSummary {
   final int roundNumber;
@@ -78,6 +79,7 @@ class GameState {
   final int? winnerPlayerIndex;
   final Map<int, bool> playerChoicesLocked;
   final Map<int, List<PlannedPlay>> plannedPlays;
+  final List<GameUnit> units;
 
   GameState({
     required this.id,
@@ -91,8 +93,10 @@ class GameState {
     this.winnerPlayerIndex,
     Map<int, bool>? playerChoicesLocked,
     Map<int, List<PlannedPlay>>? plannedPlays,
+    List<GameUnit>? units,
   })  : playerChoicesLocked = playerChoicesLocked ?? {0: false, 1: false},
-        plannedPlays = plannedPlays ?? {0: const [], 1: const []};
+        plannedPlays = plannedPlays ?? {0: const [], 1: const []},
+        units = units ?? const [];
 
   factory GameState.fromJson(Map<String, dynamic> json) {
     // Parse player choices locked state
@@ -118,6 +122,16 @@ class GameState {
         // Ignore parse errors
       }
     }
+    
+    // Parse units
+    final units = <GameUnit>[];
+    if (json['units'] != null && json['units'] is List) {
+      for (final unitJson in json['units']) {
+        if (unitJson is Map<String, dynamic>) {
+          units.add(GameUnit.fromJson(unitJson));
+        }
+      }
+    }
 
     return GameState(
       id: json['id'] ?? '',
@@ -137,6 +151,7 @@ class GameState {
       winnerPlayerIndex: json['winnerPlayerIndex'],
       playerChoicesLocked: playerChoicesLocked,
       plannedPlays: _parsePlannedPlays(json['plannedPlays']),
+      units: units,
     );
   }
 

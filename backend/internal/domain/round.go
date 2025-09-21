@@ -72,10 +72,16 @@ func ExecuteUpkeepPhase(gameState *GameState) *EventLog {
 
 // ExecuteResolutionPhase resolves both players' action queues in strict order
 // and applies end-of-round cleanup effects. Returns a detailed EventLog.
-func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, player2Actions ActionQueue) *EventLog {
+func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, player2Actions ActionQueue, cardRepo CardRepository) *EventLog {
     evtLog := NewEventLog(gameState.CurrentTurn)
 
-    // 0) Reveal & resolve planned plays for this round
+    // Phase 1: Move all units
+    ExecuteUnitMovement(gameState, evtLog)
+    
+    // Phase 2: All units attack
+    ExecuteUnitCombat(gameState, evtLog)
+    
+    // Phase 3: Spawn new units from planned plays
     // For now, only log the play and move the card from hand to discard.
     if gameState != nil && gameState.PlannedPlays != nil {
         for playerIndex, plays := range gameState.PlannedPlays {
@@ -85,16 +91,58 @@ func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, pl
             }
             ps := &gameState.PlayerStates[playerIndex]
             for _, p := range plays {
-                // Log reveal/play event with target tile
-                evtLog.AddSimple(EventTypeEffect, "reveal", map[string]any{
-                    "playerIndex":    playerIndex,
-                    "action":         string(ActionTypePlayCard),
-                    "cardId":         p.CardID,
-                    "cardInstanceId": p.CardInstance,
-                    "row":            p.Position.Row,
-                    "col":            p.Position.Col,
-                })
-                // Move card instance from hand to discard if present
+                // Check if spawn position is still available
+                positionBlocked := gameState.IsTileOccupied(p.Position.Row, p.Position.Col)
+                
+                if positionBlocked {
+                    // Position is blocked, refund the card cost
+                    if cardRepo != nil {
+                        card, err := cardRepo.GetCard(nil, p.CardID)
+                        if err == nil && card != nil {
+                            refund := Resources{
+                                Gold: card.GoldCost,
+                                Mana: card.ManaCost,
+                            }
+                            gameState.AddPendingRefund(playerIndex, refund)
+                            evtLog.AddSimple(EventTypeEffect, "refund", map[string]any{
+                                "playerIndex":    playerIndex,
+                                "cardId":         p.CardID,
+                                "goldRefunded":   refund.Gold,
+                                "manaRefunded":   refund.Mana,
+                                "reason":         "spawn_blocked",
+                            })
+                        }
+                    }
+                } else {
+                    // Spawn the unit
+                    if cardRepo != nil {
+                        card, err := cardRepo.GetCard(nil, p.CardID)
+                        if err == nil && card != nil && card.IsUnit() && card.UnitStats != nil {
+                            unit := gameState.SpawnUnit(p.CardID, playerIndex, p.Position, card.UnitStats)
+                            evtLog.AddSimple(EventTypeEffect, "spawn_unit", map[string]any{
+                                "playerIndex":    playerIndex,
+                                "cardId":         p.CardID,
+                                "unitId":         unit.ID,
+                                "row":            p.Position.Row,
+                                "col":            p.Position.Col,
+                                "attack":         unit.Attack,
+                                "health":         unit.Health,
+                            })
+                        }
+                    }
+                    
+                    // Log reveal/play event with target tile
+                    evtLog.AddSimple(EventTypeEffect, "reveal", map[string]any{
+                        "playerIndex":    playerIndex,
+                        "action":         string(ActionTypePlayCard),
+                        "cardId":         p.CardID,
+                        "cardInstanceId": p.CardInstance,
+                        "row":            p.Position.Row,
+                        "col":            p.Position.Col,
+                    })
+                }
+                
+                // Move card instance from hand to discard regardless
                 for h := 0; h < len(ps.Hand); h++ {
                     if ps.Hand[h].InstanceID == p.CardInstance {
                         card := ps.Hand[h]
@@ -109,6 +157,9 @@ func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, pl
         // Clear planned plays after processing
         gameState.ClearPlannedPlays()
     }
+    
+    // Process any pending refunds
+    gameState.ProcessPendingRefunds()
 
     // Helper: combine two queues with player attribution already set in Action
     allActions := append(ActionQueue{}, player1Actions...)
@@ -118,25 +169,24 @@ func ExecuteResolutionPhase(gameState *GameState, player1Actions ActionQueue, pl
     fast := filterBySpeed(allActions, ActionSpeedFast)
     resolveUniversalStep(gameState, evtLog, "fast", fast)
 
-    // 2) Movement Step — automatic movement (placeholder, no player-submitted movement)
-    evtLog.AddSimple(EventTypeMovement, "movement", map[string]any{
-        "note": "automatic_unit_movement_resolved",
-    })
-
-    // 3) "Normal" Speed Step
+    // 2) "Normal" Speed Step
     normal := filterBySpeed(allActions, ActionSpeedNormal)
     resolveUniversalStep(gameState, evtLog, "normal", normal)
 
-    // 4) Combat Step — automatic simultaneous combat (placeholder)
-    evtLog.AddSimple(EventTypeDamage, "combat", map[string]any{
-        "note": "automatic_simultaneous_combat_resolved",
-    })
-
-    // 5) "Slow" Speed Step
+    // 3) "Slow" Speed Step
     slow := filterBySpeed(allActions, ActionSpeedSlow)
     resolveUniversalStep(gameState, evtLog, "slow", slow)
 
-    // 6) End of Round Cleanup Step
+    // 4) End of Round Cleanup Step
+    // Remove dead units
+    gameState.RemoveDeadUnits()
+    
+    // Reset unit turn states for next turn
+    for _, unit := range gameState.Units {
+        if unit.IsAlive {
+            unit.ResetTurnState()
+        }
+    }
     // - Process queued discards
     for i := range gameState.PlayerStates {
         ps := &gameState.PlayerStates[i]
@@ -289,5 +339,144 @@ func reshuffleDiscard(ps *PlayerBattleState) {
         ps.DrawPile[i], ps.DrawPile[j] = ps.DrawPile[j], ps.DrawPile[i]
     }
     ps.DeckCount = len(ps.DrawPile)
+}
+
+// ExecuteUnitMovement handles all unit movement for the turn
+func ExecuteUnitMovement(gs *GameState, log *EventLog) {
+    if gs == nil || len(gs.Units) == 0 {
+        return
+    }
+    
+    // Build occupied tiles map
+    occupiedTiles := make(map[Point]bool)
+    
+    // Mark command centers as occupied
+    for _, cc := range gs.CommandCenters {
+        for row := cc.TopLeftRow; row < cc.TopLeftRow+2; row++ {
+            for col := cc.TopLeftCol; col < cc.TopLeftCol+2; col++ {
+                occupiedTiles[Point{Row: row, Col: col}] = true
+            }
+        }
+    }
+    
+    // Process movement for each unit that hasn't moved this turn
+    // Units spawned this turn don't move
+    for _, unit := range gs.Units {
+        if !unit.IsAlive || unit.HasMoved || unit.TurnSpawned == gs.TurnCount {
+            continue
+        }
+        
+        // Get enemy command center position for pathfinding
+        enemyCCPos := gs.GetEnemyCommandCenterPosition(unit.PlayerIndex)
+        
+        // Calculate next position
+        nextPos := unit.GetNextPosition(gs.BoardRows, gs.BoardCols, occupiedTiles, enemyCCPos)
+        
+        // Check if the position is actually free (another unit might have moved there)
+        if nextPos != unit.Position && !occupiedTiles[nextPos] {
+            oldPos := unit.Position
+            unit.Move(nextPos)
+            occupiedTiles[nextPos] = true
+            
+            log.AddSimple(EventTypeMovement, "unit_move", map[string]any{
+                "unitId":      unit.ID,
+                "playerIndex": unit.PlayerIndex,
+                "fromRow":     oldPos.Row,
+                "fromCol":     oldPos.Col,
+                "toRow":       nextPos.Row,
+                "toCol":       nextPos.Col,
+                "direction":   unit.Direction,
+            })
+        }
+    }
+}
+
+// ExecuteUnitCombat handles all unit attacks for the turn
+func ExecuteUnitCombat(gs *GameState, log *EventLog) {
+    if gs == nil || len(gs.Units) == 0 {
+        return
+    }
+    
+    // Track damage to be applied (for simultaneous resolution)
+    type DamageEvent struct {
+        Target *Unit
+        Damage int
+        Source *Unit
+    }
+    var damageEvents []DamageEvent
+    
+    // Units spawned this turn don't attack
+    for _, unit := range gs.Units {
+        if !unit.IsAlive || unit.HasAttacked || unit.TurnSpawned == gs.TurnCount {
+            continue
+        }
+        
+        // Find closest enemy in range
+        var target *Unit
+        minDistance := 999
+        
+        for _, enemy := range gs.Units {
+            if !enemy.IsAlive || enemy.PlayerIndex == unit.PlayerIndex {
+                continue
+            }
+            
+            // Check if in range
+            distance := abs(enemy.Position.Row-unit.Position.Row) + abs(enemy.Position.Col-unit.Position.Col)
+            if distance <= unit.Range && distance < minDistance {
+                target = enemy
+                minDistance = distance
+            }
+        }
+        
+        // If no unit target, check if command center is in range
+        if target == nil {
+            enemyCC := gs.GetCommandCenter(1 - unit.PlayerIndex)
+            if enemyCC != nil {
+                // Check all tiles of the command center
+                for row := enemyCC.TopLeftRow; row < enemyCC.TopLeftRow+2; row++ {
+                    for col := enemyCC.TopLeftCol; col < enemyCC.TopLeftCol+2; col++ {
+                        distance := abs(row-unit.Position.Row) + abs(col-unit.Position.Col)
+                        if distance <= unit.Range {
+                            // Attack command center
+                            gs.DealDamageToCommandCenter(1-unit.PlayerIndex, unit.Attack)
+                            unit.PerformAttack()
+                            
+                            log.AddSimple(EventTypeDamage, "unit_attack_cc", map[string]any{
+                                "unitId":      unit.ID,
+                                "playerIndex": unit.PlayerIndex,
+                                "targetCC":    1 - unit.PlayerIndex,
+                                "damage":      unit.Attack,
+                                "ccHealth":    enemyCC.Health,
+                            })
+                            break
+                        }
+                    }
+                }
+            }
+        } else {
+            // Queue damage to target unit
+            damageEvents = append(damageEvents, DamageEvent{
+                Target: target,
+                Damage: unit.Attack,
+                Source: unit,
+            })
+            unit.PerformAttack()
+        }
+    }
+    
+    // Apply all damage simultaneously
+    for _, event := range damageEvents {
+        event.Target.TakeDamage(event.Damage)
+        
+        log.AddSimple(EventTypeDamage, "unit_attack", map[string]any{
+            "attackerId":   event.Source.ID,
+            "attackerPlayer": event.Source.PlayerIndex,
+            "targetId":     event.Target.ID,
+            "targetPlayer": event.Target.PlayerIndex,
+            "damage":       event.Damage,
+            "targetHealth": event.Target.Health,
+            "targetAlive":  event.Target.IsAlive,
+        })
+    }
 }
 
