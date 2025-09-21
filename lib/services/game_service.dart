@@ -50,7 +50,7 @@ class CommandCenter {
     if (json['building'] != null && json['building'] is Map) {
       building = Building.fromJson(json['building']);
     }
-    
+
     return CommandCenter(
       playerIndex: json['playerIndex'] ?? 0,
       topLeftRow: json['topLeftRow'] ?? 0,
@@ -277,7 +277,8 @@ class PlayerBattleState {
     }
 
     // Parse resource income
-    ResourceGeneration resourceIncome = const ResourceGeneration(gold: 0, mana: 0);
+    ResourceGeneration resourceIncome =
+        const ResourceGeneration(gold: 0, mana: 0);
     if (json['resourceIncome'] != null && json['resourceIncome'] is Map) {
       resourceIncome = ResourceGeneration.fromJson(json['resourceIncome']);
     }

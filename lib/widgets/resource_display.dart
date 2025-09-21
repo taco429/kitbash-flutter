@@ -9,12 +9,12 @@ class ResourceDisplay extends StatelessWidget {
   final bool compact;
 
   const ResourceDisplay({
-    Key? key,
+    super.key,
     required this.resources,
     this.income,
     this.isCurrentPlayer = false,
     this.compact = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,13 +29,13 @@ class ResourceDisplay extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: isCurrentPlayer
-            ? Theme.of(context).primaryColor.withOpacity(0.1)
-            : Colors.grey.withOpacity(0.1),
+            ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+            : Colors.grey.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isCurrentPlayer
-              ? Theme.of(context).primaryColor.withOpacity(0.3)
-              : Colors.grey.withOpacity(0.3),
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.3)
+              : Colors.grey.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -64,7 +64,7 @@ class ResourceDisplay extends StatelessWidget {
     return Card(
       elevation: isCurrentPlayer ? 4 : 2,
       color: isCurrentPlayer
-          ? Theme.of(context).primaryColor.withOpacity(0.05)
+          ? Theme.of(context).primaryColor.withValues(alpha: 0.05)
           : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -76,9 +76,8 @@ class ResourceDisplay extends StatelessWidget {
               'Resources',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isCurrentPlayer
-                        ? Theme.of(context).primaryColor
-                        : null,
+                    color:
+                        isCurrentPlayer ? Theme.of(context).primaryColor : null,
                   ),
             ),
             const SizedBox(height: 8),
@@ -159,10 +158,10 @@ class ResourceDisplay extends StatelessWidget {
     final tile = Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -176,7 +175,7 @@ class ResourceDisplay extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: color.shade700,
+                  color: color is MaterialColor ? color.shade700 : color,
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),
@@ -189,7 +188,7 @@ class ResourceDisplay extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: color.shade800,
+              color: color is MaterialColor ? color.shade800 : color,
             ),
           ),
           if (income != null && income > 0)
@@ -223,12 +222,12 @@ class ResourceCost extends StatelessWidget {
   final bool compact;
 
   const ResourceCost({
-    Key? key,
+    super.key,
     this.goldCost,
     this.manaCost,
     this.canAfford = true,
     this.compact = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +241,7 @@ class ResourceCost extends StatelessWidget {
     if (goldCost != null && goldCost! > 0) {
       costs.add(_buildCostBadge(
         icon: Icons.monetization_on,
-        color: Colors.amber.withOpacity(opacity),
+        color: Colors.amber.withValues(alpha: opacity),
         value: goldCost!,
         canAfford: canAfford,
       ));
@@ -252,7 +251,7 @@ class ResourceCost extends StatelessWidget {
       if (costs.isNotEmpty) costs.add(const SizedBox(width: 4));
       costs.add(_buildCostBadge(
         icon: Icons.water_drop,
-        color: Colors.blue.withOpacity(opacity),
+        color: Colors.blue.withValues(alpha: opacity),
         value: manaCost!,
         canAfford: canAfford,
       ));
@@ -273,7 +272,7 @@ class ResourceCost extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: color,

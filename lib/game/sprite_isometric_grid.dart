@@ -6,10 +6,11 @@ import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart' as painting;
 
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
-import '../models/resources.dart';
+import '../models/resources.dart' as resources;
 import 'sprites/tile_sprite_manager.dart';
 
 /// Isometric grid that renders each tile using sprites when available,
@@ -289,7 +290,7 @@ class SpriteIsometricGrid extends PositionComponent
             : const Color(0xFFEF5350);
         _drawEnhancedHealthBar(
             canvas, topCenter, cc.healthPercentage, glowColor);
-        
+
         // Draw building level indicator
         if (cc.building != null) {
           _drawBuildingLevel(canvas, topCenter, cc.building!);
@@ -374,6 +375,7 @@ class SpriteIsometricGrid extends PositionComponent
       TileData tileData = _tileData[row][col];
       for (final CommandCenter cc in _commandCenters) {
         if (_isTileInCommandCenter(row, col, cc)) {
+          // Create a Building for display purposes with health info
           tileData = tileData.copyWith(
             building: Building(
               name: 'Command Center',
@@ -608,45 +610,46 @@ class SpriteIsometricGrid extends PositionComponent
     }
   }
 
-  void _drawBuildingLevel(ui.Canvas canvas, Vector2 position, Building building) {
+  void _drawBuildingLevel(
+      ui.Canvas canvas, Vector2 position, resources.Building building) {
     // Position the level indicator to the right of the health bar
     final levelPosition = Vector2(position.x + 30, position.y - 50);
-    
+
     // Background circle for level
     final bgPaint = ui.Paint()
       ..color = Colors.black.withValues(alpha: 0.7)
       ..style = ui.PaintingStyle.fill;
-    
+
     final borderPaint = ui.Paint()
       ..color = _getLevelColor(building.level)
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 2;
-    
+
     // Draw background circle
     canvas.drawCircle(
       ui.Offset(levelPosition.x, levelPosition.y),
       12,
       bgPaint,
     );
-    
+
     // Draw border
     canvas.drawCircle(
       ui.Offset(levelPosition.x, levelPosition.y),
       12,
       borderPaint,
     );
-    
+
     // Draw level text
-    final textPainter = ui.TextPainter(
-      text: ui.TextSpan(
+    final textPainter = painting.TextPainter(
+      text: painting.TextSpan(
         text: 'Lv${building.level.value}',
-        style: ui.TextStyle(
+        style: painting.TextStyle(
           color: _getLevelColor(building.level),
           fontSize: 10,
-          fontWeight: ui.FontWeight.bold,
+          fontWeight: painting.FontWeight.bold,
         ),
       ),
-      textDirection: ui.TextDirection.ltr,
+      textDirection: painting.TextDirection.ltr,
     );
     textPainter.layout();
     textPainter.paint(
@@ -656,14 +659,14 @@ class SpriteIsometricGrid extends PositionComponent
         levelPosition.y - textPainter.height / 2,
       ),
     );
-    
+
     // Draw upgrade progress if not max level
     if (building.turnsUntilUpgrade > 0) {
       final progressText = '${3 - building.turnsUntilUpgrade}/3';
-      final progressPainter = ui.TextPainter(
-        text: ui.TextSpan(
+      final progressPainter = painting.TextPainter(
+        text: painting.TextSpan(
           text: progressText,
-          style: const ui.TextStyle(
+          style: const painting.TextStyle(
             color: Colors.white70,
             fontSize: 8,
           ),
@@ -680,14 +683,14 @@ class SpriteIsometricGrid extends PositionComponent
       );
     }
   }
-  
-  Color _getLevelColor(BuildingLevel level) {
+
+  Color _getLevelColor(resources.BuildingLevel level) {
     switch (level) {
-      case BuildingLevel.level1:
+      case resources.BuildingLevel.level1:
         return Colors.grey;
-      case BuildingLevel.level2:
+      case resources.BuildingLevel.level2:
         return Colors.blue;
-      case BuildingLevel.level3:
+      case resources.BuildingLevel.level3:
         return Colors.orange;
     }
   }

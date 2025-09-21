@@ -227,7 +227,7 @@ class _GameScreenState extends State<GameScreen> {
         if (playerState == null) {
           return const SizedBox.shrink();
         }
-        
+
         return Row(
           children: [
             // Player's resources on the left
@@ -243,7 +243,8 @@ class _GameScreenState extends State<GameScreen> {
             // Opponent's resources on the right
             Expanded(
               child: Selector<GameService, PlayerBattleState?>(
-                selector: (_, service) => service.gameState?.playerStates.firstWhere(
+                selector: (_, service) =>
+                    service.gameState?.playerStates.firstWhere(
                   (ps) => ps.playerIndex == 1 - myIndex,
                   orElse: () => PlayerBattleState(
                     playerIndex: 1 - myIndex,
@@ -283,6 +284,8 @@ class _GameScreenState extends State<GameScreen> {
             deckId: '',
             hand: const [],
             deckCount: 0,
+            resources: const Resources(gold: 0, mana: 0),
+            resourceIncome: const ResourceGeneration(gold: 0, mana: 0),
           ),
         );
         return playerState?.deckId;
@@ -337,6 +340,8 @@ class _GameScreenState extends State<GameScreen> {
             deckId: '',
             hand: const [],
             deckCount: 0,
+            resources: const Resources(gold: 0, mana: 0),
+            resourceIncome: const ResourceGeneration(gold: 0, mana: 0),
           ),
         );
         return (playerState?.hand ?? [], service.gameState?.currentPhase);
@@ -406,6 +411,8 @@ class _GameScreenState extends State<GameScreen> {
               deckId: '',
               hand: const [],
               deckCount: 0,
+              resources: const Resources(gold: 0, mana: 0),
+              resourceIncome: const ResourceGeneration(gold: 0, mana: 0),
             ),
           ),
           builder: (context, playerState, child) {

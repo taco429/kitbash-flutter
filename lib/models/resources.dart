@@ -1,5 +1,3 @@
-/// Resource models for the card game
-
 /// Represents the resources a player has
 class Resources {
   final int gold;
