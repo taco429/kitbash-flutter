@@ -3,13 +3,9 @@ import 'package:provider/provider.dart';
 import '../game/kitbash_game.dart';
 import '../services/game_service.dart';
 import '../services/card_service.dart';
-import '../services/deck_service.dart';
 import '../widgets/game_with_tooltip.dart';
 // import '../widgets/turn_indicator.dart';
 import '../widgets/lock_in_button.dart' hide WaitingIndicator;
-import '../widgets/discard_pile.dart';
-import '../widgets/hero_display.dart';
-import '../widgets/player_deck_display.dart';
 import '../widgets/animated_hand_display.dart';
 import '../models/card.dart';
 import '../models/card_instance.dart';
@@ -18,8 +14,7 @@ import 'game_over_screen.dart';
 import '../widgets/game_log.dart';
 import '../widgets/waiting_indicator.dart';
 import '../widgets/cached_drag_feedback.dart';
-import '../widgets/resource_display.dart';
-// import '../widgets/opponent_indicator.dart';
+import '../widgets/player_indicator.dart';
 
 class GameScreen extends StatefulWidget {
   final String gameId;
@@ -176,19 +171,13 @@ class _GameScreenState extends State<GameScreen> {
       ),
       child: Column(
         children: [
-          // Resource display at the top
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildResourceDisplay(context, myIndex),
-          ),
-          const SizedBox(height: 8),
-          // Top row with controls and displays
+          // Top row with player indicator and hand
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                // Hero display with isolated rebuild scope
-                _buildHeroDisplay(context, myIndex),
+                // Left side: Player indicator (hero, deck, discard, resources)
+                _buildPlayerIndicator(context, myIndex),
                 // Center: Player hand (expanded) with isolated rebuild
                 Expanded(
                   child: Container(
@@ -196,8 +185,8 @@ class _GameScreenState extends State<GameScreen> {
                     child: _buildHandDisplay(context, myIndex, gameState),
                   ),
                 ),
-                // Right side: Controls and piles with isolated rebuild
-                _buildRightControls(context, myIndex, gameState),
+                // Right side: Controls
+                _buildControls(context, myIndex, gameState),
               ],
             ),
           ),
@@ -210,7 +199,7 @@ class _GameScreenState extends State<GameScreen> {
 
   // Optimized helper methods that use Selector for granular rebuilds
 
-  Widget _buildResourceDisplay(BuildContext context, int myIndex) {
+  Widget _buildPlayerIndicator(BuildContext context, int myIndex) {
     return Selector<GameService, PlayerBattleState?>(
       selector: (_, service) => service.gameState?.playerStates.firstWhere(
         (ps) => ps.playerIndex == myIndex,
@@ -224,80 +213,19 @@ class _GameScreenState extends State<GameScreen> {
         ),
       ),
       builder: (context, playerState, child) {
-        if (playerState == null) {
-          return const SizedBox.shrink();
-        }
-
-        return Row(
-          children: [
-            Expanded(
-              child: ResourceDisplay(
-                resources: playerState.resources,
-                income: playerState.resourceIncome,
-                isCurrentPlayer: true,
-                compact: true,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildHeroDisplay(BuildContext context, int myIndex) {
-    return Selector<GameService, String?>(
-      selector: (_, service) {
-        final playerState = service.gameState?.playerStates.firstWhere(
-          (ps) => ps.playerIndex == myIndex,
-          orElse: () => PlayerBattleState(
-            playerIndex: myIndex,
-            deckId: '',
-            hand: const [],
-            deckCount: 0,
-            resources: const Resources(gold: 0, mana: 0),
-            resourceIncome: const ResourceGeneration(gold: 0, mana: 0),
-          ),
-        );
-        return playerState?.deckId;
-      },
-      builder: (context, deckId, child) {
-        if (deckId == null || deckId.isEmpty) {
-          return const HeroDisplay(
-            heroCard: null,
-            playerName: 'Your Hero',
-            accentColor: Colors.green,
-          );
-        }
-
-        final deckService = context.read<DeckService>();
-        final cardService = context.read<CardService>();
-        final deck = deckService.getDeckById(deckId) ??
-            deckService.selectedDeck ??
-            (deckService.availableDecks.isNotEmpty
-                ? deckService.availableDecks.first
-                : null);
-
-        if (deck == null) {
-          return const HeroDisplay(
-            heroCard: null,
-            playerName: 'Your Hero',
-            accentColor: Colors.green,
-          );
-        }
-
-        GameCard? heroCard;
-        if (deck.heroCardId != null) {
-          heroCard = cardService.getCardById(deck.heroCardId!);
-        }
-
-        return HeroDisplay(
-          heroCard: heroCard,
+        return PlayerIndicator(
+          playerState: playerState,
           playerName: 'Your Hero',
           accentColor: Colors.green,
+          isCurrentPlayer: true,
+          showResources: true,
+          compact: false,
+          maxWidth: null, // No max width constraint for current player
         );
       },
     );
   }
+
 
   Widget _buildHandDisplay(
       BuildContext context, int myIndex, GameState? gameState) {
@@ -344,124 +272,47 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildRightControls(
+  Widget _buildControls(
       BuildContext context, int myIndex, GameState? gameState) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Lock and Reset buttons with isolated rebuild
-        if (gameState != null)
-          Selector<GameService, (bool, bool, String?, int)>(
-            selector: (_, service) => (
-              service.gameState?.isPlayerLocked(myIndex) ?? false,
-              service.gameState?.isPlayerLocked(1 - myIndex) ?? false,
-              service.gameState?.currentPhase,
-              service.gameState?.plannedPlays[myIndex]?.length ?? 0,
-            ),
-            builder: (context, data, child) {
-              final isLocked = data.$1;
-              final isOpponentLocked = data.$2;
-              final currentPhase = data.$3;
-              final plannedPlaysCount = data.$4;
-              final isPlanning = currentPhase == 'planning';
+    if (gameState == null) return const SizedBox.shrink();
+    
+    return Selector<GameService, (bool, bool, String?, int)>(
+      selector: (_, service) => (
+        service.gameState?.isPlayerLocked(myIndex) ?? false,
+        service.gameState?.isPlayerLocked(1 - myIndex) ?? false,
+        service.gameState?.currentPhase,
+        service.gameState?.plannedPlays[myIndex]?.length ?? 0,
+      ),
+      builder: (context, data, child) {
+        final isLocked = data.$1;
+        final isOpponentLocked = data.$2;
+        final currentPhase = data.$3;
+        final plannedPlaysCount = data.$4;
+        final isPlanning = currentPhase == 'planning';
 
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Reset button - only show during planning phase when not locked and has planned plays
-                  if (isPlanning && !isLocked && plannedPlaysCount > 0) ...[
-                    _buildResetButton(context, myIndex),
-                    const SizedBox(width: 8),
-                  ],
-                  // Lock button
-                  LockInButton(
-                    isLocked: isLocked,
-                    isOpponentLocked: isOpponentLocked,
-                    playerIndex: myIndex,
-                    onLockIn: () {
-                      context.read<GameService>().lockPlayerChoice(
-                            widget.gameId,
-                            myIndex,
-                          );
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-        const SizedBox(height: 8),
-        // Deck and discard piles with isolated rebuild
-        Selector<GameService, PlayerBattleState?>(
-          selector: (_, service) => service.gameState?.playerStates.firstWhere(
-            (ps) => ps.playerIndex == myIndex,
-            orElse: () => PlayerBattleState(
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Reset button - only show during planning phase when not locked and has planned plays
+            if (isPlanning && !isLocked && plannedPlaysCount > 0) ...[
+              _buildResetButton(context, myIndex),
+              const SizedBox(width: 8),
+            ],
+            // Lock button
+            LockInButton(
+              isLocked: isLocked,
+              isOpponentLocked: isOpponentLocked,
               playerIndex: myIndex,
-              deckId: '',
-              hand: const [],
-              deckCount: 0,
-              resources: const Resources(gold: 0, mana: 0),
-              resourceIncome: const ResourceGeneration(gold: 0, mana: 0),
+              onLockIn: () {
+                context.read<GameService>().lockPlayerChoice(
+                      widget.gameId,
+                      myIndex,
+                    );
+              },
             ),
-          ),
-          builder: (context, playerState, child) {
-            if (playerState == null) {
-              return const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PlayerDeckDisplay(
-                    remainingCards: 0,
-                    label: 'Deck',
-                    accentColor: Colors.green,
-                    deckCards: [],
-                    deckInstances: null,
-                  ),
-                  SizedBox(width: 12),
-                  DiscardPile(
-                    discardedCards: [],
-                    discardInstances: null,
-                    label: 'Discard',
-                    accentColor: Colors.green,
-                  ),
-                ],
-              );
-            }
-
-            final cardService = context.read<CardService>();
-
-            // Direct transformation with O(1) lookup from CardService
-            final deckCards = playerState.drawPile
-                .map((instance) => cardService.getCardById(instance.cardId))
-                .whereType<GameCard>()
-                .toList();
-
-            final discardCards = playerState.discardPile
-                .map((instance) => cardService.getCardById(instance.cardId))
-                .whereType<GameCard>()
-                .toList();
-
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                PlayerDeckDisplay(
-                  remainingCards: playerState.deckCount,
-                  label: 'Deck',
-                  accentColor: Colors.green,
-                  deckCards: deckCards,
-                  deckInstances: playerState.drawPile,
-                ),
-                const SizedBox(width: 12),
-                DiscardPile(
-                  discardedCards: discardCards,
-                  discardInstances: playerState.discardPile,
-                  label: 'Discard',
-                  accentColor: Colors.green,
-                ),
-              ],
-            );
-          },
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 

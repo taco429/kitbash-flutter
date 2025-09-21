@@ -11,7 +11,7 @@ import '../services/game_service.dart';
 import 'package:flutter/services.dart';
 import 'card_preview_panel.dart';
 import 'turn_indicator.dart';
-import 'opponent_indicator.dart';
+import 'player_indicator.dart';
 
 /// A widget that wraps the KitbashGame with tooltip functionality
 class GameWithTooltip extends StatefulWidget {
@@ -408,7 +408,14 @@ class _GameWithTooltipState extends State<GameWithTooltip> {
                           const ResourceGeneration(gold: 0, mana: 0),
                     ),
                   );
-                  return OpponentIndicator(opponentState: opponentState);
+                  return PlayerIndicator(
+                    playerState: opponentState,
+                    playerName: 'Opponent',
+                    accentColor: Colors.pink,
+                    isCurrentPlayer: false,
+                    showResources: true,
+                    compact: true,
+                  );
                 },
               ),
             ),
