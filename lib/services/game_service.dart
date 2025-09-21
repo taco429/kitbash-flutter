@@ -392,6 +392,42 @@ class GameService extends ChangeNotifier {
     cardPlacement.clearCardPlacement();
   }
 
+  // Unplay a specific card
+  void unplayCard(String gameId, int playerIndex, String cardInstanceId) {
+    if (_channel == null) {
+      debugPrint('WebSocket not connected');
+      return;
+    }
+
+    final message = {
+      'type': 'unplay_card',
+      'playerIndex': playerIndex,
+      'cardInstanceId': cardInstanceId,
+    };
+
+    _channel!.sink.add(json.encode(message));
+    debugPrint('Sent unplay card request for instance $cardInstanceId');
+  }
+
+  // Reset all planned plays for a player
+  void resetPlannedPlays(String gameId, int playerIndex) {
+    if (_channel == null) {
+      debugPrint('WebSocket not connected');
+      return;
+    }
+
+    final message = {
+      'type': 'reset_planned_plays',
+      'playerIndex': playerIndex,
+    };
+
+    _channel!.sink.add(json.encode(message));
+    debugPrint('Sent reset planned plays request for player $playerIndex');
+
+    // Also clear discard selection when resetting
+    clearDiscardSelection();
+  }
+
   // REST API methods
   Future<List<dynamic>> findGames() async {
     try {

@@ -279,6 +279,10 @@ func (h *GameHub) handleGameMessage(ctx context.Context, client *GameClient, msg
 		return h.handleValidateTarget(ctx, client, message)
 	case "stage_play_card":
 		return h.handleStagePlayCard(ctx, client, message)
+	case "unplay_card":
+		return h.handleUnplayCard(ctx, client, message)
+	case "reset_planned_plays":
+		return h.handleResetPlannedPlays(ctx, client, message)
 	default:
 		h.log.WithContext(ctx).Debug("Unknown message type", "type", msgType)
 	}
@@ -365,6 +369,98 @@ func (h *GameHub) handleValidateTarget(ctx context.Context, client *GameClient, 
 	// Valid if not a unit or tile not occupied
 	resp["valid"] = true
 	return client.WriteJSON(resp)
+}
+
+// handleUnplayCard removes a specific planned play for a player.
+func (h *GameHub) handleUnplayCard(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+	playerIndexF, ok := message["playerIndex"].(float64)
+	if !ok {
+		return nil
+	}
+	playerIndex := int(playerIndexF)
+
+	cardInstanceID, ok := message["cardInstanceId"].(string)
+	if !ok {
+		return nil
+	}
+
+	gameState, err := h.gameRepo.Get(ctx, client.GameID)
+	if err != nil {
+		return err
+	}
+
+	// Only allow during Planning phase
+	if gameState.CurrentPhase != domain.PhasePlanning {
+		h.log.WithContext(ctx).Warn("Unplay card attempted outside planning phase",
+			"game_id", client.GameID,
+			"current_phase", gameState.CurrentPhase)
+		return nil
+	}
+
+	// Only allow if player hasn't locked yet
+	if gameState.IsPlayerLocked(playerIndex) {
+		h.log.WithContext(ctx).Warn("Unplay card attempted after player locked",
+			"game_id", client.GameID,
+			"player_index", playerIndex)
+		return nil
+	}
+
+	// Remove the planned play
+	gameState.RemovePlannedPlay(playerIndex, domain.CardInstanceID(cardInstanceID))
+
+	if err := h.gameRepo.Update(ctx, gameState); err != nil {
+		return err
+	}
+
+	h.log.WithContext(ctx).Info("Card unplayed",
+		"game_id", client.GameID,
+		"player_index", playerIndex,
+		"card_instance_id", cardInstanceID)
+
+	return h.broadcastGameState(ctx, client.GameID)
+}
+
+// handleResetPlannedPlays clears all planned plays for a player.
+func (h *GameHub) handleResetPlannedPlays(ctx context.Context, client *GameClient, message map[string]interface{}) error {
+	playerIndexF, ok := message["playerIndex"].(float64)
+	if !ok {
+		return nil
+	}
+	playerIndex := int(playerIndexF)
+
+	gameState, err := h.gameRepo.Get(ctx, client.GameID)
+	if err != nil {
+		return err
+	}
+
+	// Only allow during Planning phase
+	if gameState.CurrentPhase != domain.PhasePlanning {
+		h.log.WithContext(ctx).Warn("Reset planned plays attempted outside planning phase",
+			"game_id", client.GameID,
+			"current_phase", gameState.CurrentPhase)
+		return nil
+	}
+
+	// Only allow if player hasn't locked yet
+	if gameState.IsPlayerLocked(playerIndex) {
+		h.log.WithContext(ctx).Warn("Reset planned plays attempted after player locked",
+			"game_id", client.GameID,
+			"player_index", playerIndex)
+		return nil
+	}
+
+	// Clear all planned plays for the player
+	gameState.ClearPlayerPlannedPlays(playerIndex)
+
+	if err := h.gameRepo.Update(ctx, gameState); err != nil {
+		return err
+	}
+
+	h.log.WithContext(ctx).Info("Planned plays reset",
+		"game_id", client.GameID,
+		"player_index", playerIndex)
+
+	return h.broadcastGameState(ctx, client.GameID)
 }
 
 // handleStagePlayCard records the player's intention to play a card at a tile during Planning.

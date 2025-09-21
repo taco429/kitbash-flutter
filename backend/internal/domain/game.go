@@ -245,6 +245,14 @@ func (gs *GameState) LockPlayerChoice(playerIndex int) {
 	gs.UpdatedAt = time.Now()
 }
 
+// IsPlayerLocked returns true if a specific player has locked their choice.
+func (gs *GameState) IsPlayerLocked(playerIndex int) bool {
+	if gs.PlayerChoicesLocked == nil {
+		return false
+	}
+	return gs.PlayerChoicesLocked[playerIndex]
+}
+
 // AreAllPlayersLocked returns true if all players have locked their choices.
 func (gs *GameState) AreAllPlayersLocked() bool {
 	if gs.PlayerChoicesLocked == nil {
@@ -380,6 +388,31 @@ func (gs *GameState) AddPlannedPlay(play PlannedPlay) {
     }
     filtered = append(filtered, play)
     gs.PlannedPlays[play.PlayerIndex] = filtered
+    gs.UpdatedAt = time.Now()
+}
+
+// RemovePlannedPlay removes a specific planned play for a player by card instance ID.
+func (gs *GameState) RemovePlannedPlay(playerIndex int, cardInstanceID CardInstanceID) {
+    if gs.PlannedPlays == nil {
+        return
+    }
+    existing := gs.PlannedPlays[playerIndex]
+    filtered := make([]PlannedPlay, 0, len(existing))
+    for _, p := range existing {
+        if p.CardInstance != cardInstanceID {
+            filtered = append(filtered, p)
+        }
+    }
+    gs.PlannedPlays[playerIndex] = filtered
+    gs.UpdatedAt = time.Now()
+}
+
+// ClearPlayerPlannedPlays removes all planned plays for a specific player.
+func (gs *GameState) ClearPlayerPlannedPlays(playerIndex int) {
+    if gs.PlannedPlays == nil {
+        gs.PlannedPlays = map[int][]PlannedPlay{0: {}, 1: {}}
+    }
+    gs.PlannedPlays[playerIndex] = []PlannedPlay{}
     gs.UpdatedAt = time.Now()
 }
 

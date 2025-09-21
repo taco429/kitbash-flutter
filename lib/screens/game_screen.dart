@@ -350,24 +350,43 @@ class _GameScreenState extends State<GameScreen> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Lock button with isolated rebuild
+        // Lock and Reset buttons with isolated rebuild
         if (gameState != null)
-          Selector<GameService, (bool, bool)>(
+          Selector<GameService, (bool, bool, String?, int)>(
             selector: (_, service) => (
               service.gameState?.isPlayerLocked(myIndex) ?? false,
               service.gameState?.isPlayerLocked(1 - myIndex) ?? false,
+              service.gameState?.currentPhase,
+              service.gameState?.plannedPlays[myIndex]?.length ?? 0,
             ),
-            builder: (context, lockStates, child) {
-              return LockInButton(
-                isLocked: lockStates.$1,
-                isOpponentLocked: lockStates.$2,
-                playerIndex: myIndex,
-                onLockIn: () {
-                  context.read<GameService>().lockPlayerChoice(
-                        widget.gameId,
-                        myIndex,
-                      );
-                },
+            builder: (context, data, child) {
+              final isLocked = data.$1;
+              final isOpponentLocked = data.$2;
+              final currentPhase = data.$3;
+              final plannedPlaysCount = data.$4;
+              final isPlanning = currentPhase == 'planning';
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Reset button - only show during planning phase when not locked and has planned plays
+                  if (isPlanning && !isLocked && plannedPlaysCount > 0) ...[
+                    _buildResetButton(context, myIndex),
+                    const SizedBox(width: 8),
+                  ],
+                  // Lock button
+                  LockInButton(
+                    isLocked: isLocked,
+                    isOpponentLocked: isOpponentLocked,
+                    playerIndex: myIndex,
+                    onLockIn: () {
+                      context.read<GameService>().lockPlayerChoice(
+                            widget.gameId,
+                            myIndex,
+                          );
+                    },
+                  ),
+                ],
               );
             },
           ),
@@ -443,6 +462,68 @@ class _GameScreenState extends State<GameScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildResetButton(BuildContext context, int playerIndex) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          context.read<GameService>().resetPlannedPlays(
+                widget.gameId,
+                playerIndex,
+              );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 10,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.orange.shade600,
+                Colors.orange.shade700,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.orange.shade800,
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.refresh,
+                color: Colors.white,
+                size: 18,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Reset',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
