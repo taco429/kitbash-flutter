@@ -16,7 +16,7 @@ func TestDiscardDuringResolution(t *testing.T) {
 					{InstanceID: "card-2", CardID: "fireball"},
 					{InstanceID: "card-3", CardID: "heal"},
 				},
-				DiscardPile: []CardInstance{},
+				DiscardPile:     []CardInstance{},
 				PendingDiscards: []CardInstanceID{"card-1", "card-3"}, // Mark cards 1 and 3 for discard
 			},
 			{
@@ -25,14 +25,14 @@ func TestDiscardDuringResolution(t *testing.T) {
 					{InstanceID: "card-4", CardID: "shield"},
 					{InstanceID: "card-5", CardID: "sword"},
 				},
-				DiscardPile: []CardInstance{},
+				DiscardPile:     []CardInstance{},
 				PendingDiscards: []CardInstanceID{"card-5"}, // Mark card 5 for discard
 			},
 		},
 	}
 
 	// Execute resolution phase
-	log := ExecuteResolutionPhase(gs, ActionQueue{}, ActionQueue{})
+	log := ExecuteResolutionPhase(gs, ActionQueue{}, ActionQueue{}, nil)
 
 	// Verify player 0's cards were discarded correctly
 	p0 := &gs.PlayerStates[0]

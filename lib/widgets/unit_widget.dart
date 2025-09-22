@@ -20,7 +20,7 @@ class UnitWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: SizedBox(
         width: tileSize,
         height: tileSize,
         child: Stack(
@@ -28,13 +28,13 @@ class UnitWidget extends StatelessWidget {
           children: [
             // Unit sprite
             _buildUnitSprite(),
-            
+
             // Health bar
             if (unit.isAlive) _buildHealthBar(),
-            
+
             // Attack/Defense indicators
             _buildStatIndicators(),
-            
+
             // Direction indicator (subtle)
             if (unit.isAlive) _buildDirectionIndicator(),
           ],
@@ -47,22 +47,25 @@ class UnitWidget extends StatelessWidget {
     // For now, use a colored circle with the unit's first letter
     // In production, this would load the actual sprite based on unit.getSpriteAsset()
     final color = isCurrentPlayer ? Colors.blue : Colors.red;
-    final letter = unit.cardId.contains('goblin') ? 'G' : 
-                   unit.cardId.contains('ghoul') ? 'Z' : 'U';
-    
+    final letter = unit.cardId.contains('goblin')
+        ? 'G'
+        : unit.cardId.contains('ghoul')
+            ? 'Z'
+            : 'U';
+
     return Container(
       width: tileSize * 0.8,
       height: tileSize * 0.8,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withOpacity(0.8),
+        color: color.withValues(alpha: 0.8),
         border: Border.all(
           color: color,
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -83,8 +86,8 @@ class UnitWidget extends StatelessWidget {
 
   Widget _buildHealthBar() {
     final barWidth = tileSize * 0.6;
-    final barHeight = 6.0;
-    
+    const barHeight = 6.0;
+
     return Positioned(
       bottom: 4,
       child: Container(
@@ -141,7 +144,7 @@ class UnitWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Attack
-            Icon(
+            const Icon(
               Icons.local_fire_department,
               size: 10,
               color: Colors.orange,
@@ -157,7 +160,7 @@ class UnitWidget extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             // Health
-            Icon(
+            const Icon(
               Icons.favorite,
               size: 10,
               color: Colors.red,
@@ -181,7 +184,7 @@ class UnitWidget extends StatelessWidget {
     // Small arrow showing movement direction
     IconData arrowIcon;
     double rotation = 0;
-    
+
     switch (unit.direction) {
       case UnitDirection.north:
         arrowIcon = Icons.arrow_upward;
@@ -212,7 +215,7 @@ class UnitWidget extends StatelessWidget {
         rotation = -45 * (3.14159 / 180);
         break;
     }
-    
+
     return Positioned(
       top: 2,
       left: 2,

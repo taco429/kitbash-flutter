@@ -122,7 +122,7 @@ class GameState {
         // Ignore parse errors
       }
     }
-    
+
     // Parse units
     final units = <GameUnit>[];
     if (json['units'] != null && json['units'] is List) {

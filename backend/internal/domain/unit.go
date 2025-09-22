@@ -25,36 +25,36 @@ type UnitID string
 // Unit represents a unit on the game board
 type Unit struct {
 	ID          UnitID    `json:"id"`
-	CardID      CardID    `json:"cardId"`       // The card that created this unit
-	PlayerIndex int       `json:"playerIndex"`  // Owner of the unit
-	Position    Point     `json:"position"`     // Current position on the board
-	Direction   Direction `json:"direction"`    // Direction the unit is facing/moving
-	
+	CardID      CardID    `json:"cardId"`      // The card that created this unit
+	PlayerIndex int       `json:"playerIndex"` // Owner of the unit
+	Position    Point     `json:"position"`    // Current position on the board
+	Direction   Direction `json:"direction"`   // Direction the unit is facing/moving
+
 	// Stats
-	Attack      int       `json:"attack"`
-	Health      int       `json:"health"`
-	MaxHealth   int       `json:"maxHealth"`
-	Armor       int       `json:"armor"`
-	Speed       int       `json:"speed"`
-	Range       int       `json:"range"`
-	
+	Attack    int `json:"attack"`
+	Health    int `json:"health"`
+	MaxHealth int `json:"maxHealth"`
+	Armor     int `json:"armor"`
+	Speed     int `json:"speed"`
+	Range     int `json:"range"`
+
 	// State flags
-	HasMoved    bool      `json:"hasMoved"`     // Whether unit has moved this turn
-	HasAttacked bool      `json:"hasAttacked"`  // Whether unit has attacked this turn
-	IsAlive     bool      `json:"isAlive"`      // Whether unit is still alive
-	TurnSpawned int       `json:"turnSpawned"`  // Turn number when unit was spawned
-	
+	HasMoved    bool `json:"hasMoved"`    // Whether unit has moved this turn
+	HasAttacked bool `json:"hasAttacked"` // Whether unit has attacked this turn
+	IsAlive     bool `json:"isAlive"`     // Whether unit is still alive
+	TurnSpawned int  `json:"turnSpawned"` // Turn number when unit was spawned
+
 	// Movement target (for pathfinding)
-	TargetPosition *Point   `json:"targetPosition,omitempty"` // Where the unit is trying to go
-	
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	TargetPosition *Point `json:"targetPosition,omitempty"` // Where the unit is trying to go
+
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // NewUnit creates a new unit from card stats
 func NewUnit(cardID CardID, playerIndex int, position Point, stats *UnitStats, turnNumber int) *Unit {
 	unitID := UnitID(fmt.Sprintf("unit_%d_%d_%d_%d", playerIndex, position.Row, position.Col, time.Now().UnixNano()))
-	
+
 	// Determine initial direction based on player
 	// Player 0 starts facing north (towards opponent)
 	// Player 1 starts facing south (towards opponent)
@@ -62,19 +62,36 @@ func NewUnit(cardID CardID, playerIndex int, position Point, stats *UnitStats, t
 	if playerIndex == 1 {
 		direction = DirectionSouth
 	}
-	
+
+	// Handle nil stats with default values
+	attack := 0
+	health := 0
+	maxHealth := 0
+	armor := 0
+	speed := 0
+	rangeVal := 0
+
+	if stats != nil {
+		attack = stats.Attack
+		health = stats.Health
+		maxHealth = stats.Health
+		armor = stats.Armor
+		speed = stats.Speed
+		rangeVal = stats.Range
+	}
+
 	return &Unit{
 		ID:          unitID,
 		CardID:      cardID,
 		PlayerIndex: playerIndex,
 		Position:    position,
 		Direction:   direction,
-		Attack:      stats.Attack,
-		Health:      stats.Health,
-		MaxHealth:   stats.Health,
-		Armor:       stats.Armor,
-		Speed:       stats.Speed,
-		Range:       stats.Range,
+		Attack:      attack,
+		Health:      health,
+		MaxHealth:   maxHealth,
+		Armor:       armor,
+		Speed:       speed,
+		Range:       rangeVal,
 		HasMoved:    false,
 		HasAttacked: false,
 		IsAlive:     true,
@@ -89,13 +106,13 @@ func (u *Unit) TakeDamage(damage int) {
 	if !u.IsAlive {
 		return
 	}
-	
+
 	// Apply armor reduction
 	actualDamage := damage - u.Armor
 	if actualDamage < 0 {
 		actualDamage = 0
 	}
-	
+
 	u.Health -= actualDamage
 	if u.Health <= 0 {
 		u.Health = 0
@@ -109,7 +126,7 @@ func (u *Unit) CanAttack(targetPos Point) bool {
 	if !u.IsAlive || u.HasAttacked {
 		return false
 	}
-	
+
 	// Calculate distance (Manhattan distance for now)
 	distance := abs(targetPos.Row-u.Position.Row) + abs(targetPos.Col-u.Position.Col)
 	return distance <= u.Range
@@ -120,27 +137,27 @@ func (u *Unit) GetNextPosition(boardRows, boardCols int, occupiedTiles map[Point
 	if !u.IsAlive || u.HasMoved || u.Speed <= 0 {
 		return u.Position
 	}
-	
+
 	// If we have a specific target, move towards it
 	targetPos := enemyCommandCenter
 	if u.TargetPosition != nil {
 		targetPos = *u.TargetPosition
 	}
-	
+
 	// Simple pathfinding: move towards target
 	// For now, prefer moving vertically first, then horizontally
 	nextPos := u.Position
-	
+
 	for step := 0; step < u.Speed; step++ {
 		candidatePos := nextPos
-		
+
 		// Calculate direction to target
 		deltaRow := targetPos.Row - candidatePos.Row
 		deltaCol := targetPos.Col - candidatePos.Col
-		
+
 		// Determine next step
 		moved := false
-		
+
 		// Try to move vertically first
 		if deltaRow != 0 {
 			if deltaRow > 0 {
@@ -150,7 +167,7 @@ func (u *Unit) GetNextPosition(boardRows, boardCols int, occupiedTiles map[Point
 				candidatePos.Row--
 				u.Direction = DirectionSouth
 			}
-			
+
 			// Check if position is valid and not occupied
 			if candidatePos.Row >= 0 && candidatePos.Row < boardRows &&
 				candidatePos.Col >= 0 && candidatePos.Col < boardCols &&
@@ -161,7 +178,7 @@ func (u *Unit) GetNextPosition(boardRows, boardCols int, occupiedTiles map[Point
 				candidatePos = nextPos // Reset if blocked
 			}
 		}
-		
+
 		// If couldn't move vertically, try horizontally
 		if !moved && deltaCol != 0 {
 			if deltaCol > 0 {
@@ -171,7 +188,7 @@ func (u *Unit) GetNextPosition(boardRows, boardCols int, occupiedTiles map[Point
 				candidatePos.Col--
 				u.Direction = DirectionWest
 			}
-			
+
 			// Check if position is valid and not occupied
 			if candidatePos.Row >= 0 && candidatePos.Row < boardRows &&
 				candidatePos.Col >= 0 && candidatePos.Col < boardCols &&
@@ -182,7 +199,7 @@ func (u *Unit) GetNextPosition(boardRows, boardCols int, occupiedTiles map[Point
 				candidatePos = nextPos // Reset if blocked
 			}
 		}
-		
+
 		// Update direction for diagonal movement
 		if deltaRow != 0 && deltaCol != 0 {
 			if deltaRow > 0 && deltaCol > 0 {
@@ -195,13 +212,13 @@ func (u *Unit) GetNextPosition(boardRows, boardCols int, occupiedTiles map[Point
 				u.Direction = DirectionSouthWest
 			}
 		}
-		
+
 		// If we couldn't move at all, stop trying
 		if !moved {
 			break
 		}
 	}
-	
+
 	return nextPos
 }
 
@@ -210,7 +227,7 @@ func (u *Unit) Move(newPosition Point) {
 	if !u.IsAlive {
 		return
 	}
-	
+
 	u.Position = newPosition
 	u.HasMoved = true
 	u.UpdatedAt = time.Now()
@@ -221,7 +238,7 @@ func (u *Unit) PerformAttack() {
 	if !u.IsAlive {
 		return
 	}
-	
+
 	u.HasAttacked = true
 	u.UpdatedAt = time.Now()
 }

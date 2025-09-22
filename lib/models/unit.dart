@@ -64,7 +64,7 @@ class GameUnit {
   final int playerIndex;
   final BoardPosition position;
   final UnitDirection direction;
-  
+
   // Stats
   final int attack;
   final int health;
@@ -72,16 +72,16 @@ class GameUnit {
   final int armor;
   final int speed;
   final int range;
-  
+
   // State flags
   final bool hasMoved;
   final bool hasAttacked;
   final bool isAlive;
   final int turnSpawned;
-  
+
   // Movement target (for visualization)
   final BoardPosition? targetPosition;
-  
+
   const GameUnit({
     required this.id,
     required this.cardId,
@@ -176,7 +176,7 @@ class GameUnit {
         // Fallback to a generic unit sprite
         spriteBase = 'unit';
     }
-    
+
     // Map direction to sprite suffix
     String directionSuffix;
     switch (direction) {
@@ -205,7 +205,7 @@ class GameUnit {
         directionSuffix = 'nw';
         break;
     }
-    
+
     return 'assets/images/units/${spriteBase}_$directionSuffix.png';
   }
 

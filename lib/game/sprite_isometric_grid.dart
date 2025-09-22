@@ -219,42 +219,46 @@ class SpriteIsometricGrid extends PositionComponent
 
   void _renderUnits(ui.Canvas canvas, double originX, double originY) {
     final currentPlayerIndex = gameService.currentPlayerIndex;
-    
+
     for (final unit in _units) {
       if (!unit.isAlive) continue;
-      
-      final unitCenter = isoToScreen(unit.position.row, unit.position.col, originX, originY);
-      
+
+      final unitCenter =
+          isoToScreen(unit.position.row, unit.position.col, originX, originY);
+
       // Draw unit as a colored circle with direction indicator
       final isCurrentPlayer = unit.playerIndex == currentPlayerIndex;
       final unitColor = isCurrentPlayer ? Colors.blue : Colors.red;
-      
+
       // Unit body
       final unitPaint = ui.Paint()
-        ..color = unitColor.withOpacity(0.8)
+        ..color = unitColor.withValues(alpha: 0.8)
         ..style = ui.PaintingStyle.fill;
-      
+
       final unitBorderPaint = ui.Paint()
         ..color = unitColor
         ..style = ui.PaintingStyle.stroke
         ..strokeWidth = 2;
-      
+
       canvas.drawCircle(
         ui.Offset(unitCenter.x, unitCenter.y - 10),
         12,
         unitPaint,
       );
-      
+
       canvas.drawCircle(
         ui.Offset(unitCenter.x, unitCenter.y - 10),
         12,
         unitBorderPaint,
       );
-      
+
       // Draw unit type indicator
-      final letter = unit.cardId.contains('goblin') ? 'G' :
-                     unit.cardId.contains('ghoul') ? 'Z' : 'U';
-      
+      final letter = unit.cardId.contains('goblin')
+          ? 'G'
+          : unit.cardId.contains('ghoul')
+              ? 'Z'
+              : 'U';
+
       final textPainter = painting.TextPainter(
         text: painting.TextSpan(
           text: letter,
@@ -266,7 +270,7 @@ class SpriteIsometricGrid extends PositionComponent
         ),
         textDirection: painting.TextDirection.ltr,
       );
-      
+
       textPainter.layout();
       textPainter.paint(
         canvas,
@@ -275,32 +279,35 @@ class SpriteIsometricGrid extends PositionComponent
           unitCenter.y - 10 - textPainter.height / 2,
         ),
       );
-      
+
       // Draw health bar
       _renderUnitHealthBar(canvas, unit, unitCenter);
-      
+
       // Draw stats
       _renderUnitStats(canvas, unit, unitCenter);
-      
+
       // Draw direction indicator
       _renderUnitDirection(canvas, unit, unitCenter);
     }
   }
-  
+
   void _renderUnitHealthBar(ui.Canvas canvas, GameUnit unit, Vector2 center) {
     const barWidth = 20.0;
     const barHeight = 3.0;
     const barY = -25.0;
-    
+
     final bgPaint = ui.Paint()
       ..color = Colors.black54
       ..style = ui.PaintingStyle.fill;
-    
+
     final healthPaint = ui.Paint()
-      ..color = unit.healthPercentage > 0.6 ? Colors.green :
-                unit.healthPercentage > 0.3 ? Colors.orange : Colors.red
+      ..color = unit.healthPercentage > 0.6
+          ? Colors.green
+          : unit.healthPercentage > 0.3
+              ? Colors.orange
+              : Colors.red
       ..style = ui.PaintingStyle.fill;
-    
+
     // Background
     canvas.drawRRect(
       ui.RRect.fromRectAndRadius(
@@ -314,7 +321,7 @@ class SpriteIsometricGrid extends PositionComponent
       ),
       bgPaint,
     );
-    
+
     // Health fill
     canvas.drawRRect(
       ui.RRect.fromRectAndRadius(
@@ -329,10 +336,10 @@ class SpriteIsometricGrid extends PositionComponent
       healthPaint,
     );
   }
-  
+
   void _renderUnitStats(ui.Canvas canvas, GameUnit unit, Vector2 center) {
     final statsText = '${unit.attack}/${unit.health}';
-    
+
     final textPainter = painting.TextPainter(
       text: painting.TextSpan(
         text: statsText,
@@ -345,7 +352,7 @@ class SpriteIsometricGrid extends PositionComponent
       ),
       textDirection: painting.TextDirection.ltr,
     );
-    
+
     textPainter.layout();
     textPainter.paint(
       canvas,
@@ -355,17 +362,17 @@ class SpriteIsometricGrid extends PositionComponent
       ),
     );
   }
-  
+
   void _renderUnitDirection(ui.Canvas canvas, GameUnit unit, Vector2 center) {
     // Draw a small arrow indicating direction
     final directionPaint = ui.Paint()
       ..color = Colors.white70
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 1.5;
-    
+
     const arrowLength = 8.0;
     const arrowOffset = 18.0;
-    
+
     double angle = 0;
     switch (unit.direction) {
       case UnitDirection.north:
@@ -393,32 +400,34 @@ class SpriteIsometricGrid extends PositionComponent
         angle = -3 * math.pi / 4;
         break;
     }
-    
+
     final startX = center.x + math.cos(angle) * arrowOffset;
     final startY = center.y - 10 + math.sin(angle) * arrowOffset;
     final endX = startX + math.cos(angle) * arrowLength;
     final endY = startY + math.sin(angle) * arrowLength;
-    
+
     canvas.drawLine(
       ui.Offset(startX, startY),
       ui.Offset(endX, endY),
       directionPaint,
     );
-    
+
     // Draw arrowhead
     const headLength = 3.0;
     final headAngle1 = angle + 3 * math.pi / 4;
     final headAngle2 = angle - 3 * math.pi / 4;
-    
+
     canvas.drawLine(
       ui.Offset(endX, endY),
-      ui.Offset(endX + math.cos(headAngle1) * headLength, endY + math.sin(headAngle1) * headLength),
+      ui.Offset(endX + math.cos(headAngle1) * headLength,
+          endY + math.sin(headAngle1) * headLength),
       directionPaint,
     );
-    
+
     canvas.drawLine(
       ui.Offset(endX, endY),
-      ui.Offset(endX + math.cos(headAngle2) * headLength, endY + math.sin(headAngle2) * headLength),
+      ui.Offset(endX + math.cos(headAngle2) * headLength,
+          endY + math.sin(headAngle2) * headLength),
       directionPaint,
     );
   }
