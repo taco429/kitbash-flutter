@@ -102,6 +102,56 @@ check-tools: ## Check if required tools are installed
 	@command -v air >/dev/null 2>&1 && echo "$(GREEN)✓ Air$(NC)" || echo "$(YELLOW)⚠ Air (optional - for hot reload)$(NC)"
 	@command -v golangci-lint >/dev/null 2>&1 && echo "$(GREEN)✓ golangci-lint$(NC)" || echo "$(YELLOW)⚠ golangci-lint (optional - for linting)$(NC)"
 
+# Log Management targets
+.PHONY: logs
+logs: ## View formatted backend logs (usage: make logs [FILE=logfile])
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(YELLOW)Usage: make logs FILE=path/to/logfile$(NC)"; \
+		echo "$(YELLOW)Or pipe logs: go run backend/cmd/server 2>&1 | make logs-pipe$(NC)"; \
+	else \
+		$(BACKEND_DIR)/scripts/logs.sh "$(FILE)"; \
+	fi
+
+.PHONY: logs-pipe
+logs-pipe: ## Format piped logs from stdin (usage: command | make logs-pipe)
+	@$(BACKEND_DIR)/scripts/logs.sh
+
+.PHONY: logs-follow
+logs-follow: ## Follow and format logs in real-time (usage: make logs-follow FILE=logfile)
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(RED)FILE is required: make logs-follow FILE=path/to/logfile$(NC)"; \
+		exit 1; \
+	fi
+	@$(BACKEND_DIR)/scripts/logs.sh -f "$(FILE)"
+
+.PHONY: logs-compact
+logs-compact: ## View logs in compact mode (usage: make logs-compact FILE=logfile)
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(RED)FILE is required: make logs-compact FILE=path/to/logfile$(NC)"; \
+		exit 1; \
+	fi
+	@$(BACKEND_DIR)/scripts/logs.sh -c "$(FILE)"
+
+.PHONY: logs-errors
+logs-errors: ## View only ERROR level logs (usage: make logs-errors FILE=logfile)
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(RED)FILE is required: make logs-errors FILE=path/to/logfile$(NC)"; \
+		exit 1; \
+	fi
+	@$(BACKEND_DIR)/scripts/logs.sh -l ERROR "$(FILE)"
+
+.PHONY: logs-game
+logs-game: ## Filter logs by game ID (usage: make logs-game FILE=logfile GAME=game_id)
+	@if [ -z "$(FILE)" ] || [ -z "$(GAME)" ]; then \
+		echo "$(RED)Both FILE and GAME are required: make logs-game FILE=path/to/logfile GAME=game_id$(NC)"; \
+		exit 1; \
+	fi
+	@$(BACKEND_DIR)/scripts/logs.sh --game "$(GAME)" "$(FILE)"
+
+.PHONY: logs-help
+logs-help: ## Show help for log viewer
+	@$(BACKEND_DIR)/scripts/logs.sh --help
+
 # Quick start
 .PHONY: setup
 setup: check-tools deps ## Initial project setup - install tools and dependencies
