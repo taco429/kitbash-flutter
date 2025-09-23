@@ -906,7 +906,7 @@ func (h *GameHub) advanceToPhase(ctx context.Context, gameID domain.GameID, phas
 		// Resolve actions deterministically
 		p1 := gameState.PendingActions[0]
 		p2 := gameState.PendingActions[1]
-		resolutionLog := domain.ExecuteResolutionPhase(gameState, p1, p2)
+		resolutionLog := domain.ExecuteResolutionPhase(gameState, p1, p2, h.cardRepo)
 
 		// Log discards after resolution
 		for i, ps := range gameState.PlayerStates {

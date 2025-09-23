@@ -110,6 +110,10 @@ type GameState struct {
 	PendingActions      map[int]ActionQueue `json:"-"`
     // PlannedPlays are the staged plays during Planning phase, exposed to clients
     PlannedPlays        map[int][]PlannedPlay `json:"plannedPlays"`
+	// Units on the board
+	Units               []*Unit          `json:"units"`
+	// Track refunds that need to be processed
+	PendingRefunds      map[int][]Resources `json:"-"`
 	CreatedAt           time.Time        `json:"createdAt"`
 	UpdatedAt           time.Time        `json:"updatedAt"`
 }
@@ -133,6 +137,8 @@ func NewGameState(gameID GameID, players []Player, boardRows, boardCols int) *Ga
 		PlayerChoicesLocked: map[int]bool{0: false, 1: false},
 		PendingActions:      map[int]ActionQueue{0: {}, 1: {}},
         PlannedPlays:        map[int][]PlannedPlay{0: []PlannedPlay{}, 1: []PlannedPlay{}},
+		Units:               []*Unit{},
+		PendingRefunds:      map[int][]Resources{0: {}, 1: {}},
 		CreatedAt:           time.Now(),
 		UpdatedAt:           time.Now(),
 	}
@@ -351,14 +357,23 @@ func (gs *GameState) DiscardCards(playerIndex int, instanceIDs []CardInstanceID)
 }
 
 // IsTileOccupied returns true if the given tile currently contains a structure
-// that occupies the space. For now, only Command Centers occupy tiles.
+// or unit that occupies the space.
 func (gs *GameState) IsTileOccupied(row, col int) bool {
+    // Check command centers
     for _, cc := range gs.CommandCenters {
         if row >= cc.TopLeftRow && row < cc.TopLeftRow+2 &&
             col >= cc.TopLeftCol && col < cc.TopLeftCol+2 {
             return true
         }
     }
+    
+    // Check units
+    for _, unit := range gs.Units {
+        if unit.IsAlive && unit.Position.Row == row && unit.Position.Col == col {
+            return true
+        }
+    }
+    
     // Also treat any existing planned play position as occupied to avoid conflicts
     if gs.PlannedPlays != nil {
         for _, plays := range gs.PlannedPlays {
@@ -519,4 +534,111 @@ func (gs *GameState) SpendResources(playerIndex int, cost Resources) bool {
 	
 	gs.UpdatedAt = time.Now()
 	return true
+}
+
+// RefundResources gives resources back to a player
+func (gs *GameState) RefundResources(playerIndex int, amount Resources) {
+	if playerIndex < 0 || playerIndex >= len(gs.PlayerStates) {
+		return
+	}
+	
+	playerState := &gs.PlayerStates[playerIndex]
+	playerState.Resources.Gold += amount.Gold
+	playerState.Resources.Mana += amount.Mana
+	
+	gs.UpdatedAt = time.Now()
+}
+
+// AddPendingRefund adds a refund to be processed later
+func (gs *GameState) AddPendingRefund(playerIndex int, amount Resources) {
+	if gs.PendingRefunds == nil {
+		gs.PendingRefunds = map[int][]Resources{0: {}, 1: {}}
+	}
+	gs.PendingRefunds[playerIndex] = append(gs.PendingRefunds[playerIndex], amount)
+}
+
+// ProcessPendingRefunds applies all pending refunds
+func (gs *GameState) ProcessPendingRefunds() {
+	if gs.PendingRefunds == nil {
+		return
+	}
+	
+	for playerIndex, refunds := range gs.PendingRefunds {
+		for _, refund := range refunds {
+			gs.RefundResources(playerIndex, refund)
+		}
+	}
+	
+	// Clear pending refunds
+	gs.PendingRefunds = map[int][]Resources{0: {}, 1: {}}
+}
+
+// SpawnUnit creates a new unit on the board from a card
+func (gs *GameState) SpawnUnit(cardID CardID, playerIndex int, position Point, stats *UnitStats) *Unit {
+	unit := NewUnit(cardID, playerIndex, position, stats, gs.TurnCount)
+	gs.Units = append(gs.Units, unit)
+	gs.UpdatedAt = time.Now()
+	return unit
+}
+
+// GetUnitAt returns the unit at the given position, or nil if none
+func (gs *GameState) GetUnitAt(position Point) *Unit {
+	for _, unit := range gs.Units {
+		if unit.IsAlive && unit.IsAt(position) {
+			return unit
+		}
+	}
+	return nil
+}
+
+// GetUnitsForPlayer returns all alive units belonging to a player
+func (gs *GameState) GetUnitsForPlayer(playerIndex int) []*Unit {
+	var units []*Unit
+	for _, unit := range gs.Units {
+		if unit.IsAlive && unit.PlayerIndex == playerIndex {
+			units = append(units, unit)
+		}
+	}
+	return units
+}
+
+// GetEnemyUnits returns all alive enemy units for a given player
+func (gs *GameState) GetEnemyUnits(playerIndex int) []*Unit {
+	var units []*Unit
+	for _, unit := range gs.Units {
+		if unit.IsAlive && unit.PlayerIndex != playerIndex {
+			units = append(units, unit)
+		}
+	}
+	return units
+}
+
+// RemoveDeadUnits removes all dead units from the board
+func (gs *GameState) RemoveDeadUnits() {
+	aliveUnits := make([]*Unit, 0, len(gs.Units))
+	for _, unit := range gs.Units {
+		if unit.IsAlive {
+			aliveUnits = append(aliveUnits, unit)
+		}
+	}
+	gs.Units = aliveUnits
+	gs.UpdatedAt = time.Now()
+}
+
+// GetEnemyCommandCenterPosition returns the position of the enemy command center
+func (gs *GameState) GetEnemyCommandCenterPosition(playerIndex int) Point {
+	enemyIndex := 1 - playerIndex // Toggle between 0 and 1
+	cc := gs.GetCommandCenter(enemyIndex)
+	if cc != nil {
+		// Return center of 2x2 command center
+		return Point{
+			Row: cc.TopLeftRow + 1,
+			Col: cc.TopLeftCol + 1,
+		}
+	}
+	// Fallback position
+	if playerIndex == 0 {
+		return Point{Row: gs.BoardRows - 1, Col: gs.BoardCols / 2}
+	}
+	return Point{Row: 0, Col: gs.BoardCols / 2}
 }

@@ -1,7 +1,3 @@
-# Kitbash Flutter - Development Makefile
-# ========================================
-# A self-documenting Makefile for the Kitbash Flutter + Go project
-
 # Default target when just running 'make'
 .DEFAULT_GOAL := help
 
@@ -50,21 +46,6 @@ run-frontend-url: ## Run Flutter with custom BACKEND_URL (usage: make run-fronte
 	@echo "$(BLUE)Starting Flutter with BACKEND_URL=$(URL)...$(NC)"
 	flutter run -d web-server --dart-define=BACKEND_URL=$(URL)
 
-.PHONY: build-web
-build-web: ## Build Flutter for web production
-	@echo "$(BLUE)Building Flutter web app...$(NC)"
-	flutter build web
-
-.PHONY: flutter-clean
-flutter-clean: ## Clean Flutter build cache
-	@echo "$(BLUE)Cleaning Flutter build cache...$(NC)"
-	flutter clean
-
-.PHONY: flutter-deps
-flutter-deps: ## Install/update Flutter dependencies
-	@echo "$(BLUE)Installing Flutter dependencies...$(NC)"
-	flutter pub get
-
 # Backend (Go) targets
 .PHONY: build-backend
 build-backend: ## Build the Go backend binary
@@ -82,90 +63,10 @@ run-backend-port: ## Run Go backend on specific port (usage: make run-backend-po
 	@if [ -z "$(PORT)" ]; then echo "$(YELLOW)PORT not set, defaulting to 8080$(NC)"; fi
 	@cd $(BACKEND_DIR) && HTTP_PORT=$${PORT:-8080} go run ./cmd/server
 
-.PHONY: backend-dev
-backend-dev: ## Run Go backend with hot reload (requires air)
-	@echo "$(BLUE)Starting Go backend with hot reload...$(NC)"
-	@cd $(BACKEND_DIR) && air
-
 .PHONY: backend-test
 backend-test: ## Run Go backend tests
 	@echo "$(BLUE)Running backend tests...$(NC)"
 	@cd $(BACKEND_DIR) && go test ./...
-
-.PHONY: backend-tidy
-backend-tidy: ## Tidy Go modules
-	@echo "$(BLUE)Tidying Go modules...$(NC)"
-	@cd $(BACKEND_DIR) && go mod tidy
-
-# Combined targets
-.PHONY: run
-run: ## Run both frontend and backend (requires separate terminals)
-	@echo "$(YELLOW)Starting both services...$(NC)"
-	@echo "$(YELLOW)Note: This will run both in the same terminal. Consider using 'make run-dev' instead.$(NC)"
-	@make run-backend & make run-frontend
-
-.PHONY: run-local
-run-local: ## Run local backend and Flutter pointing to localhost (requires two terminals)
-	@echo "$(BLUE)Local dev: Backend on :8080 and Flutter using localhost$(NC)"
-	@echo "Open two terminals and run:"
-	@echo "  1) $(GREEN)make run-backend$(NC)"
-	@echo "  2) $(GREEN)make run-frontend-local$(NC)"
-
-.PHONY: run-remote
-run-remote: ## Run Flutter against remote backend (no local backend)
-	@echo "$(BLUE)Frontend against remote backend$(NC)"
-	@make run-frontend-remote
-
-.PHONY: run-both-here
-run-both-here: ## Run backend and Flutter in one terminal (background backend)
-	@echo "$(BLUE)Starting backend in background and Flutter (local) in foreground...$(NC)"
-	@cd $(BACKEND_DIR) && HTTP_PORT=8080 go run ./cmd/server & echo $$! > /tmp/kitbash_backend.pid
-	@sleep 1
-	@BACKEND_URL=http://localhost:8080 make run-frontend-url URL=http://localhost:8080 || true
-	@echo "$(YELLOW)Stopping background backend...$(NC)"
-	@kill $$(cat /tmp/kitbash_backend.pid) 2>/dev/null || true
-	@rm -f /tmp/kitbash_backend.pid
-
-.PHONY: run-dev
-run-dev: ## Instructions for running both services in development
-	@echo "$(BLUE)Development Setup Instructions:$(NC)"
-	@echo "======================================"
-	@echo ""
-	@echo "Open two terminal windows and run:"
-	@echo ""
-	@echo "  Terminal 1: $(GREEN)make run-backend$(NC)"
-	@echo "  Terminal 2: $(GREEN)make run-frontend$(NC)"
-	@echo ""
-	@echo "Or use tmux/screen for split terminals"
-
-.PHONY: build
-build: build-backend build-web ## Build both backend and frontend
-
-.PHONY: clean
-clean: flutter-clean ## Clean all build artifacts
-	@echo "$(BLUE)Cleaning backend build artifacts...$(NC)"
-	@rm -rf $(BACKEND_DIR)/bin
-	@echo "$(GREEN)✓ All build artifacts cleaned$(NC)"
-
-.PHONY: deps
-deps: flutter-deps backend-tidy ## Install all dependencies (Flutter and Go)
-	@echo "$(GREEN)✓ All dependencies installed$(NC)"
-
-# Docker targets (if using Docker)
-.PHONY: docker-build
-docker-build: ## Build Docker containers
-	@echo "$(BLUE)Building Docker containers...$(NC)"
-	docker-compose build
-
-.PHONY: docker-up
-docker-up: ## Start Docker containers
-	@echo "$(BLUE)Starting Docker containers...$(NC)"
-	docker-compose up
-
-.PHONY: docker-down
-docker-down: ## Stop Docker containers
-	@echo "$(BLUE)Stopping Docker containers...$(NC)"
-	docker-compose down
 
 # Testing targets
 .PHONY: test
@@ -200,6 +101,56 @@ check-tools: ## Check if required tools are installed
 	@command -v docker >/dev/null 2>&1 && echo "$(GREEN)✓ Docker$(NC)" || echo "$(YELLOW)⚠ Docker (optional)$(NC)"
 	@command -v air >/dev/null 2>&1 && echo "$(GREEN)✓ Air$(NC)" || echo "$(YELLOW)⚠ Air (optional - for hot reload)$(NC)"
 	@command -v golangci-lint >/dev/null 2>&1 && echo "$(GREEN)✓ golangci-lint$(NC)" || echo "$(YELLOW)⚠ golangci-lint (optional - for linting)$(NC)"
+
+# Log Management targets
+.PHONY: logs
+logs: ## View formatted backend logs (usage: make logs [FILE=logfile])
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(YELLOW)Usage: make logs FILE=path/to/logfile$(NC)"; \
+		echo "$(YELLOW)Or pipe logs: go run backend/cmd/server 2>&1 | make logs-pipe$(NC)"; \
+	else \
+		$(BACKEND_DIR)/scripts/logs.sh "$(FILE)"; \
+	fi
+
+.PHONY: logs-pipe
+logs-pipe: ## Format piped logs from stdin (usage: command | make logs-pipe)
+	@$(BACKEND_DIR)/scripts/logs.sh
+
+.PHONY: logs-follow
+logs-follow: ## Follow and format logs in real-time (usage: make logs-follow FILE=logfile)
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(RED)FILE is required: make logs-follow FILE=path/to/logfile$(NC)"; \
+		exit 1; \
+	fi
+	@$(BACKEND_DIR)/scripts/logs.sh -f "$(FILE)"
+
+.PHONY: logs-compact
+logs-compact: ## View logs in compact mode (usage: make logs-compact FILE=logfile)
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(RED)FILE is required: make logs-compact FILE=path/to/logfile$(NC)"; \
+		exit 1; \
+	fi
+	@$(BACKEND_DIR)/scripts/logs.sh -c "$(FILE)"
+
+.PHONY: logs-errors
+logs-errors: ## View only ERROR level logs (usage: make logs-errors FILE=logfile)
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(RED)FILE is required: make logs-errors FILE=path/to/logfile$(NC)"; \
+		exit 1; \
+	fi
+	@$(BACKEND_DIR)/scripts/logs.sh -l ERROR "$(FILE)"
+
+.PHONY: logs-game
+logs-game: ## Filter logs by game ID (usage: make logs-game FILE=logfile GAME=game_id)
+	@if [ -z "$(FILE)" ] || [ -z "$(GAME)" ]; then \
+		echo "$(RED)Both FILE and GAME are required: make logs-game FILE=path/to/logfile GAME=game_id$(NC)"; \
+		exit 1; \
+	fi
+	@$(BACKEND_DIR)/scripts/logs.sh --game "$(GAME)" "$(FILE)"
+
+.PHONY: logs-help
+logs-help: ## Show help for log viewer
+	@$(BACKEND_DIR)/scripts/logs.sh --help
 
 # Quick start
 .PHONY: setup

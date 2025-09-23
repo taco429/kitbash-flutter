@@ -108,7 +108,7 @@ func TestDiscardFunctionality(t *testing.T) {
 	}
 
 	// Execute resolution phase
-	resolutionLog := domain.ExecuteResolutionPhase(savedState, domain.ActionQueue{}, domain.ActionQueue{})
+	resolutionLog := domain.ExecuteResolutionPhase(savedState, domain.ActionQueue{}, domain.ActionQueue{}, nil)
 
 	// Verify discards were processed
 	if len(savedState.PlayerStates[0].Hand) != 1 {

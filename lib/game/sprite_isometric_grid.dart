@@ -11,6 +11,7 @@ import 'package:flutter/painting.dart' as painting;
 import '../services/game_service.dart';
 import '../models/tile_data.dart';
 import '../models/resources.dart' as resources;
+import '../models/unit.dart';
 import 'sprites/tile_sprite_manager.dart';
 
 /// Isometric grid that renders each tile using sprites when available,
@@ -22,6 +23,7 @@ class SpriteIsometricGrid extends PositionComponent
   final Vector2 tileSize;
   final GameService gameService;
   List<CommandCenter> _commandCenters;
+  List<GameUnit> _units = [];
 
   /// When true, render tile sprites keeping their native aspect ratio
   /// (no isometric vertical compression). Useful for testing assets
@@ -128,10 +130,13 @@ class SpriteIsometricGrid extends PositionComponent
   void render(ui.Canvas canvas) {
     super.render(canvas);
 
-    // Sync command centers from game service
+    // Sync command centers and units from game service
     final gameState = gameService.gameState;
-    if (gameState != null && gameState.commandCenters.isNotEmpty) {
-      _commandCenters = gameState.commandCenters;
+    if (gameState != null) {
+      if (gameState.commandCenters.isNotEmpty) {
+        _commandCenters = gameState.commandCenters;
+      }
+      _units = gameState.units;
     }
 
     final double originX = size.x / 2;
@@ -139,6 +144,7 @@ class SpriteIsometricGrid extends PositionComponent
 
     _renderTiles(canvas, originX, originY);
     _renderCommandCenters(canvas, originX, originY);
+    _renderUnits(canvas, originX, originY);
     _renderOverlays(canvas, originX, originY);
   }
 
@@ -209,6 +215,291 @@ class SpriteIsometricGrid extends PositionComponent
     final ui.Path diamond = _tileDiamond(center, 1.0);
     final ui.Paint fill = ui.Paint()..color = _terrainColor(t);
     canvas.drawPath(diamond, fill);
+  }
+
+  void _renderUnits(ui.Canvas canvas, double originX, double originY) {
+    final currentPlayerIndex = gameService.currentPlayerIndex;
+    
+    // Debug: Log unit count
+    if (_units.isNotEmpty) {
+      print('Rendering ${_units.length} units on the grid');
+    }
+
+    for (final unit in _units) {
+      if (!unit.isAlive) continue;
+
+      final unitCenter =
+          isoToScreen(unit.position.row, unit.position.col, originX, originY);
+
+      // Draw unit as a colored circle with direction indicator
+      final isCurrentPlayer = unit.playerIndex == currentPlayerIndex;
+      final unitColor = isCurrentPlayer ? Colors.blue : Colors.red;
+
+      // Add glow/shadow effect for better visibility
+      final glowPaint = ui.Paint()
+        ..color = unitColor.withValues(alpha: 0.3)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 8);
+      
+      canvas.drawCircle(
+        ui.Offset(unitCenter.x, unitCenter.y - 10),
+        16,
+        glowPaint,
+      );
+
+      // Unit body with gradient for depth
+      final unitPaint = ui.Paint()
+        ..shader = ui.Gradient.radial(
+          ui.Offset(unitCenter.x, unitCenter.y - 10),
+          16,
+          [
+            unitColor.withValues(alpha: 0.9),
+            unitColor.withValues(alpha: 0.7),
+          ],
+          [0.0, 1.0],
+        )
+        ..style = ui.PaintingStyle.fill;
+
+      final unitBorderPaint = ui.Paint()
+        ..color = unitColor
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 3;  // Thicker border
+
+      // Larger circle for better visibility
+      canvas.drawCircle(
+        ui.Offset(unitCenter.x, unitCenter.y - 10),
+        16,  // Increased from 12
+        unitPaint,
+      );
+
+      canvas.drawCircle(
+        ui.Offset(unitCenter.x, unitCenter.y - 10),
+        16,
+        unitBorderPaint,
+      );
+
+      // Draw unit type indicator with better contrast
+      final letter = unit.cardId.contains('goblin')
+          ? 'G'
+          : unit.cardId.contains('ghoul')
+              ? 'Z'
+              : 'U';
+
+      // Add text shadow for better readability
+      final shadowPainter = painting.TextPainter(
+        text: painting.TextSpan(
+          text: letter,
+          style: TextStyle(
+            color: Colors.black.withValues(alpha: 0.5),
+            fontSize: 16,  // Increased from 12
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: painting.TextDirection.ltr,
+      );
+      
+      shadowPainter.layout();
+      shadowPainter.paint(
+        canvas,
+        ui.Offset(
+          unitCenter.x - shadowPainter.width / 2 + 1,
+          unitCenter.y - 10 - shadowPainter.height / 2 + 1,
+        ),
+      );
+
+      final textPainter = painting.TextPainter(
+        text: painting.TextSpan(
+          text: letter,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,  // Increased from 12
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: painting.TextDirection.ltr,
+      );
+
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        ui.Offset(
+          unitCenter.x - textPainter.width / 2,
+          unitCenter.y - 10 - textPainter.height / 2,
+        ),
+      );
+
+      // Draw health bar
+      _renderUnitHealthBar(canvas, unit, unitCenter);
+
+      // Draw stats
+      _renderUnitStats(canvas, unit, unitCenter);
+
+      // Draw direction indicator
+      _renderUnitDirection(canvas, unit, unitCenter);
+    }
+  }
+
+  void _renderUnitHealthBar(ui.Canvas canvas, GameUnit unit, Vector2 center) {
+    const barWidth = 40.0;  // Doubled width
+    const barHeight = 6.0;   // Doubled height
+    const barY = -30.0;      // Moved up a bit more
+
+    final bgPaint = ui.Paint()
+      ..color = Colors.black54
+      ..style = ui.PaintingStyle.fill;
+
+    final healthPaint = ui.Paint()
+      ..color = unit.healthPercentage > 0.6
+          ? Colors.green
+          : unit.healthPercentage > 0.3
+              ? Colors.orange
+              : Colors.red
+      ..style = ui.PaintingStyle.fill;
+
+    // Background
+    canvas.drawRRect(
+      ui.RRect.fromRectAndRadius(
+        ui.Rect.fromLTWH(
+          center.x - barWidth / 2,
+          center.y + barY,
+          barWidth,
+          barHeight,
+        ),
+        const ui.Radius.circular(1.5),
+      ),
+      bgPaint,
+    );
+
+    // Health fill
+    canvas.drawRRect(
+      ui.RRect.fromRectAndRadius(
+        ui.Rect.fromLTWH(
+          center.x - barWidth / 2,
+          center.y + barY,
+          barWidth * unit.healthPercentage,
+          barHeight,
+        ),
+        const ui.Radius.circular(1.5),
+      ),
+      healthPaint,
+    );
+  }
+
+  void _renderUnitStats(ui.Canvas canvas, GameUnit unit, Vector2 center) {
+    final statsText = '${unit.attack}/${unit.health}';
+
+    // Draw background box for stats
+    final statsBgPaint = ui.Paint()
+      ..color = Colors.black87
+      ..style = ui.PaintingStyle.fill;
+    
+    final statsBorderPaint = ui.Paint()
+      ..color = Colors.white70
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    // Stats box positioned to the right of the unit
+    final statsBox = ui.RRect.fromRectAndRadius(
+      ui.Rect.fromLTWH(
+        center.x + 15,
+        center.y - 15,
+        25,
+        14,
+      ),
+      const ui.Radius.circular(2),
+    );
+    
+    canvas.drawRRect(statsBox, statsBgPaint);
+    canvas.drawRRect(statsBox, statsBorderPaint);
+
+    final textPainter = painting.TextPainter(
+      text: painting.TextSpan(
+        text: statsText,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,  // Increased from 8
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: painting.TextDirection.ltr,
+    );
+
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      ui.Offset(
+        center.x + 17,  // Position inside the stats box
+        center.y - 13,
+      ),
+    );
+  }
+
+  void _renderUnitDirection(ui.Canvas canvas, GameUnit unit, Vector2 center) {
+    // Draw a larger, more visible arrow indicating direction
+    final directionPaint = ui.Paint()
+      ..color = Colors.yellow  // More visible color
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 2.5;  // Thicker line
+
+    const arrowLength = 15.0;  // Longer arrow
+    const arrowOffset = 20.0;
+
+    double angle = 0;
+    switch (unit.direction) {
+      case UnitDirection.north:
+        angle = -math.pi / 2;
+        break;
+      case UnitDirection.northEast:
+        angle = -math.pi / 4;
+        break;
+      case UnitDirection.east:
+        angle = 0;
+        break;
+      case UnitDirection.southEast:
+        angle = math.pi / 4;
+        break;
+      case UnitDirection.south:
+        angle = math.pi / 2;
+        break;
+      case UnitDirection.southWest:
+        angle = 3 * math.pi / 4;
+        break;
+      case UnitDirection.west:
+        angle = math.pi;
+        break;
+      case UnitDirection.northWest:
+        angle = -3 * math.pi / 4;
+        break;
+    }
+
+    final startX = center.x + math.cos(angle) * arrowOffset;
+    final startY = center.y - 8 + math.sin(angle) * arrowOffset;
+    final endX = startX + math.cos(angle) * arrowLength;
+    final endY = startY + math.sin(angle) * arrowLength;
+
+    canvas.drawLine(
+      ui.Offset(startX, startY),
+      ui.Offset(endX, endY),
+      directionPaint,
+    );
+
+    // Draw arrowhead
+    const headLength = 6.0;  // Bigger arrowhead
+    final headAngle1 = angle + 3 * math.pi / 4;
+    final headAngle2 = angle - 3 * math.pi / 4;
+
+    canvas.drawLine(
+      ui.Offset(endX, endY),
+      ui.Offset(endX + math.cos(headAngle1) * headLength,
+          endY + math.sin(headAngle1) * headLength),
+      directionPaint,
+    );
+
+    canvas.drawLine(
+      ui.Offset(endX, endY),
+      ui.Offset(endX + math.cos(headAngle2) * headLength,
+          endY + math.sin(headAngle2) * headLength),
+      directionPaint,
+    );
   }
 
   void _renderCommandCenters(ui.Canvas canvas, double originX, double originY) {
